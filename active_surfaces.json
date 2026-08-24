@@ -1,0 +1,161 @@
+[
+  {
+    "domain": "blackbeltprotein.com.au",
+    "base": "https://blackbeltprotein.com.au",
+    "pk_live": "pk_live_516EhAIEb3qM4yDCE03WDX86sPnEdaN0v4r6kwxRIAINHzs7sChCl9migSlIPuCoE5xwqySWo8m8qlxrg6uUYtQo400gTiJSQk4",
+    "features": [
+      "wc_open_reg",
+      "wc_upe",
+      "checkout"
+    ],
+    "open_reg": true,
+    "givewp": false,
+    "wc_upe": true,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "christopherchristou.com",
+    "base": "https://christopherchristou.com",
+    "pk_live": "pk_live_51Mk5dSB6UfaGARGVSFoLUnueHLpcxf9di1RDnyywVuvFhCpmDufPLDmkCLPsM3EbcowCFrjNJh4dGT7XbLzUcclc00K4aNtjY5",
+    "features": [
+      "checkout"
+    ],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "library.wpcode.com",
+    "base": "https://library.wpcode.com",
+    "pk_live": "pk_live_51LxExjCAN1AoLCQ4lEriBZPQjQADZ2MnacOkL6vstqhZAGHOAEIctzpZm2QKK9zximpuqgxbaIp34WTSyugxvgXA00ES9YZxFD",
+    "features": [],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": true
+  },
+  {
+    "domain": "lifterlms.com",
+    "base": "https://lifterlms.com",
+    "pk_live": "pk_live_sRzjA5xTx7W355R2IY8oIZCs",
+    "features": [
+      "wc_open_reg",
+      "wc_upe",
+      "checkout"
+    ],
+    "open_reg": true,
+    "givewp": false,
+    "wc_upe": true,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "mainwp.com",
+    "base": "https://mainwp.com",
+    "pk_live": "pk_live_410CsmrFpgAfgi5Ghx7Cy8cJnu8u3UKyAnAn4LZnPEbx2txUlM5LgmKXiT19XDtRt0Vcd1vjbinaXCMyftBAmi3Z500CFlfFTB7",
+    "features": [
+      "wc_upe"
+    ],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": true,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "nelaemmaus.com",
+    "base": "https://nelaemmaus.com",
+    "pk_live": "pk_live_51QpdyYAMiWAfQYTqwIVQNYvo6Oq9DlslCFpdbPpVe34xPmno31ycLIgMCWtzjQCcjJyMvSQlgpiAgQXcJhYWdU8q00jqDaEr0y",
+    "features": [
+      "wc_upe",
+      "checkout"
+    ],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": true,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "nscfundalaska.org",
+    "base": "https://nscfundalaska.org",
+    "pk_live": null,
+    "features": [
+      "givewp/donate/"
+    ],
+    "open_reg": false,
+    "givewp": true,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "ntboosterclub.org",
+    "base": "https://ntboosterclub.org",
+    "pk_live": "pk_live_51TYFRLCBJ9wlLMRlwo3uM9KfQp5asJXqggpsuLyWWgIUqY22Pzko5h3bb50v1rcHzRAL4MWNVh61gklbumerzpjA00T8dzkXPL",
+    "features": [],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "rocketgeek.com",
+    "base": "https://rocketgeek.com",
+    "pk_live": "pk_live_5153BeCDTX57OKyr3c3ek7Jih2B1eDlPr2KBHGrQOKCxOflJG5Z98BwUtq0siI28cPm61QO3v5bPuQoIykddn7Gw800ihOJNT4B",
+    "features": [
+      "checkout"
+    ],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "software.liquidweb.com",
+    "base": "https://software.liquidweb.com",
+    "pk_live": null,
+    "features": [
+      "checkout"
+    ],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "thetrendywhippet.co.uk",
+    "base": "https://thetrendywhippet.co.uk",
+    "pk_live": "pk_live_51Jp9wuK3YdHkHNEh41rHIvuKpHsPlqXMNzWj3cHURKSlzRs561KNRtTwXXUn5FOyVIX4U97Gpf8MKfuRqkLnmBWX00xv4jEjy3",
+    "features": [
+      "wc_open_reg",
+      "wc_upe",
+      "checkout"
+    ],
+    "open_reg": true,
+    "givewp": false,
+    "wc_upe": true,
+    "wc_legacy": false,
+    "cf_protected": false
+  },
+  {
+    "domain": "wisdomofplanets.com",
+    "base": "https://wisdomofplanets.com",
+    "pk_live": "pk_live_51PLMKYAH7opD6dQYmoFqwAem5u09mmcTWN3xm2h4SY2DelpDKlGJ6zwhvMytaLeu6qlXOWfcAeUBYVI1yt1z4Rhe00QnBB6js1",
+    "features": [
+      "checkout"
+    ],
+    "open_reg": false,
+    "givewp": false,
+    "wc_upe": false,
+    "wc_legacy": false,
+    "cf_protected": false
+  }
+]
