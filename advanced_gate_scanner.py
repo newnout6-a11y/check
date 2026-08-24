@@ -111,8 +111,13 @@ async def probe_stage2_3_4_full_qualification(domain: str, base: str, initial_no
                 return None
 
             cookies = {c.key: c.value for c in s.cookie_jar}
-            if not any("wordpress_logged_in" in k for k in cookies):
-                # Bot challenge or closed registration
+            has_wp_login = any("wordpress_logged_in" in k for k in cookies)
+            has_cf_bm = any("__cf_bm" in k for k in cookies)
+            
+            if not has_wp_login:
+                if has_cf_bm:
+                    # Cloudflare invisible on GET, triggers bot detection on POST
+                    pass  # fall through to return None with context
                 return None
 
             # === STAGE 3: Authenticated Scrape /my-account/add-payment-method/ ===
