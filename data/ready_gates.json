@@ -7,9 +7,9 @@
     "ajax_url": "https://www.blackbeltprotein.com.au/wp-admin/admin-ajax.php",
     "pk_live": "pk_live_516EhAIEb3qM4yDCE03WDX86sPnEdaN0v4r6kwxRIAINHzs7sChCl9migSlIPuCoE5xwqySWo8m8qlxrg6uUYtQo400gTiJSQk4",
     "gate_type": "wc_stripe_upe",
-    "upe_nonce": "489583a574",
+    "upe_nonce": "1d81aa29c2",
     "legacy_nonce": "",
-    "updated_at": 1787609982,
+    "updated_at": 1787610792,
     "status": "READY"
   }
 ]

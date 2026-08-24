@@ -7,7 +7,10 @@
 ## 🎯 Основные инструменты на верстаке (Корень проекта)
 
 ### 1. `setup_gate.py` — Главный боевой чекер карт ($0 SetupIntent Live Gate)
-* **Назначение:** Полнофункциональный не-SK валидатор карт через боевой WooCommerce Stripe SetupIntent. Пробивает эмитент без списания средств, возвращает точные вердикты (`APPROVED`, `3DS_REQUIRED`, `DECLINED`, `INVALID`).
+* **Движок:** `curl_cffi` с Chrome TLS-имперсонацией (`chrome131`) — проходит Cloudflare WAF, который резал aiohttp.
+* **Назначение:** Полнофункциональный не-SK валидатор карт через боевой WooCommerce Stripe SetupIntent. Пробивает эмитент без списания средств, возвращает точные вердикты (`APPROVED`, `3DS_REQUIRED`, `DECLINED`).
+* **Пул доноров:** Автоматически загружается из `data/ready_gates.json`. При падении донора — авто-ротация на следующего.
+* **Подтверждена аутентификация банком:** Карта `537872******8595` → `seti_1U86Qx...` → `succeeded`. Банк показал уведомление в приложении.
 * **Запуск:**
   ```bash
   # Одиночная карта:
@@ -23,9 +26,11 @@
   python setup_gate.py https://target-donor.com "CARD1"
   ```
 
-### 2. `advanced_gate_scanner.py` — Сканер и классификатор платежных поверхностей
-* **Назначение:** Асинхронно сканирует базу доменов из `data/`, классифицирует открытую регистрацию WooCommerce, находит UPE/Legacy SetupIntent nonces, GiveWP donation эндпоинты, чекауты и активные Stripe `pk_live_...` ключи.
-* **Результат:** Сохраняет готовый список активных мерчантов в `data/active_surfaces.json`.
+### 2. `advanced_gate_scanner.py` — 4-стадийный сканер и классификатор (v3, curl_cffi)
+* **Движок:** `curl_cffi` Chrome TLS-имперсонация — обходит динамический Cloudflare WAF, который резал POST-регистрацию на aiohttp.
+* **4 стадии:** DNS-резолв → GET-проба формы → POST-регистрация (Chrome TLS) → скрапинг `pk_live` + SetupIntent nonces → боевой confirm-пробник.
+* **Метрики:** Из 348 доменов: 316 живых DNS → 15 открытых форм → 1 квалифицированный SetupIntent-гейт.
+* **Результат:** Сохраняет готовый пул в `data/ready_gates.json` и `data/active_surfaces.json`.
 * **Запуск:** `python advanced_gate_scanner.py`
 
 ### 3. `harvest_donors.py` — Поисковик доноров по саппорт-форумам WordPress.org
@@ -58,15 +63,27 @@ pusto/
 
 ---
 
-## ⚡ Быстрый старт новой сессии
+## ⚡ Команды
 
-1. **Проверить карты на боевом шлюзе:**
-   ```bash
-   python setup_gate.py "CARD|MM|YY|CVC"
-   ```
-2. **Собрать новых доноров и просканировать:**
-   ```bash
-   python harvest_donors.py
-   python advanced_gate_scanner.py
-   ```
-3. **Все собранные данные хранятся в `data/`.**
+```bash
+# Проверить карту на боевом шлюзе (пул из data/ready_gates.json):
+python setup_gate.py "CARD|MM|YY|CVC"
+
+# Проверить на конкретном доноре:
+python setup_gate.py https://target-donor.com "CARD|MM|YY|CVC"
+
+# Собрать свежих доноров с форумов WordPress (62 плагина):
+python harvest_donors.py
+
+# Отсканировать базу и обновить пул готовых шлюзов:
+python advanced_gate_scanner.py
+```
+
+## Проверено
+
+| Дата | Карта | Донор | Вердикт | SetupIntent |
+|---|---|---|---|---|
+| 2026-08-25 | `537872******8595` | blackbeltprotein.com.au | **APPROVED** | `seti_1U86Qx...` |
+| 2026-08-25 | `442019******2053` | blackbeltprotein.com.au | DECLINED | incorrect_number |
+| 2026-08-25 | `516499******7375` | blackbeltprotein.com.au | DECLINED | card_declined |
+| 2026-08-25 | `517546******2090` | blackbeltprotein.com.au | DECLINED | card_declined |
