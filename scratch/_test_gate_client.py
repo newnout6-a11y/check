@@ -251,3 +251,25 @@ async def _t():
         assert r2["status"] == "ERROR", r2
 asyncio.run(_t())
 print('token_only guards OK')
+
+# --- Фаза 5: braintree extraction + client_token parse ---
+page = ('<script>var bt = braintree.setup("eyJ2ZXJzaW9uIjozfQ==");</script>'
+        '<div data-braintree-token="abc"></div>')
+k = gc.extract_braintree_keys(page)
+assert k["has_braintree"] is True
+ct = ("eyJhbGdvcml0aG0iOiJBMTI4Q1RSMkhNQUMtU0hBMjU2IiwiYXV0aG9yaXphdGlvbkZpbmdlcnBy"
+      "aW50IjoiZmlyZWZpbmdlcnByaW50X3h5eiIsImNvbmZpZ1VybCI6Imh0dHBzOlwvXC9hcGkuYnJh"
+      "aW50cmVlZ2F0ZXdheS5jb21cL21lcmNoYW50c1wvbWlkMTIzXC9jbGllbnRfYXBpIiwidnMiOnsi"
+      "c3VwcG9ydGVkIjoiMS4xIn19")
+k2 = gc.extract_braintree_keys(f'clientToken: "{ct}"')
+assert k2["has_braintree"] and k2["client_token"] == ct
+parsed = gc.braintree_parse_client_token(ct)
+assert parsed["fingerprint"] == "firefingerprint_xyz", parsed
+assert parsed["merchant_id"] == "mid123", parsed
+v = gc._braintree_verdict({"cardType": "Visa", "last4": "5000",
+                           "cvvResponseCode": "M",
+                           "threeDSecureInfo": {"enrolled": True, "liabilityShifted": False}})
+assert v["status"] == "3DS_CHALLENGE", v
+v2 = gc._braintree_verdict({"cardType": "Visa", "last4": "5000", "cvvResponseCode": "N"})
+assert v2["status"] == "WRONG_CVC", v2
+print('braintree extraction/parse/verdict OK')

@@ -111,6 +111,13 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 if "pk_test_" in pm_html and "pk_live_" not in pm_html:
                     return None
 
+                # Фаза 5.1: Braintree-доноры рядом со Stripe
+                bt = gc.extract_braintree_keys(pm_html)
+                if bt["has_braintree"] and "pk_live_" not in pm_html:
+                    return {"domain": domain, "status": "BRAINTREE_KEY",
+                            "braintree_client_token": bool(bt["client_token"]),
+                            "braintree_tokenization_key": bt["tokenization_key"]}
+
                 scraped = gc.scrape_gate(pm_html)
                 pk, upe_nonce, legacy_nonce = scraped["pk"], scraped["upe_nonce"], scraped["legacy_nonce"]
                 if not pk or (not upe_nonce and not legacy_nonce):
@@ -302,14 +309,21 @@ async def main():
         print(f"[*] Captcha on add-card: {len(captcha_hits)} donor(s) marked, kept for PI-confirm vector")
 
     # Sprint 3.1: результаты скана — обратно в db
+    bt_targets = []
     if HAS_DB:
         try:
             ready_set = {g["domain"] for g in new_ready_gates}
             for d in live_dns_domains:
                 if d in ready_set:
                     domains_store.mark_scanned(d, "READY")
-                elif d in captcha_hits:
+                    continue
+                r = next((x for x in deep_results
+                          if x and x.get("domain") == d), None)
+                if captcha_hits.get(d):
                     domains_store.mark_scanned(d, "CAPTCHA_ADDCARD")
+                elif r and r.get("status") == "BRAINTREE_KEY":
+                    domains_store.mark_scanned(d, "BRAINTREE_KEY")
+                    bt_targets.append(r)
                 else:
                     domains_store.mark_scanned(d, "NO_REG")
         except Exception as e:
@@ -345,6 +359,14 @@ async def main():
         for g in final_ready_gates:
             if g.get("domain") == dom:
                 g["captcha_on_add_card"] = True
+
+    # Фаза 5.1: Braintree-цели — в отдельный файл для bot gate #4
+    if bt_targets:
+        os.makedirs("data", exist_ok=True)
+        with open("data/braintree_targets.txt", "w", encoding="utf-8") as f:
+            for r in bt_targets:
+                f.write(f"https://{r['domain']}\n")
+        print(f"[+] {len(bt_targets)} Braintree target(s) -> data/braintree_targets.txt")
 
     print("\n" + "=" * 80)
     print(f"[🔥] FINAL QUALIFIED SETUPINTENT GATES IN POOL: {len(final_ready_gates)}")

