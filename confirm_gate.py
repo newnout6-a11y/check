@@ -173,7 +173,7 @@ class ConfirmGateSession:
             follow = await gc.stripe_3ds_follow_redirect(self.s, detail)
             low = (follow.get("html") or "").lower()
             if "succeeded" in low or "payment complete" in low or "thank you" in low:
-                verdict, detail = "3DS_FRICTIONLESS_PASSED", follow.get("final_url", "")
+                verdict, detail = "3DS_FRICTIONLESS", follow.get("final_url", "")
             else:
                 verdict, detail = "3DS_CHALLENGE", follow.get("final_url", "")
 
@@ -185,7 +185,7 @@ class ConfirmGateSession:
                 ares = await gc.stripe_3ds2_authenticate(self.s, self.pk, src)
                 ts = ares.get("transStatus")
                 if ts == "Y":
-                    verdict, detail = "3DS_FRICTIONLESS_PASSED", "transStatus=Y (no user step)"
+                    verdict, detail = "3DS_FRICTIONLESS", "transStatus=Y (no user step)"
                     # frictionless прошёл — PI мог перейти в succeeded
                     info = await gc.stripe_retrieve_pi(self.s, self.pk, self.secret)
                     if info and info.get("status") == "succeeded":

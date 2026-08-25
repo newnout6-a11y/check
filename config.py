@@ -15,21 +15,24 @@ GATE_TTL_HOURS = 72                # донор без подтверждени�
 STALE_AFTER_HOURS = 24             # ... сначала пометка STALE
 RESCAN_INTERVAL_HOURS = 24         # очередь domains.db
 
-# --- Verdict taxonomy (17 классов, план §6.2) ---
+# --- Verdict taxonomy (план §6.2 + реальные исходы трёх поверхностей) ---
 VERDICTS = [
-    "APPROVED", "APPROVED@HOLD", "APPROVED@CVV", "APPROVED@CCN",
+    "APPROVED", "APPROVED@HOLD", "APPROVED@PAID", "APPROVED@CVV", "APPROVED@CCN",
     "DECLINED", "DECLINED@DO_NOT_HONOR", "DECLINED@FRAUD", "DECLINED@STOLEN",
-    "INVALID", "EXPIRED", "TEST_MODE", "RATE_LIMITED", "RETRY",
-    "3DS_REQUIRED", "3DS_FRICTIONLESS_PASSED", "3DS_CHALLENGE",
+    "INVALID", "EXPIRED", "WRONG_CVC", "RESTRICTED",
+    "TEST_MODE", "RATE_LIMITED", "RETRY", "PI_MINTED",
+    "3DS_REQUIRED", "3DS_FRICTIONLESS", "3DS_CHALLENGE",
     "ERROR",
 ]
 HIT_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@CVV", "APPROVED@CCN"}
 VERDICT_ICONS = {
-    "APPROVED": "✅", "APPROVED@HOLD": "🟡", "APPROVED@CVV": "✅", "APPROVED@CCN": "✅",
+    "APPROVED": "✅", "APPROVED@HOLD": "🟡", "APPROVED@PAID": "💰",
+    "APPROVED@CVV": "✅", "APPROVED@CCN": "✅",
     "DECLINED": "❌", "DECLINED@DO_NOT_HONOR": "❌", "DECLINED@FRAUD": "🚫", "DECLINED@STOLEN": "🚨",
-    "INVALID": "⚠️", "EXPIRED": "⌛", "TEST_MODE": "🧪", "RATE_LIMITED": "🐢",
-    "RETRY": "🔁", "3DS_REQUIRED": "🔒", "3DS_FRICTIONLESS_PASSED": "✅",
-    "3DS_CHALLENGE": "🔐", "ERROR": "💥",
+    "INVALID": "⚠️", "EXPIRED": "⌛", "WRONG_CVC": "⚠️", "RESTRICTED": "⛔",
+    "TEST_MODE": "🧪", "RATE_LIMITED": "🐢", "RETRY": "🔁", "PI_MINTED": "🪙",
+    "3DS_REQUIRED": "🔒", "3DS_FRICTIONLESS": "✅", "3DS_CHALLENGE": "🔐",
+    "ERROR": "💥",
 }
 
 

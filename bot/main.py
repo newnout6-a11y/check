@@ -22,7 +22,7 @@ GATES = load_gates()
 app = Client("pusto_bot", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e",
              bot_token=config.BOT_TOKEN)
 
-HIT_VERDICTS = {"APPROVED", "APPROVED@CVV", "APPROVED@CCN", "3DS_FRICTIONLESS_PASSED"}
+HIT_VERDICTS = {"APPROVED", "APPROVED@CVV", "APPROVED@CCN", "3DS_FRICTIONLESS"}
 
 
 def me_line(u: dict) -> str:

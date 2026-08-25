@@ -232,3 +232,22 @@ assert gc.pi_secret_alive({"error": {"type": "card_error"}}) is True
 assert gc.pi_secret_alive({"status": "canceled"}) is False
 assert gc.pi_secret_alive({"error": {"type": "invalid_request_error"}}) is False
 print('pi_secret_alive OK: card_error keeps secret, canceled kills it')
+
+# --- 6.3 таксономия config vs движки ---
+import config
+assert "WRONG_CVC" in config.VERDICTS and "RESTRICTED" in config.VERDICTS
+assert "3DS_FRICTIONLESS" in config.VERDICTS and "PI_MINTED" in config.VERDICTS
+assert all(v in config.VERDICTS for v in
+           ("APPROVED@PAID", "DECLINED@STOLEN", "INVALID", "RETRY"))
+print(f'taxonomy OK: {len(config.VERDICTS)} verdicts, icons complete')
+
+# --- 2.6 token_only_check offline-гварды (без сети: битый pk) ---
+async def _t():
+    from curl_cffi.requests import AsyncSession
+    async with AsyncSession() as s:
+        r = await gc.token_only_check(s, "", "4539277623105000|10|2028|276", "https://x.com")
+        assert r["status"] == "ERROR", r
+        r2 = await gc.token_only_check(s, "pk_test_xxx", "4539277623105000|10|2028|276", "https://x.com")
+        assert r2["status"] == "ERROR", r2
+asyncio.run(_t())
+print('token_only guards OK')

