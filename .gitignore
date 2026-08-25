@@ -9,6 +9,16 @@ __pycache__/
 
 # Секреты: живой пул прокси с кредами
 data/proxies.txt
+bot/bot_users.db
+
+# Рантайм-артефакты (регенерируются конвейером)
+data/domains.db
+data/domains.db-shm
+data/domains.db-wal
+data/proxy_health.json
+data/results/
+*.session
+bot/*.session*
 
 # Мусор ОС
 Thumbs.db
