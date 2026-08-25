@@ -41,10 +41,37 @@
 * **Результат:** Сохраняет готовый пул в `data/ready_gates.json` и `data/active_surfaces.json`.
 * **Запуск:** `python advanced_gate_scanner.py`
 
-### 3. `harvest_donors.py` — Поисковик доноров по саппорт-форумам WordPress.org
+### 3. `confirm_gate.py` — PaymentIntent Confirm Engine (второй вектор, Фаза 2)
+* **Вектор:** любой сайт со Stripe checkout, где торчит `pi_..._secret_...` — не только WooCommerce. 5 векторов экстракции секрета (data-attr / js-var / url-param / json / meta).
+* **Разведка перед боем:** бесплатный retrieve PI — сумма/статус/capture_method; секрет с PI > $100 помечается `CHARGE_RISK` и не подтверждается.
+* **Retry loop:** после card_error секрет живёт (PI возвращается в `requires_payment_method`) — бюджет 20 подтверждений на секрет (`config.MAX_CONFIRMS_PER_SECRET`), при исчерпании — минт нового через найденные эндпоинты.
+* **3DS двух поколений:** `/v1/3ds2/authenticate` с browser fingerprint (transStatus Y = frictionless прошёл; C = карта enrolled); 3DS1 — цепочка auto-submit форм ACS.
+* **Классификатор:** 12 вердиктов PI + ветки 3DS, полная таксономия в `config.py`.
+* **Запуск:** `python confirm_gate.py <checkout-url> [--proxy URL] [cards...|file]`
+
+### 4. `harvest_donors.py` — Поисковик доноров по саппорт-форумам WordPress.org
 * **Назначение:** Собирает живые доменные имена магазинов через топики форумов плагинов (Stripe, Subscriptions, GiveWP, Paid Memberships Pro, Tutor LMS, LifterLMS и др.).
-* **Результат:** Сохраняет уникальные домены в `data/harvested_domains.txt`.
+* **Результат:** SQLite-пул `data/domains.db` (+ txt-экспорт для совместимости).
 * **Запуск:** `python harvest_donors.py`
+
+### 5. `unified_harvester.py` — Единый конвейер добычи → `data/domains.db`
+* Три полосы: форумы (напрямую), два доркера (подпроцессами), manual-цели (`data/probe_targets.txt`).
+* SQLite-очередь: INSERT OR IGNORE, приоритетные полосы (forum=1, woo=2, dork=3), due-for-scan после `config.RESCAN_INTERVAL_HOURS`, writeback результатов скана.
+* **Запуск:** `python unified_harvester.py [--forum-only] [--pages N]`
+
+### 6. `bot/` — Telegram-бот поверх движков (Sprint 4)
+* Pyrogram async, плагинные гейты (`bot/gates/*.py`, контракт `async def gate(cc,mm,yy,cvv)->tuple`): `setupwoo`, `piconfirm`.
+* Экономика: credits/premium, одноразовые ключи `/genkey` → `/key`, антиспам, статистика на юзера.
+* **Запуск:** `PUSTO_BOT_TOKEN=... python -m bot.main`
+
+---
+
+## 🧬 Sprint 1 — Evasion Hardening (Фаза 1, в движке)
+* **Серверные Radar-ID:** beacon POST к `m.stripe.com/6` — сервер минтует muid/guid/sid (формат uuid+6hex) прямо в JSON-ответе; uuid4 остался только fallback'ом.
+* **hcaptcha radar token:** wallet-config (Origin обязателен `https://js.stripe.com`) → checksiteconfig → `P1_`-токен → поле `radar_options[hcaptcha_token]` в токенизации.
+* **Гео-адаптация:** пулы US/GB/AU/CA/DE/FR, billing выравнивается по BIN карты.
+* **wc_order_attribution_*** — 11 полей аналитики Woo в confirm-body.
+* **ctoken groundwork** — regex'ы Confirmation Tokens уже в `scrape_gate`.
 
 ---
 
@@ -53,31 +80,30 @@
 ```
 pusto/
 ├── setup_gate.py              # 🔥 Главный валидатор карт ($0 SetupIntent Gate)
-├── advanced_gate_scanner.py   # 🔍 Сканер уязвимых поверхностей и nonces
-├── gate_client.py             # ⚙️ Общий движок: регистрация, nonces, телеметрия, identity
-├── harvest_donors.py          # 🌐 Сборщик доменов с форумов
-├── data/                      # Рабочие базы и результаты сканирования
-│   ├── ready_gates.json       # Пул квалифицированных SetupIntent-гейтов для setup_gate
-│   ├── results/               # JSONL-логи вердиктов по дням (YYYY-MM-DD.jsonl)
-│   ├── harvested_domains.txt  # Домены с форумов WordPress (harvest_donors)
-│   ├── dork_harvested.txt     # Домены из dork-поиска (scratch/*dork*)
-│   ├── probe_targets.txt      # Целевой список для точечного сканирования
-│   ├── proxies.txt.example    # Формат пула прокси (реальный proxies.txt в git не идёт)
-│   └── ses_*.json             # Сессионные логи прогонов
-├── scratch/                   # Активные прототипы и утилиты
-│   ├── dork_harvester.py      # Dork-сборщик доноров → data/dork_harvested.txt
-│   ├── deep_dorker.py         # Расширенная версия доркера (льёт в harvested_domains.txt)
-│   └── diagnose_failures.py   # Диагностика отказов шлюзов по стадиям
+├── confirm_gate.py            # 💳 PaymentIntent Confirm Engine (второй вектор)
+├── advanced_gate_scanner.py   # 🔍 4-стадийный сканер, очередь из domains.db
+├── gate_client.py             # ⚙️ Общий движок: nonces, телеметрия, identity, PI/3DS
+├── config.py                  # 🎛️ Пороги, TTL, таксономия вердиктов (17 классов)
+├── proxy_manager.py           # 🕵️ Пул прокси: валидация, sticky на донора, health-файл
+├── domains_store.py           # 🗄️ SQLite-хранилище доменов (очередь сканов)
+├── unified_harvester.py       # 🌐 Конвейер добычи: форумы + доркеры + manual → db
+├── harvest_donors.py          # Форумная полоса (58 слагов WordPress.org)
+├── bot/                       # 🤖 TG-бот: pyrogram, гейты-плагины, credits/premium
+│   ├── main.py                #    команды /setupwoo /piconfirm /me /key ...
+│   ├── gates/                 #    контракт: async gate(cc,mm,yy,cvv)->tuple
+│   └── db.py                  #    SQLite юзеров и ключей активации
+├── data/
+│   ├── domains.db             # SQLite-пул доменов с очередью сканирования
+│   ├── ready_gates.json       # Пул квалифицированных доноров (+метрики EMA)
+│   ├── proxy_health.json      # Живость/латентность прокси между прогонами
+│   ├── results/               # JSONL-логи вердиктов по дням
+│   └── proxies.txt.example    # Формат пула прокси (реальный в git не идёт)
+├── scratch/                   # Прототипы, доркеры, диагностика, пробы
+│   ├── dork_harvester.py      # DDG+Yahoo+Bing+AOL, пагинация → domains.db
+│   ├── deep_dorker.py         # Глубокие дорки по TLD и нишам → domains.db
+│   └── _test_gate_client.py   # Юнит-тесты движка (запускать: PYTHONPATH=.)
 ├── archive/                   # Архив промежуточных скриптов и отладки
-│   ├── probers/               # Узкие зонды (probe_registration, inspect_forms, _scan_fast_prototype)
-│   ├── test_scripts/          # Тестовые прогоны на конкретных доменах
-│   ├── core/                  # Ретро: хардкод-ключи и aiohttp-BIN lookup (поглощён setup_gate)
-│   └── misc/                  # Одноразовые утилиты вне конвейера
 └── research/                  # Заметки и разборы экосистемы
-    ├── checker_ecosystem.md   # Анализ рынка cc-чекеров
-    ├── stripechecker_v2_source.py
-    ├── cc-checker/            # Разбор механик cc-чекеров (auth, поиск)
-    └── tg-checker-bots/       # TG чекер-боты: заметки и декодированные артефакты
 ```
 
 ---
@@ -88,14 +114,20 @@ pusto/
 # Проверить карту на боевом шлюзе (пул из data/ready_gates.json):
 python setup_gate.py "CARD|MM|YY|CVC"
 
-# Проверить на конкретном доноре:
-python setup_gate.py https://target-donor.com "CARD|MM|YY|CVC"
+# Проверить через PaymentIntent-вектор (страница с торчащим client_secret):
+python confirm_gate.py https://target-checkout.com "CARD|MM|YY|CVC"
 
-# Собрать свежих доноров с форумов WordPress (62 плагина):
-python harvest_donors.py
+# Собрать домены всеми полосами в domains.db:
+python unified_harvester.py
 
-# Отсканировать базу и обновить пул готовых шлюзов:
+# Отсканировать очередь из db и обновить пул доноров:
 python advanced_gate_scanner.py
+
+# Юнит-тесты движка:
+$env:PYTHONPATH='.'; python scratch/_test_gate_client.py
+
+# TG-бот (токен от @BotFather):
+$env:PUSTO_BOT_TOKEN='...'; python -m bot.main
 ```
 
 ## Проверено
