@@ -173,3 +173,31 @@ os.remove(txt_path)
 with _sq.connect(domains_store.DB_PATH) as c:
     c.execute('DELETE FROM domains WHERE domain=?', (test_dom,))
 print(f"domains_store roundtrip OK: total={st['total']} sources={st['by_source']} pending={st['pending']}")
+
+# --- Спринт 3: extract_client_secrets (5 векторов) + detect_secret_mints ---
+SEC = 'pi_3Nabc123XYZ_secret_def456ghi789JKL'
+cs_html = f'''<div data-client-secret="{SEC}"></div>
+<script>var stripeClientSecret = "{SEC}";</script>
+<a href="/pay?payment_intent_client_secret={SEC}">x</a>
+<script type="application/json">{{"clientSecret":"{SEC}"}}</script>
+<meta name="stripe-client-secret" content="{SEC}">'''
+secs = gc.extract_client_secrets(cs_html)
+assert len(secs) == 1, f'same secret must dedupe, got {len(secs)}'
+assert secs[0]['source'] == 'data-attr' and secs[0]['pi_id'] == 'pi_3Nabc123XYZ'
+SEC2 = 'pi_9Zzz888yyy_secret_qqq777www666'
+s2 = gc.extract_client_secrets(f'<meta name="stripe-client-secret" content="{SEC}">"clientSecret":"{SEC2}"')
+assert {x['secret'] for x in s2} == {SEC, SEC2}, s2
+assert [x['source'] for x in s2 if x['secret'] == SEC] == ['meta']
+print('extract_client_secrets OK: 5-vector coverage, dedupe, pi_id split')
+
+mint_html = '''<script>var url = "/?wc-ajax=wc_stripe_create_payment_intent";</script>
+<form action="/wp-json/wc/store/v1/checkout">
+<a href="https://x.com/admin-ajax.php?action=give_process_donation">
+<script>fetch("/api/create-payment-intent", {method: "POST"})</script>'''
+mints = gc.detect_secret_mints(mint_html, 'https://donor.example')
+assert any('wc_stripe_create_payment_intent' in m for m in mints), mints
+assert any('wc/store/v1/checkout' in m for m in mints), mints
+assert any('give_process_donation' in m for m in mints), mints
+assert any(m.endswith('/create-payment-intent') for m in mints), mints
+assert gc.detect_secret_mints('<html>nothing here</html>', 'https://x.com') == []
+print(f'detect_secret_mints OK: {len(mints)} endpoints from synthetic page')

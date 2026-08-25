@@ -23,6 +23,15 @@ RE_LEGACY_NONCE_ALT = re.compile(r'createSetupIntentNonce["\']?\s*[:=]\s*["\']([
 # JS-переменная/атрибут с confirmationToken nonce + сам id ctoken_*
 RE_CTOKEN_NONCE = re.compile(r'confirmationToken(?:Nonce)?["\']?\s*[:=]\s*["\']([^"\']+)["\']')
 RE_CTOKEN_ID = re.compile(r'ctoken_[0-9A-Za-z]{20,}')
+
+# --- Sprint 3 (Фаза 2): PaymentIntent-вектор ---
+# client_secret торчит на checkout-страницах в 5 формах (auth-mechanics.md §6)
+RE_CLIENT_SECRET = re.compile(r'(pi_[0-9A-Za-z]{6,}_secret_[0-9A-Za-z]{8,})')
+RE_CS_DATA_ATTR = re.compile(r'data-client-secret=["\'](pi_[0-9A-Za-z]{6,}_secret_[0-9A-Za-z]{8,})')
+RE_CS_JS_VAR = re.compile(r'(?:var|let|const)?\s*(?:window\.)?[A-Z_a-z]*[Cc]lient[_Ss]ecret\w*\s*=\s*["\'](pi_[0-9A-Za-z]{6,}_secret_[0-9A-Za-z]{8,})')
+RE_CS_URL_PARAM = re.compile(r'[?&]payment_intent_client_secret=(pi_[0-9A-Za-z]{6,}_secret_[0-9A-Za-z]{8,})')
+RE_CS_JSON = re.compile(r'"clientSecret"\s*:\s*"(pi_[0-9A-Za-z]{6,}_secret_[0-9A-Za-z]{8,})')
+RE_CS_META = re.compile(r'<meta[^>]+name=["\']stripe-client-secret["\'][^>]+content=["\'](pi_[0-9A-Za-z]{6,}_secret_[0-9A-Za-z]{8,})')
 RE_REGISTER_FORM = re.compile(r'<form[^>]*class="[^"]*register[^"]*"[^>]*>(.*?)</form>', re.S)
 RE_HIDDEN_INPUT = re.compile(r'<input[^>]*type=["\']hidden["\'][^>]*>')
 RE_INPUT_NAME = re.compile(r'name=["\']([^"\']+)["\']')
@@ -358,6 +367,51 @@ def _find_key(obj, key: str):
             if hit:
                 return hit
     return None
+
+
+def extract_client_secrets(html: str) -> list[dict]:
+    """Sprint 2.1 (Фаза 2): все client_secret со страницы с классификацией вектора.
+    Каждый dict: {secret, pi_id, source} — source из 5 известных форм."""
+    found: list[dict] = []
+    seen: set[str] = set()
+
+    def add(secret: str, source: str):
+        if secret and secret not in seen:
+            seen.add(secret)
+            found.append({"secret": secret,
+                          "pi_id": secret.split("_secret_")[0],
+                          "source": source})
+
+    for rx, tag in ((RE_CS_DATA_ATTR, "data-attr"), (RE_CS_JS_VAR, "js-var"),
+                    (RE_CS_URL_PARAM, "url-param"), (RE_CS_JSON, "json"),
+                    (RE_CS_META, "meta")):
+        for m in rx.finditer(html):
+            add(m.group(1), tag)
+    # добор: секреты вне известных обёрток
+    for m in RE_CLIENT_SECRET.finditer(html):
+        add(m.group(1), "unknown")
+    return found
+
+
+def detect_secret_mints(html: str, base_url: str) -> list[str]:
+    """Sprint 2.2 (Фаза 2): эндпоинты, минтующие свежий PaymentIntent по запросу.
+    Возвращает абсолютные URL; каждый хит = потенциально новый client_secret."""
+    mints: list[str] = []
+    base = base_url.rstrip("/")
+    if re.search(r'wc[-_]?ajax=wc_stripe_create_payment_intent', html, re.I) or \
+       'wc_stripe_create_payment_intent' in html:
+        mints.append(f"{base}/?wc-ajax=wc_stripe_create_payment_intent")
+    if 'wc/store/v1/checkout' in html or '/wp-json/wc/store/v1' in html:
+        mints.append(f"{base}/wp-json/wc/store/v1/checkout")
+    if 'give_process_donation' in html:
+        mints.append(f"{base}/wp-admin/admin-ajax.php?action=give_process_donation")
+    if 'wpforms_stripe_create_payment_intent' in html:
+        mints.append(f"{base}/wp-admin/admin-ajax.php?action=wpforms_stripe_create_payment_intent")
+    for m in re.finditer(r'["\'](/(?:api/)?[\w./-]*(?:create-payment-intent|payment-intent)s?)["\']', html):
+        ep = f"{base}{m.group(1)}"
+        if ep not in mints:
+            mints.append(ep)
+    return mints
 
 
 def wc_attribution_fields(donor_url: str) -> dict:
