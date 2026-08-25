@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень проекта при любом cwd
+
 import gate_client as gc
 
 cards = [gc.gen_probe_card() for _ in range(50)]

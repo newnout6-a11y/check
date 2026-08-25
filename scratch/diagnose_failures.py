@@ -3,13 +3,15 @@
 # Логика регистрации/скрапа — из общего движка gate_client.
 import asyncio
 import json
+import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень проекта при любом cwd
 
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
-
-sys.path.insert(0, ".")  # запуск из scratch/ — корень проекта в пути
 
 
 async def diagnose_domain(domain: str):
