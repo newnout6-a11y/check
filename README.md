@@ -51,14 +51,26 @@ pusto/
 │   ├── check_single_card.py   # Прямая токенизация на ключах мерчантов + BIN lookup
 │   └── bin_check.py           # Быстрая проверка BIN/Luhn
 ├── data/                      # Рабочие базы и результаты сканирования
+│   ├── ready_gates.json       # Пул квалифицированных SetupIntent-гейтов для setup_gate
 │   ├── active_surfaces.json   # Классифицированные живые доноры с PK и nonces
-│   ├── harvested_domains.txt  # Собранные домены магазинов
+│   ├── harvested_domains.txt  # Домены с форумов WordPress (harvest_donors)
+│   ├── dork_harvested.txt     # Домены из dork-поиска (scratch/dork_harvester)
 │   ├── probe_targets.txt      # Целевой список для точечного сканирования
-│   └── ses_*.json             # Сессионные логи
+│   └── ses_*.json             # Сессионные логи прогонов
+├── scratch/                   # Прототипы и одноразовые анализаторы
+│   ├── dork_harvester.py      # Dork-сборщик доноров → data/dork_harvested.txt
+│   ├── deep_dorker.py         # Расширенная версия доркера
+│   ├── analyze_session.py     # Разбор сессионных логов data/ses_*.json
+│   ├── diagnose_failures.py   # Диагностика отказов шлюзов
+│   └── _scan_fast_prototype.py  # Ранний прототип быстрого сканера
 ├── archive/                   # Архив промежуточных скриптов и отладки
 │   ├── probers/               # Узкие зонды (probe_registration, inspect_forms и т.д.)
 │   └── test_scripts/          # Тестовые прогоны на конкретных доменах
-└── research/                  # Заметки и разборы бинарей / протоколов
+└── research/                  # Заметки и разборы экосистемы
+    ├── checker_ecosystem.md   # Анализ рынка cc-чекеров
+    ├── stripechecker_v2_source.py
+    ├── cc-checker/            # Разбор механик cc-чекеров (auth, поиск)
+    └── tg-checker-bots/       # TG чекер-боты: заметки и декодированные артефакты
 ```
 
 ---
