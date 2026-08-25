@@ -23,6 +23,11 @@ print('reg_nonce:', gc.extract_reg_nonce(html))
 print('honeypot:', gc.extract_honeypot_fields(gc.extract_register_form_html(html), body0))
 print('scrape:', gc.scrape_gate(pm))
 print('verdicts:', gc.classify_verdict('This card has Insufficient funds.'), '/', gc.classify_verdict('Your card was declined.'))
+assert gc.classify_verdict('card was stolen') == 'DECLINED@STOLEN'
+assert gc.classify_verdict('blocked by fraud rules') == 'DECLINED@FRAUD'
+assert gc.classify_verdict('do_not_honor') == 'DECLINED@DO_NOT_HONOR'
+assert gc.classify_verdict('incorrect_number') == 'INVALID'
+assert gc.classify_verdict('please try again later') == 'RETRY'
 print('nonce_reject:', gc.is_nonce_rejection({'data': '-1'}), gc.is_nonce_rejection({'success': False, 'message': 'Invalid nonce'}))
 
 # --- Пакет 1/2/4: mask, cvc-gen, proxy pool, captcha/backoff ---

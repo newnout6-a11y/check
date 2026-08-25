@@ -695,6 +695,7 @@ def ajax_headers_for(origin: str, referer: str) -> dict:
 
 
 def classify_verdict(err_msg: str) -> str:
+    """SetupIntent-ветка: сообщения WP/Stripe → таксономия config.VERDICTS."""
     raw_err = (err_msg or "").lower()
     if "insufficient_funds" in raw_err or "insufficient funds" in raw_err:
         return "APPROVED@CVV"
@@ -703,9 +704,15 @@ def classify_verdict(err_msg: str) -> str:
     if "expired" in raw_err:
         return "EXPIRED"
     if "stolen" in raw_err or "lost" in raw_err:
-        return "STOLEN_CARD"
+        return "DECLINED@STOLEN"
     if "fraud" in raw_err or "risk" in raw_err:
-        return "FLAGGED_RADAR"
+        return "DECLINED@FRAUD"
+    if "do_not_honor" in raw_err or "do not honor" in raw_err:
+        return "DECLINED@DO_NOT_HONOR"
+    if "incorrect_number" in raw_err or "invalid_number" in raw_err or "incorrect card number" in raw_err:
+        return "INVALID"
+    if "try again" in raw_err or "processing error" in raw_err:
+        return "RETRY"
     return "DECLINED"
 
 
