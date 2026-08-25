@@ -10,6 +10,7 @@ from datetime import datetime
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
+import config
 
 try:
     from proxy_manager import ProxyPool
@@ -21,23 +22,46 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
 
+# Sprint 5: country_name -> alpha2 для bins.antipublic.cc (третьего источника)
+_COUNTRY_A2 = {
+    "united states": "US", "canada": "CA", "united kingdom": "GB", "australia": "AU",
+    "germany": "DE", "france": "FR", "italy": "IT", "spain": "ES", "netherlands": "NL",
+    "sweden": "SE", "switzerland": "CH", "ireland": "IE", "new zealand": "NZ",
+    "brazil": "BR", "mexico": "MX", "india": "IN", "japan": "JP", "singapore": "SG",
+    "poland": "PL", "portugal": "PT", "belgium": "BE", "austria": "AT", "norway": "NO",
+    "denmark": "DK", "finland": "FI", "czech republic": "CZ", "romania": "RO",
+    "turkey": "TR", "israel": "IL", "south africa": "ZA", "qatar": "QA",
+    "united arab emirates": "AE", "saudi arabia": "SA", "hong kong": "HK",
+}
+
 
 async def bin_lookup(bin_num: str) -> dict:
-    # binlist -> handyapi fallback, на движке curl_cffi
+    # binlist -> handyapi -> bins.antipublic.cc (Sprint 5: третий источник),
+    # на движке curl_cffi; нормализуем к нижнекейсовому виду.
     async with AsyncSession(impersonate="chrome131", verify=False) as s:
-        try:
-            r = await s.get(f"https://lookup.binlist.net/{bin_num}",
-                            headers={"Accept-Version": "3"}, timeout=6)
-            if r.status_code == 200:
-                return r.json()
-        except Exception:
-            pass
-        try:
-            r = await s.get(f"https://data.handyapi.com/bin/{bin_num}", timeout=6)
-            if r.status_code == 200:
-                return r.json()
-        except Exception:
-            pass
+        for url, headers, pick in (
+            (f"https://lookup.binlist.net/{bin_num}", {"Accept-Version": "3"}, "binlist"),
+            (f"https://data.handyapi.com/bin/{bin_num}", {}, "handyapi"),
+            (f"https://bins.antipublic.cc/bins/{bin_num}", {}, "antipublic"),
+        ):
+            try:
+                r = await s.get(url, headers=headers, timeout=6)
+                if r.status_code == 200:
+                    d = r.json()
+                    if pick == "antipublic":
+                        c_name = str(d.get("country_name", "")).lower()
+                        return {
+                            "scheme": d.get("brand"),
+                            "type": d.get("type"),
+                            "bank": {"name": d.get("bank")},
+                            "country": {"alpha2": _COUNTRY_A2.get(c_name, ""),
+                                        "name": d.get("country_name")},
+                            "level": d.get("level"), "_src": "antipublic",
+                        }
+                    d["_src"] = pick
+                    return d
+            except Exception:
+                continue
     return {}
 
 
@@ -551,7 +575,7 @@ async def main():
     for r in results:
         prefix = r["card"].split("|")[0][:6]
         bs = bin_summary(bins.get(prefix, {}))
-        print(f"  {r['status']:16} {r['card']:30} [{bs}] {r['detail']}")
+        print(f"  {config.icon(r['status'])} {r['status']:16} {r['card']:30} [{bs}] {r['detail']}")
     print(f"[*] Registrations this run: {sessions_opened} for {len(cards)} card(s)")
     print("=" * 80)
 

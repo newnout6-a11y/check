@@ -316,10 +316,11 @@ async def main():
             print(f"[!] db writeback failed: {e}")
 
     # Merge + TTL prune (Пакет 3): подтверждённые сейчас — READY, fail_count=0;
-    # неподтверждённые 24-72ч — метка STALE; старше 72ч — удаление из пула.
+    # неподтверждённые STALE_AFTER..GATE_TTL часов — метка STALE; старше — удаление.
+    import config
     now = int(time.time())
-    STALE_AFTER = 24 * 3600
-    GATE_TTL = 72 * 3600
+    STALE_AFTER = config.STALE_AFTER_HOURS * 3600
+    GATE_TTL = config.GATE_TTL_HOURS * 3600
     confirmed = {g["domain"]: g for g in new_ready_gates}
     final_ready_gates = []
     for g in existing_ready:

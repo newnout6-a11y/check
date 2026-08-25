@@ -7,6 +7,9 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 import domains_store
 
@@ -28,8 +31,7 @@ async def forum_lane() -> tuple[int, int]:
 def dork_lane(script: str) -> int:
     """dork_harvester / deep_dorker своим процессом; сами пишут в db."""
     r = subprocess.run([sys.executable, script], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace",
-                       cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                       encoding="utf-8", errors="replace", cwd=ROOT)
     tail = (r.stdout or "").strip().splitlines()[-6:]
     print(f"--- {os.path.basename(script)} ---")
     print("\n".join(tail) if tail else f"(no output, rc={r.returncode})")
@@ -75,8 +77,8 @@ async def main():
 
     if not skip_dorks:
         # Последовательно: поисковики банят параллельные полосы с одного IP
-        dork_lane(os.path.join("scratch", "dork_harvester.py"))
-        dork_lane(os.path.join("scratch", "deep_dorker.py"))
+        dork_lane(os.path.join(ROOT, "scratch", "dork_harvester.py"))
+        dork_lane(os.path.join(ROOT, "scratch", "deep_dorker.py"))
 
     after = domains_store.stats()
     print("=" * 80)

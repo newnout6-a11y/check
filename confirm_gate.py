@@ -12,11 +12,12 @@ from datetime import datetime
 
 from curl_cffi.requests import AsyncSession
 
+import config
 import gate_client as gc
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
-MAX_CONFIRMS_PER_SECRET = 20  # консервативно: реальный лимит PI 10-25, переменный
+MAX_CONFIRMS_PER_SECRET = config.MAX_CONFIRMS_PER_SECRET
 
 
 def err_result(card_raw: str, detail: str) -> dict:
@@ -27,7 +28,7 @@ class ConfirmGateSession:
     """Сессия на одну checkout-страницу: pk + client_secret (+ mint-эндпоинты)."""
 
     def __init__(self, target_url: str, proxy: str | None = None,
-                 max_amount_cents: int = gc.MAX_PI_AMOUNT_CENTS):
+                 max_amount_cents: int = config.MAX_PI_AMOUNT_CENTS):
         self.target = target_url.rstrip("/")
         self.proxy = proxy
         self.max_amount = max_amount_cents
