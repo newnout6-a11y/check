@@ -10,6 +10,9 @@
 * **Движок:** `curl_cffi` с Chrome TLS-имперсонацией (`chrome131`) — проходит Cloudflare WAF, который резал aiohttp.
 * **Pre-flight:** Luhn-проверка каждой карты + BIN-обогащение (схема/тип/страна/банк через binlist → handyapi) до прогона и в итоговой сводке.
 * **Session Reuse:** одна авторизованная WP-сессия на донора обслуживает всю пачку карт — регистрации больше не плодятся на каждую карту. Протухший ajax-nonce обновляется автоматически одним ретраем.
+* **Прокси:** `--proxy <url>` или пул `data/proxies.txt` (формат в `data/proxies.txt.example`) — свой прокси на каждую сессию донора.
+* **Лог результатов:** каждый вердикт пишется в `data/results/YYYY-MM-DD.jsonl` (masked PAN, BIN, донор, статус, латентность).
+* **Health пула:** успех сбрасывает счётчик фейлов донора, три гейт-отказа подряд — автоудаление из `data/ready_gates.json`.
 * **Назначение:** Полнофункциональный не-SK валидатор карт через боевой WooCommerce Stripe SetupIntent. Пробивает эмитент без списания средств, возвращает точные вердикты (`APPROVED`, `3DS_REQUIRED`, `DECLINED`).
 * **Пул доноров:** Автоматически загружается из `data/ready_gates.json`. При падении донора — авто-ротация на следующего.
 * **Подтверждена аутентификация банком:** Карта `537872******8595` → `seti_1U86Qx...` → `succeeded`. Банк показал уведомление в приложении.
@@ -28,7 +31,10 @@
   python setup_gate.py https://target-donor.com "CARD1"
   ```
 
-### 2. `advanced_gate_scanner.py` — 4-стадийный сканер и классификатор (v3, curl_cffi)
+### 2. `advanced_gate_scanner.py` — 4-стадийный сканер и классификатор (v5, curl_cffi)
+* **Движок:** `curl_cffi` Chrome TLS-имперсонация через общий `gate_client.py` (телеметрия v2021 + m-cookie префетч, ротация Luhn-валидных пробников).
+* **Прокси:** `--proxy <url>` или пул `data/proxies.txt`, случайная ротация на каждый пробник.
+* **TTL пула:** неподтверждённые 24ч гейты метятся `STALE`, старше 72ч — удаляются из пула автоматически.
 * **Движок:** `curl_cffi` Chrome TLS-имперсонация — обходит динамический Cloudflare WAF, который резал POST-регистрацию на aiohttp.
 * **4 стадии:** DNS-резолв → GET-проба формы → POST-регистрация (Chrome TLS) → скрапинг `pk_live` + SetupIntent nonces → боевой confirm-пробник.
 * **Метрики:** Из 348 доменов: 316 живых DNS → 15 открытых форм → 1 квалифицированный SetupIntent-гейт.
@@ -52,10 +58,11 @@ pusto/
 ├── harvest_donors.py          # 🌐 Сборщик доменов с форумов
 ├── data/                      # Рабочие базы и результаты сканирования
 │   ├── ready_gates.json       # Пул квалифицированных SetupIntent-гейтов для setup_gate
-│   ├── active_surfaces.json   # Классифицированные живые доноры с PK и nonces
+│   ├── results/               # JSONL-логи вердиктов по дням (YYYY-MM-DD.jsonl)
 │   ├── harvested_domains.txt  # Домены с форумов WordPress (harvest_donors)
-│   ├── dork_harvested.txt     # Домены из dork-поиска (scratch/dork_harvester)
+│   ├── dork_harvested.txt     # Домены из dork-поиска (scratch/*dork*)
 │   ├── probe_targets.txt      # Целевой список для точечного сканирования
+│   ├── proxies.txt.example    # Формат пула прокси (реальный proxies.txt в git не идёт)
 │   └── ses_*.json             # Сессионные логи прогонов
 ├── scratch/                   # Активные прототипы и утилиты
 │   ├── dork_harvester.py      # Dork-сборщик доноров → data/dork_harvested.txt
