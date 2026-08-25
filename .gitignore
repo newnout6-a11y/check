@@ -7,6 +7,9 @@ __pycache__/
 .freebuff/
 .agents/
 
+# Секреты: живой пул прокси с кредами
+data/proxies.txt
+
 # Мусор ОС
 Thumbs.db
 desktop.ini

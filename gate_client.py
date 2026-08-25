@@ -2,6 +2,8 @@
 # Shared WooCommerce/Stripe gate engine — single source of truth for setup_gate.py,
 # advanced_gate_scanner.py и scratch-диагностики. Любая правка верстки WooCommerce
 # чинится ЗДЕСЬ один раз.
+import asyncio
+import os
 import random
 import re
 import string
@@ -101,8 +103,74 @@ def parse_card(raw: str) -> dict:
     mm = parts[1].strip().zfill(2)
     yy = parts[2].strip()
     yy = "20" + yy[-2:] if len(yy) <= 2 else yy
-    cvc = parts[3].strip() if len(parts) > 3 else "000"
+    cvc_raw = parts[3].strip() if len(parts) > 3 else ""
+    # Пустой CVC → случайная генерация: даёт шанс честного incorrect_cvс-вердикта
+    # вместо гарантированного отказа на "000"
+    cvc = cvc_raw if cvc_raw else f"{random.randint(0, 999):03d}"
     return {"number": number, "month": mm, "year": yy, "cvc": cvc, "raw": raw.strip()}
+
+
+def mask_pan(raw: str) -> str:
+    num = raw.split("|")[0].strip()
+    return f"{num[:6]}******{num[-4:]}" if len(num) >= 10 else num
+
+
+# --- Прокси-слой: пул data/proxies.txt + ротация ---
+
+PROXIES_FILE = os.path.join("data", "proxies.txt")
+
+
+def load_proxies(path: str = PROXIES_FILE) -> list[str]:
+    """Строки формата scheme://user:pass@host:port или host:port (по умолчанию http)."""
+    proxies = []
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                p = line.strip()
+                if not p or p.startswith("#"):
+                    continue
+                if "://" not in p:
+                    p = "http://" + p
+                proxies.append(p)
+    return proxies
+
+
+def pick_proxy(pool: list[str] | None, explicit: str | None) -> str | None:
+    """Явный --proxy приоритетнее; иначе случайный из пула. Схема нормализуется всегда."""
+    def norm(p: str) -> str:
+        return p if "://" in p else "http://" + p
+    if explicit:
+        return norm(explicit)
+    if pool:
+        return norm(random.choice(pool))
+    return None
+
+
+# --- Сетевая гигиена: детект капчи + экспоненциальный backoff ---
+
+CAPTCHA_MARKS = (
+    "anomaly",
+    "captcha",
+    "unusual traffic",
+    "prove you're human",
+    "are you a robot",
+)
+
+
+def looks_like_captcha(html: str) -> bool:
+    low = (html or "").lower()
+    return any(mark in low for mark in CAPTCHA_MARKS)
+
+
+async def backoff_sleep(attempt: int, base: float = 2.0, jitter: float = 0.5):
+    """Экспоненциальная пауза: attempt 0 → base, дальше ×2 с джиттером."""
+    delay = base * (2 ** attempt) + random.uniform(0, jitter)
+    await asyncio.sleep(delay)
+
+
+def polite_delay(base: float = 1.2, spread: float = 1.3):
+    """Обычная вежливая пауза между запросами — рандомизированная."""
+    return asyncio.sleep(random.uniform(base, base + spread))
 
 
 def random_identity() -> dict:

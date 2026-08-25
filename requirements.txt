@@ -1,0 +1,3 @@
+# pusto pipeline deps
+curl_cffi>=0.15
+aiohttp>=3.13

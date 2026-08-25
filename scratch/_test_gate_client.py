@@ -23,3 +23,27 @@ print('honeypot:', gc.extract_honeypot_fields(gc.extract_register_form_html(html
 print('scrape:', gc.scrape_gate(pm))
 print('verdicts:', gc.classify_verdict('This card has Insufficient funds.'), '/', gc.classify_verdict('Your card was declined.'))
 print('nonce_reject:', gc.is_nonce_rejection({'data': '-1'}), gc.is_nonce_rejection({'success': False, 'message': 'Invalid nonce'}))
+
+# --- Пакет 1/2/4: mask, cvc-gen, proxy pool, captcha/backoff ---
+assert gc.mask_pan('5175465382242090|09|2030|018') == '517546******2090'
+pc = gc.parse_card('4111111111111111|12|29')
+assert pc['cvc'].isdigit() and len(pc['cvc']) == 3, 'cvc generation broken'
+assert gc.parse_card('4111111111111111|12|29|777')['cvc'] == '777', 'explicit cvc lost'
+print('mask_pan OK | cvc-gen:', pc['cvc'])
+
+assert gc.load_proxies('data/__no_such__.txt') == []
+assert gc.pick_proxy(None, None) is None
+p = gc.pick_proxy(['1.2.3.4:8080'], None)
+assert p.startswith('http://'), p
+assert gc.pick_proxy(None, 'socks5://u:p@5.6.7.8:1080') == 'socks5://u:p@5.6.7.8:1080'
+assert gc.pick_proxy(None, '9.9.9.9:3128') == 'http://9.9.9.9:3128'
+print('proxy pool OK:', p)
+
+assert gc.looks_like_captcha('<html>Sorry, anomaly detected</html>') is True
+assert gc.looks_like_captcha('<html>10 results</html>') is False
+print('captcha detect OK')
+
+import asyncio
+asyncio.run(gc.backoff_sleep(0, base=0.05))
+asyncio.run(gc.polite_delay(0.01, 0.01))
+print('backoff/polite OK')

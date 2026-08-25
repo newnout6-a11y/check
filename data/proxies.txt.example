@@ -1,0 +1,8 @@
+# Формат пула прокси для setup_gate.py / advanced_gate_scanner.py:
+#   scheme://user:pass@host:port   (http, https, socks5)
+#   host:port                      (трактуется как http://)
+# Пустые строки и #комментарии игнорируются. Ротация случайная на каждую сессию/пробу.
+# Реальный файл data/proxies.txt в git не попадает (.gitignore).
+socks5://user:pass@1.2.3.4:1080
+http://user:pass@proxy.example.com:8080
+5.6.7.8:3128
