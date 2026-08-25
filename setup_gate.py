@@ -27,6 +27,53 @@ def parse_card(raw: str) -> dict:
     cvc = parts[3].strip() if len(parts) > 3 else "000"
     return {"number": number, "month": mm, "year": yy, "cvc": cvc, "raw": raw.strip()}
 
+def check_luhn(card_num: str) -> bool:
+    # absorbed from core/bin_check.py / core/check_single_card.py
+    digits = [int(d) for d in card_num if d.isdigit()]
+    checksum = 0
+    for i, d in enumerate(reversed(digits)):
+        if i % 2 == 1:
+            doubled = d * 2
+            checksum += doubled - 9 if doubled > 9 else doubled
+        else:
+            checksum += d
+    return checksum % 10 == 0
+
+async def bin_lookup(bin_num: str) -> dict:
+    # absorbed from core/bin_check.py — binlist -> handyapi fallback, на движке curl_cffi
+    async with AsyncSession(impersonate="chrome131", verify=False) as s:
+        try:
+            r = await s.get(f"https://lookup.binlist.net/{bin_num}",
+                            headers={"Accept-Version": "3"}, timeout=6)
+            if r.status_code == 200:
+                return r.json()
+        except Exception:
+            pass
+        try:
+            r = await s.get(f"https://data.handyapi.com/bin/{bin_num}", timeout=6)
+            if r.status_code == 200:
+                return r.json()
+        except Exception:
+            pass
+    return {}
+
+def bin_summary(binfo: dict) -> str:
+    # binlist отдаёт lower-case ключи, handyapi — Capitalized; покрываем оба
+    if not binfo:
+        return "?"
+    g = lambda *keys: next((binfo[k] for k in keys if k in binfo and binfo[k]), "")
+    bank = g("bank", "Bank")
+    country = g("country", "Country")
+    parts = [
+        str(g("scheme", "Scheme") or "?"),
+        str(g("type", "Type")),
+        str(country.get("alpha2", "") if isinstance(country, dict) else ""),
+    ]
+    if isinstance(bank, dict) and bank.get("name"):
+        parts.append(str(bank["name"])[:18])
+    out = "/".join(p for p in parts if p and p != "?")
+    return out or "?"
+
 def load_ready_gates() -> list[dict]:
     candidates = ["data/ready_gates.json", "ready_gates.json", "data/active_surfaces.json"]
     for path in candidates:
@@ -343,6 +390,17 @@ async def main():
     if not cards:
         cards = ["5175465382242090|09|2030|018"]
 
+    # Pre-flight: Luhn sanity + BIN enrichment (поглощено из core/)
+    bins: dict[str, dict] = {}
+    for idx, c in enumerate(cards, 1):
+        num = c.split("|")[0].strip()
+        if not check_luhn(num):
+            print(f"[!] WARNING: card #{idx} fails Luhn: {num}")
+    for prefix in sorted({c.split("|")[0][:6] for c in cards}):
+        bins[prefix] = await bin_lookup(prefix)
+        if bins[prefix]:
+            print(f"[i] BIN {prefix}: {bin_summary(bins[prefix])}")
+
     if custom_donor:
         gates_pool = [{
             "domain": custom_donor.replace("https://", "").replace("http://", ""),
@@ -390,7 +448,9 @@ async def main():
     print("\n" + "=" * 80)
     print("[*] SUMMARY:")
     for r in results:
-        print(f"  {r['status']:16} {r['card']:30} {r['detail']}")
+        prefix = r["card"].split("|")[0][:6]
+        bs = bin_summary(bins.get(prefix, {}))
+        print(f"  {r['status']:16} {r['card']:30} [{bs}] {r['detail']}")
     print("=" * 80)
 
 
