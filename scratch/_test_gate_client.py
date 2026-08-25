@@ -115,3 +115,30 @@ assert sg['ctoken_id'].startswith('ctoken_'), sg
 sg_old = gc.scrape_gate(pm)
 assert sg_old['ctoken_nonce'] == '' and sg_old['upe_nonce'] == 'deadbeef01'
 print('ctoken groundwork OK:', sg['ctoken_nonce'], sg['ctoken_id'])
+
+# --- Спринт 2: скоринг/ротация доноров, sticky-пул прокси ---
+pool_t = [
+    {"domain": "good", "success_rate": 0.9, "latency_avg_ms": 800},
+    {"domain": "slow", "success_rate": 0.9, "latency_avg_ms": 9000},
+    {"domain": "captcha", "success_rate": 0.9, "latency_avg_ms": 800, "captcha_on_add_card": True},
+    {"domain": "failing", "success_rate": 0.9, "latency_avg_ms": 800, "fail_count": 2},
+]
+w = {g['domain']: gc.score_gate(g) for g in pool_t}
+assert w['good'] > w['slow'] > w['failing'], w
+assert w['good'] > w['captcha'] * 5, 'captcha penalty too weak'
+orders = [tuple(g['domain'] for g in gc.pick_gate_order(pool_t)) for _ in range(30)]
+assert all(set(o) == {'good', 'slow', 'captcha', 'failing'} for o in orders), 'order loses donors'
+assert len(set(orders)) > 1, 'rotation is deterministic'
+print('score_gate/pick_gate_order OK:', {k: round(v, 6) for k, v in w.items()})
+
+from proxy_manager import ProxyPool
+pp = ProxyPool(['http://1.1.1.1:80', 'http://2.2.2.2:80'])
+p1 = pp.pick('donor-x'); p2 = pp.pick('donor-x')
+assert p1 == p2, 'sticky broken'
+assert pp.pick() in ('http://1.1.1.1:80', 'http://2.2.2.2:80')
+pp.mark_bad(p1)  # fail_count=1 — ещё жив
+assert pp.pick('donor-x') is not None
+for _ in range(3):
+    pp.mark_bad(p1)   # добиваем до alive=False и снимаем sticky
+assert pp._sticky.get('donor-x') != p1, 'sticky not released after death'
+print('proxy pool sticky/mark_bad OK')

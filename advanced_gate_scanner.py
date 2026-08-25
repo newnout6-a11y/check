@@ -103,6 +103,11 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 r_pm = await s.get(add_pm_url, timeout=10)
                 pm_html = r_pm.text
 
+                if gc.looks_like_captcha(pm_html):
+                    # Sprint 3.4: капча на add-card — донор жив для PI-confirm, помечаем
+                    return {"domain": domain, "status": "CAPTCHA_ADDCARD",
+                            "captcha_on_add_card": True}
+
                 if "pk_test_" in pm_html and "pk_live_" not in pm_html:
                     return None
 
@@ -275,7 +280,11 @@ async def main():
         for s in s1_passed
     ]
     deep_results = await asyncio.gather(*deep_tasks)
-    new_ready_gates = [r for r in deep_results if r]
+    new_ready_gates = [r for r in deep_results if r and r.get("status") == "READY"]
+    captcha_hits = {r["domain"]: r for r in deep_results
+                    if r and r.get("status") == "CAPTCHA_ADDCARD"}
+    if captcha_hits:
+        print(f"[*] Captcha on add-card: {len(captcha_hits)} donor(s) marked, kept for PI-confirm vector")
 
     # Merge + TTL prune (Пакет 3): подтверждённые сейчас — READY, fail_count=0;
     # неподтверждённые 24-72ч — метка STALE; старше 72ч — удаление из пула.
@@ -301,6 +310,11 @@ async def main():
         g["fail_count"] = 0
         g["status"] = "READY"
         final_ready_gates.append(g)
+    # Sprint 3.4: captcha-флаг пишется в существующие записи пула (донор не выбрасывается)
+    for dom in captcha_hits:
+        for g in final_ready_gates:
+            if g.get("domain") == dom:
+                g["captcha_on_add_card"] = True
 
     print("\n" + "=" * 80)
     print(f"[🔥] FINAL QUALIFIED SETUPINTENT GATES IN POOL: {len(final_ready_gates)}")

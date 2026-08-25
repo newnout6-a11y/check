@@ -482,3 +482,32 @@ def is_nonce_rejection(conf_resp: dict) -> bool:
         msg = str(data.get("error", {}).get("message", "")) + str(data.get("message", ""))
     msg += str(conf_resp.get("message", ""))
     return "nonce" in msg.lower()
+
+
+# --- Скоринг доноров и взвешенная ротация (Sprint 3.3/3.4) ---
+
+def score_gate(gate_dict: dict) -> float:
+    """weight = success_rate / latency × штрафы за капчу, фейлы, STALE."""
+    sr = float(gate_dict.get("success_rate", 0.5))
+    lat = max(int(gate_dict.get("latency_avg_ms") or 1000), 100)
+    w = sr / lat
+    if gate_dict.get("captcha_on_add_card"):
+        w *= 0.1
+    fc = int(gate_dict.get("fail_count", 0) or 0)
+    if fc:
+        w *= 0.25 ** min(fc, 3)
+    if gate_dict.get("status") == "STALE":
+        w *= 0.2
+    return max(w, 1e-6)
+
+
+def pick_gate_order(pool: list[dict]) -> list[dict]:
+    """Взвешенная случайная перестановка без повторений: сильные доноры чаще впереди,
+    каждый из пула всё равно получает попытку (fallback-порядок)."""
+    remaining = list(pool)
+    order: list[dict] = []
+    while remaining:
+        weights = [score_gate(g) for g in remaining]
+        i = random.choices(range(len(remaining)), weights=weights, k=1)[0]
+        order.append(remaining.pop(i))
+    return order
