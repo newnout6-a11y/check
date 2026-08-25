@@ -49,7 +49,14 @@
 * **Классификатор:** 12 вердиктов PI + ветки 3DS, полная таксономия в `config.py`.
 * **Запуск:** `python confirm_gate.py <checkout-url> [--proxy URL] [cards...|file]`
 
-### 4. `harvest_donors.py` — Поисковик доноров по саппорт-форумам WordPress.org
+### 3b. `store_gate.py` — Woo Store API Direct-Confirm (третья поверхность)
+* **Вектор:** любая WooCommerce+Stripe Blocks-корзина без требований к торчащим секретам или SetupIntent-гейту.
+* **Цепочка:** `GET /cart` (nonce из заголовка) → `/products` (самый дешёвый платный товар с перебором out-of-stock) → `add-item` → токенизация карты на pk донора → `POST /checkout` с pm_id → вердикт эмитента.
+* **ВАЖНО:** это платёжная авторизация на сумму товара, не $0-auth — крышка `--max-price` (default $2), перебор только под капом.
+* **Цели:** `data/store_targets.txt` (строится `scratch/_build_store_targets.py` + фильтр pk через `scratch/_probe_pk_targets.py`).
+* **Запуск:** `python store_gate.py <url|file> [cards...] --max-price 200`
+
+
 * **Назначение:** Собирает живые доменные имена магазинов через топики форумов плагинов (Stripe, Subscriptions, GiveWP, Paid Memberships Pro, Tutor LMS, LifterLMS и др.).
 * **Результат:** SQLite-пул `data/domains.db` (+ txt-экспорт для совместимости).
 * **Запуск:** `python harvest_donors.py`

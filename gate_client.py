@@ -832,22 +832,23 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
             (p for p in items
              if p.get("prices", {}).get("price") and int(p["prices"]["price"]) > 0),
             key=lambda p: int(p["prices"]["price"]))
-        if not cand or int(cand[0]["prices"]["price"]) > max_price_cents:
+        prod = None
+        for cand_p in cand:
+            if int(cand_p["prices"]["price"]) > max_price_cents:
+                break
+            r_add = await s.post(f"{api}/cart/add-item",
+                                 params={"id": cand_p["id"], "quantity": "1"},
+                                 headers={"Nonce": nonce}, timeout=10)
+            if r_add.status_code in (200, 201):
+                prod = cand_p
+                break
+        if prod is None:
             return {"status": "ERROR",
-                    "detail": f"cheapest product over cap ({max_price_cents}c) "
-                              f"-> CHARGE_RISK, aborting",
-                    "amount_cents": 0, "currency": ""}
-        prod = cand[0]
+                    "detail": "no purchasable product under cap (out of stock?)",
+                    "amount_cents": 0,
+                    "currency": items[0].get("prices", {}).get("currency_code", "")}
         price_c = int(prod["prices"]["price"])
         curr = prod["prices"].get("currency_code", "")
-
-        r_add = await s.post(f"{api}/cart/add-item",
-                             params={"id": prod["id"], "quantity": "1"},
-                             headers={"Nonce": nonce}, timeout=10)
-        if r_add.status_code not in (200, 201):
-            return {"status": "ERROR",
-                    "detail": f"add-item HTTP {r_add.status_code}: {r_add.text[:120]}",
-                    "amount_cents": price_c, "currency": curr}
 
         card = parse_card(card_raw)
         tok_body = tokenize_body(card, telem, root)
