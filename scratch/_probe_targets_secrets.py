@@ -46,7 +46,13 @@ async def sweep(domains: list[str]):
 
 async def main():
     rows = domains_store.all_domains()
-    doms = [r["domain"] for r in rows][:20]
+    # приоритетные (1-2) целиком + выборка dork-хвоста; полный пул по флагу --all
+    if "--all" in sys.argv:
+        doms = [r["domain"] for r in rows]
+    else:
+        prio = [r["domain"] for r in rows if r["priority"] <= 2]
+        tail = [r["domain"] for r in rows if r["priority"] > 2][:120]
+        doms = prio + tail
     print(f"[*] Sweeping {len(doms)} db domains x {len(PATHS)} paths for exposed PI material...")
     hits = await sweep(doms)
     print(f"[+] {len(hits)} target(s) with live PI surface")

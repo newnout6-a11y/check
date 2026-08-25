@@ -396,20 +396,31 @@ def extract_client_secrets(html: str) -> list[dict]:
 
 def detect_secret_mints(html: str, base_url: str) -> list[str]:
     """Sprint 2.2 (Фаза 2): эндпоинты, минтующие свежий PaymentIntent по запросу.
-    Возвращает абсолютные URL; каждый хит = потенциально новый client_secret."""
+    Все абсолютные эндпоинты якорятся к КОРНЮ сайта (scheme://host), не к пути
+    страницы — иначе получаем /checkout/wp-json/... мусор."""
     mints: list[str] = []
-    base = base_url.rstrip("/")
+    from urllib.parse import urlparse
+    p = urlparse(base_url)
+    root = f"{p.scheme}://{p.netloc}"
     if re.search(r'wc[-_]?ajax=wc_stripe_create_payment_intent', html, re.I) or \
        'wc_stripe_create_payment_intent' in html:
-        mints.append(f"{base}/?wc-ajax=wc_stripe_create_payment_intent")
+        ep = f"{root}/?wc-ajax=wc_stripe_create_payment_intent"
+        if ep not in mints:
+            mints.append(ep)
     if 'wc/store/v1/checkout' in html or '/wp-json/wc/store/v1' in html:
-        mints.append(f"{base}/wp-json/wc/store/v1/checkout")
+        ep = f"{root}/wp-json/wc/store/v1/checkout"
+        if ep not in mints:
+            mints.append(ep)
     if 'give_process_donation' in html:
-        mints.append(f"{base}/wp-admin/admin-ajax.php?action=give_process_donation")
+        ep = f"{root}/wp-admin/admin-ajax.php?action=give_process_donation"
+        if ep not in mints:
+            mints.append(ep)
     if 'wpforms_stripe_create_payment_intent' in html:
-        mints.append(f"{base}/wp-admin/admin-ajax.php?action=wpforms_stripe_create_payment_intent")
+        ep = f"{root}/wp-admin/admin-ajax.php?action=wpforms_stripe_create_payment_intent"
+        if ep not in mints:
+            mints.append(ep)
     for m in re.finditer(r'["\'](/(?:api/)?[\w./-]*(?:create-payment-intent|payment-intent)s?)["\']', html):
-        ep = f"{base}{m.group(1)}"
+        ep = f"{root}{m.group(1)}"
         if ep not in mints:
             mints.append(ep)
     return mints

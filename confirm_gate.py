@@ -56,9 +56,9 @@ class ConfirmGateSession:
 
             self.pk = gc.extract_pk_live(html)
             secrets = gc.extract_client_secrets(html)
-            if not self.pk or not secrets:
+            if not self.pk or (not secrets and not gc.detect_secret_mints(html, self.target)):
                 await _close(s)
-                return False, "pk_live or client_secret missing on page"
+                return False, "pk_live missing / no secret and no mint endpoint"
 
             self.mints = gc.detect_secret_mints(html, self.target)
             self.s = s
@@ -80,7 +80,13 @@ class ConfirmGateSession:
             if live_ids["guid"]:
                 self.telem["guid"] = live_ids["guid"]
 
-            ok, detail = await self._adopt_secret(secrets[0]["secret"])
+            # Sprint 2.4: статический секрет ИЛИ свежий через минт-эндпоинт
+            if secrets:
+                ok, detail = await self._adopt_secret(secrets[0]["secret"])
+            else:
+                minted = await self._refresh_secret()
+                ok, detail = (True, "") if minted else \
+                    (False, "mint endpoints produced no usable secret")
             if not ok:
                 await _close(s)
                 return False, detail
