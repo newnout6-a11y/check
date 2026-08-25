@@ -123,8 +123,9 @@ async def main():
     
     all_domains = set()
     
-    # Load existing harvested domains to merge
-    for fn in ["data/harvested_domains.txt", "data/dork_harvested.txt"]:
+    # Своя полоса: читаем и пишем только dork_harvested.txt,
+    # harvested_domains.txt принадлежит harvest_donors.py
+    for fn in ["data/dork_harvested.txt"]:
         try:
             with open(fn, "r", encoding="utf-8") as f:
                 for line in f:
@@ -151,7 +152,7 @@ async def main():
             print(f"       -> +{new_found} new domains | Total unique: {len(all_domains)}", flush=True)
             await asyncio.sleep(1.2)
             
-    out_path = "data/harvested_domains.txt"
+    out_path = "data/dork_harvested.txt"
     with open(out_path, "w", encoding="utf-8") as f:
         for d in sorted(all_domains):
             f.write(d + "\n")
