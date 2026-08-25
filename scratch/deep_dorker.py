@@ -1,8 +1,15 @@
 # language: Python 3.12+, file: scratch/deep_dorker.py, target: Windows 11
 import asyncio
 import re
+import sys
 import urllib.parse
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень проекта при любом cwd
+
 from curl_cffi.requests import AsyncSession
+
+import gate_client as gc
 
 QUERIES = [
     # WooCommerce Stripe Specific Script & Nonce dorks
@@ -85,7 +92,7 @@ async def query_ddg(session: AsyncSession, q: str) -> list[str]:
     urls = []
     try:
         r = await session.post("https://html.duckduckgo.com/html/", data={"q": q}, timeout=12)
-        if r.status_code == 200:
+        if r.status_code == 200 and not gc.looks_like_captcha(r.text):
             matches = re.findall(r'uddg=([^&"\']+)', r.text)
             for m in matches:
                 try:
@@ -103,7 +110,7 @@ async def query_yahoo(session: AsyncSession, q: str) -> list[str]:
     try:
         url = f"https://search.yahoo.com/search?p={urllib.parse.quote(q)}"
         r = await session.get(url, timeout=12)
-        if r.status_code == 200:
+        if r.status_code == 200 and not gc.looks_like_captcha(r.text):
             for m in re.finditer(r'/RU=([^/]+)/', r.text):
                 try:
                     u = urllib.parse.unquote(m.group(1))
@@ -140,9 +147,16 @@ async def main():
     async with AsyncSession(impersonate="chrome131", verify=False) as session:
         for i, q in enumerate(QUERIES, 1):
             print(f"  [{i:02}/{len(QUERIES)}] Scraping: {q[:55]}...", flush=True)
-            ddg_links = await query_ddg(session, q)
-            yahoo_links = await query_yahoo(session, q)
-            
+            ddg_links, yahoo_links = [], []
+            # Пусто или капча → экспоненциальный backoff до 3 попыток
+            for attempt in range(3):
+                ddg_links = await query_ddg(session, q)
+                yahoo_links = await query_yahoo(session, q)
+                if ddg_links or yahoo_links:
+                    break
+                print(f"       !! empty/captcha suspected — backoff, attempt {attempt + 1}/3", flush=True)
+                await gc.backoff_sleep(attempt)
+
             new_found = 0
             for link in ddg_links + yahoo_links:
                 cd = clean_domain(link)
@@ -150,7 +164,7 @@ async def main():
                     all_domains.add(cd)
                     new_found += 1
             print(f"       -> +{new_found} new domains | Total unique: {len(all_domains)}", flush=True)
-            await asyncio.sleep(1.2)
+            await gc.polite_delay(1.2, 1.3)
             
     out_path = "data/dork_harvested.txt"
     with open(out_path, "w", encoding="utf-8") as f:

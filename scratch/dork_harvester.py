@@ -1,9 +1,16 @@
 # language: Python 3.12+, file: scratch/dork_harvester.py, target: Windows 11
 import asyncio
 import re
+import sys
 import urllib.parse
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень проекта при любом cwd
+
 from curl_cffi import requests
 from curl_cffi.requests import AsyncSession
+
+import gate_client as gc
 
 DORKS = [
     '"/my-account/add-payment-method/" "woocommerce"',
@@ -56,7 +63,7 @@ def parse_ddg_html(html: str) -> list[str]:
 async def search_dork_ddg(session: AsyncSession, dork: str) -> list[str]:
     try:
         r = await session.post("https://html.duckduckgo.com/html/", data={"q": dork}, timeout=12)
-        if r.status_code == 200:
+        if r.status_code == 200 and not gc.looks_like_captcha(r.text):
             urls = parse_ddg_html(r.text)
             return urls
     except Exception as e:
@@ -68,7 +75,7 @@ async def search_dork_yahoo(session: AsyncSession, dork: str) -> list[str]:
         q = urllib.parse.quote(dork)
         url = f"https://search.yahoo.com/search?p={q}"
         r = await session.get(url, timeout=12)
-        if r.status_code == 200:
+        if r.status_code == 200 and not gc.looks_like_captcha(r.text):
             raw_links = re.findall(r'href="(https?://[^"]+)"', r.text)
             clean = []
             for l in raw_links:
@@ -92,8 +99,15 @@ async def main():
     async with AsyncSession(impersonate="chrome131", verify=False) as s:
         for i, d in enumerate(DORKS, 1):
             print(f"  [{i:02}/{len(DORKS)}] Querying: {d[:50]}...", flush=True)
-            ddg_urls = await search_dork_ddg(s, d)
-            yahoo_urls = await search_dork_yahoo(s, d)
+            ddg_urls, yahoo_urls = [], []
+            # Пусто или капча → экспоненциальный backoff до 3 попыток
+            for attempt in range(3):
+                ddg_urls = await search_dork_ddg(s, d)
+                yahoo_urls = await search_dork_yahoo(s, d)
+                if ddg_urls or yahoo_urls:
+                    break
+                print(f"       !! empty/captcha suspected — backoff, attempt {attempt + 1}/3", flush=True)
+                await gc.backoff_sleep(attempt)
             found = set(ddg_urls + yahoo_urls)
             
             for u in found:
@@ -110,7 +124,7 @@ async def main():
                 except Exception:
                     pass
             print(f"       -> Extracted {len(found)} URLs, total unique domains: {len(all_domains)}", flush=True)
-            await asyncio.sleep(1.5)
+            await gc.polite_delay(1.5, 1.0)
             
     print(f"\n[+] Total unique target domains harvested: {len(all_domains)}")
     out_file = "data/dork_harvested.txt"
