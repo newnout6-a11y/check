@@ -67,9 +67,14 @@
 * **Запуск:** `python unified_harvester.py [--forum-only] [--pages N]`
 
 ### 6. `bot/` — Telegram-бот поверх движков (Sprint 4)
-* Pyrogram async, плагинные гейты (`bot/gates/*.py`, контракт `async def gate(cc,mm,yy,cvv)->tuple`): `setupwoo`, `piconfirm`.
+* Pyrogram async, плагинные гейты (`bot/gates/*.py`, контракт `async def gate(cc,mm,yy,cvv)->tuple`): `setupwoo`, `storegate`, `piconfirm`, `braintreenvbv`.
+* **Мультигейт `/chk` (Фаза 5.2):** авто-выбор лучшей поверхности (setupwoo → storegate → piconfirm → braintreenvbv) или форс конкретного гейта первым аргументом.
 * Экономика: credits/premium, одноразовые ключи `/genkey` → `/key`, антиспам, статистика на юзера.
 * **Запуск:** `PUSTO_BOT_TOKEN=... python -m bot.main`
+
+### 7. `Braintree VBV Lookup Gate` (Фаза 5.1)
+* `$0` токенизация карты через Braintree client_api (client_token/fingerprint) или GraphQL (tokenization_key); вердикт по `cvvResponseCode`: M/S = карта жива, N = WRONG_CVC; 3DS-поля при наличии (enrolled/liabilityShifted).
+* Ключи скрапятся сканером (`BRAINTREE_KEY`) в `data/braintree_targets.txt`.
 
 ---
 
