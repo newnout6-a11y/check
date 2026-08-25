@@ -201,3 +201,29 @@ assert any('give_process_donation' in m for m in mints), mints
 assert any(m.endswith('/create-payment-intent') for m in mints), mints
 assert gc.detect_secret_mints('<html>nothing here</html>', 'https://x.com') == []
 print(f'detect_secret_mints OK: {len(mints)} endpoints from synthetic page')
+
+# --- Спринт 3 core: classify_pi_verdict / pi_secret_alive ---
+cases = [
+    ({"status": "succeeded", "id": "pi_x"}, "APPROVED", None),
+    ({"status": "requires_capture"}, "APPROVED@HOLD", None),
+    ({"status": "requires_action",
+      "next_action": {"use_stripe_sdk": {"type": "three_d_secure_2_source"}}}, "3DS_REQUIRED", None),
+    ({"error": {"type": "card_error", "code": "incorrect_cvc"}}, "APPROVED@CCN", None),
+    ({"error": {"type": "card_error", "decline_code": "insufficient_funds"}}, "APPROVED@CVV", None),
+    ({"error": {"type": "card_error", "decline_code": "stolen_card"}}, "DECLINED@STOLEN", None),
+    ({"error": {"type": "card_error", "decline_code": "do_not_honor"}}, "DECLINED@DO_NOT_HONOR", None),
+    ({"error": {"type": "card_error", "code": "expired_card"}}, "EXPIRED", None),
+    ({"error": {"type": "invalid_request_error", "code": "testmode_charges_only"}}, "TEST_MODE", None),
+    ({"error": {"type": "api_error", "code": "rate_limit_error"}}, "RATE_LIMITED", None),
+    ({"error": {"type": "card_error", "code": "processing_error"}}, "RETRY", None),
+    ({"error": {"type": "card_error", "code": "incorrect_number"}}, "INVALID", None),
+]
+for resp, want, _ in cases:
+    got, detail = gc.classify_pi_verdict(resp)
+    assert got == want, f'{resp} -> {got} != {want}'
+print(f'classify_pi_verdict OK: {len(cases)} mappings')
+assert gc.pi_secret_alive({"status": "requires_payment_method"}) is True
+assert gc.pi_secret_alive({"error": {"type": "card_error"}}) is True
+assert gc.pi_secret_alive({"status": "canceled"}) is False
+assert gc.pi_secret_alive({"error": {"type": "invalid_request_error"}}) is False
+print('pi_secret_alive OK: card_error keeps secret, canceled kills it')

