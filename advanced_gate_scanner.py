@@ -214,29 +214,44 @@ async def main():
     print(f"[*] Proxy: {proxy_label}")
     print("=" * 80)
 
-    # 1. Load candidate domains — три независимых потока добычи
-    domains = []
-    candidates = [
-        "data/harvested_domains.txt",   # forums harvester lane
-        "data/dork_harvested.txt",      # dork harvesters lane
-        "data/probe_targets.txt",       # manual targets
-        "harvested_domains.txt", "probe_targets.txt",  # legacy cwd fallbacks
-    ]
-    for fn in candidates:
-        if os.path.exists(fn):
-            try:
-                with open(fn, encoding="utf-8") as f:
-                    domains.extend([l.strip() for l in f if l.strip() and not l.startswith("#")])
-            except Exception:
-                pass
+    # 1. Load candidate domains — Sprint 3.1: SQLite-очередь первична,
+    #    txt-файлы остаются fallback'ом до первого наполнения db
+    raw_domains: list[str] = []
+    try:
+        import domains_store
+        HAS_DB = True
+        domains_store.init_db()
+        due = domains_store.due_for_scan(hours=24)
+        if due:
+            raw_domains = [r["domain"] for r in due]
+            print(f"[*] Source: data/domains.db queue — {len(raw_domains)} due (>24h or never scanned)")
+    except Exception as e:
+        HAS_DB = False
+        print(f"[!] db queue unavailable ({e}) — falling back to txt lanes")
 
-    junk = ['blogspot', '1drv.ms', 'supportally', 'abc.com', 'google', 'wordpress', 'github', 'pastebin', 'gravatar']
-    cleaned = []
-    for d in domains:
-        d = re.sub(r'[^a-z0-9.-]', '', d.strip().lower())
-        if d and "." in d and not d.endswith(".") and not any(j in d for j in junk):
-            cleaned.append(d)
-    raw_domains = sorted(list(set(cleaned)))
+    if not raw_domains:
+        domains = []
+        candidates = [
+            "data/harvested_domains.txt",   # forums harvester lane
+            "data/dork_harvested.txt",      # dork harvesters lane
+            "data/probe_targets.txt",       # manual targets
+            "harvested_domains.txt", "probe_targets.txt",  # legacy cwd fallbacks
+        ]
+        for fn in candidates:
+            if os.path.exists(fn):
+                try:
+                    with open(fn, encoding="utf-8") as f:
+                        domains.extend([l.strip() for l in f if l.strip() and not l.startswith("#")])
+                except Exception:
+                    pass
+
+        junk = ['blogspot', '1drv.ms', 'supportally', 'abc.com', 'google', 'wordpress', 'github', 'pastebin', 'gravatar']
+        cleaned = []
+        for d in domains:
+            d = re.sub(r'[^a-z0-9.-]', '', d.strip().lower())
+            if d and "." in d and not d.endswith(".") and not any(j in d for j in junk):
+                cleaned.append(d)
+        raw_domains = sorted(list(set(cleaned)))
     print(f"[*] Loaded {len(raw_domains)} sanitized candidate domains.", flush=True)
 
     # Load existing verified ready gates to preserve them
@@ -285,6 +300,20 @@ async def main():
                     if r and r.get("status") == "CAPTCHA_ADDCARD"}
     if captcha_hits:
         print(f"[*] Captcha on add-card: {len(captcha_hits)} donor(s) marked, kept for PI-confirm vector")
+
+    # Sprint 3.1: результаты скана — обратно в db
+    if HAS_DB:
+        try:
+            ready_set = {g["domain"] for g in new_ready_gates}
+            for d in live_dns_domains:
+                if d in ready_set:
+                    domains_store.mark_scanned(d, "READY")
+                elif d in captcha_hits:
+                    domains_store.mark_scanned(d, "CAPTCHA_ADDCARD")
+                else:
+                    domains_store.mark_scanned(d, "NO_REG")
+        except Exception as e:
+            print(f"[!] db writeback failed: {e}")
 
     # Merge + TTL prune (Пакет 3): подтверждённые сейчас — READY, fail_count=0;
     # неподтверждённые 24-72ч — метка STALE; старше 72ч — удаление из пула.

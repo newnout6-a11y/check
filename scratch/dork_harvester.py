@@ -70,10 +70,12 @@ async def search_dork_ddg(session: AsyncSession, dork: str) -> list[str]:
         print(f"Error for '{dork}': {e}")
     return []
 
-async def search_dork_yahoo(session: AsyncSession, dork: str) -> list[str]:
+async def search_dork_yahoo(session: AsyncSession, dork: str, page: int = 1) -> list[str]:
     try:
         q = urllib.parse.quote(dork)
         url = f"https://search.yahoo.com/search?p={q}"
+        if page > 1:
+            url += f"&b={7 * page + 1}"
         r = await session.get(url, timeout=12)
         if r.status_code == 200 and not gc.looks_like_captcha(r.text):
             raw_links = re.findall(r'href="(https?://[^"]+)"', r.text)
@@ -93,23 +95,79 @@ async def search_dork_yahoo(session: AsyncSession, dork: str) -> list[str]:
         pass
     return []
 
-async def main():
-    print("[*] Launching Dork Search Engine Harvester (DuckDuckGo + Yahoo via Chrome TLS)...")
+
+# --- Sprint 3.2: движки Bing и AOL + пагинация ---
+
+async def search_dork_bing(session: AsyncSession, dork: str, page: int = 1) -> list[str]:
+    try:
+        q = urllib.parse.quote(dork)
+        url = f"https://www.bing.com/search?q={q}"
+        if page > 1:
+            url += f"&first={10 * (page - 1) + 1}"
+        r = await session.get(url, timeout=12,
+                              headers={"Accept-Language": "en-US,en;q=0.9"})
+        if r.status_code == 200 and not gc.looks_like_captcha(r.text):
+            # li.b_algo h2 a — органика Bing
+            blocks = re.findall(r'<li class="b_algo".*?</li>', r.text, re.S)
+            urls = []
+            for b in blocks:
+                m = re.search(r'<h2[^>]*><a[^>]+href="(https?://[^"]+)"', b)
+                if m and not any(x in m.group(1) for x in ["bing.com", "microsoft.com", "go.micro"]):
+                    urls.append(m.group(1))
+            return list(set(urls))
+    except Exception as e:
+        pass
+    return []
+
+
+async def search_dork_aol(session: AsyncSession, dork: str, page: int = 1) -> list[str]:
+    try:
+        q = urllib.parse.quote(dork)
+        url = f"https://search.aol.com/aol/search?q={q}"
+        if page > 1:
+            url += f"&b={10 * (page - 1) + 1}"
+        r = await session.get(url, timeout=12)
+        if r.status_code == 200 and not gc.looks_like_captcha(r.text):
+            clean = []
+            for m in re.finditer(r'/RU=([^/]+)/', r.text):
+                try:
+                    u = urllib.parse.unquote(m.group(1))
+                    if u.startswith("http") and "aol.com" not in u:
+                        clean.append(u)
+                except Exception:
+                    pass
+            return list(set(clean))
+    except Exception as e:
+        pass
+    return []
+
+async def harvest(pages: int = 2, limit: int | None = None) -> set:
+    """Sprint 3.1/3.2: 4 движка × pages страниц на дорк; возвращает домены.
+    limit — срез списка дорков для смоук-прогонов."""
+    dorks = DORKS[:limit] if limit else DORKS
     all_domains = set()
     async with AsyncSession(impersonate="chrome131", verify=False) as s:
-        for i, d in enumerate(DORKS, 1):
-            print(f"  [{i:02}/{len(DORKS)}] Querying: {d[:50]}...", flush=True)
-            ddg_urls, yahoo_urls = [], []
-            # Пусто или капча → экспоненциальный backoff до 3 попыток
-            for attempt in range(3):
-                ddg_urls = await search_dork_ddg(s, d)
-                yahoo_urls = await search_dork_yahoo(s, d)
-                if ddg_urls or yahoo_urls:
-                    break
-                print(f"       !! empty/captcha suspected — backoff, attempt {attempt + 1}/3", flush=True)
-                await gc.backoff_sleep(attempt)
-            found = set(ddg_urls + yahoo_urls)
-            
+        for i, d in enumerate(dorks, 1):
+            print(f"  [{i:02}/{len(dorks)}] Querying: {d[:50]}...", flush=True)
+            found_all: list[str] = []
+            for page in range(1, pages + 1):
+                found_page: list[str] = []
+                # Пусто или капча → экспоненциальный backoff до 3 попыток
+                for attempt in range(3):
+                    ddg_urls = await search_dork_ddg(s, d)
+                    yahoo_urls = await search_dork_yahoo(s, d, page)
+                    bing_urls = await search_dork_bing(s, d, page)
+                    aol_urls = await search_dork_aol(s, d, page)
+                    found_page = ddg_urls + yahoo_urls + bing_urls + aol_urls
+                    if found_page:
+                        break
+                    print(f"       !! empty/captcha suspected — backoff, attempt {attempt + 1}/3", flush=True)
+                    await gc.backoff_sleep(attempt)
+                found_all.extend(found_page)
+                if page < pages and not found_page:
+                    break  # вторая страница пуста без первой — дальше не идём
+            found = set(found_all)
+
             for u in found:
                 try:
                     p = urllib.parse.urlparse(u)
@@ -123,15 +181,30 @@ async def main():
                         all_domains.add(host)
                 except Exception:
                     pass
-            print(f"       -> Extracted {len(found)} URLs, total unique domains: {len(all_domains)}", flush=True)
+            print(f"       -> Extracted {len(found)} URLs (page x{pages}), total unique domains: {len(all_domains)}", flush=True)
             await gc.polite_delay(1.5, 1.0)
-            
+    return all_domains
+
+
+async def main():
+    import domains_store
+    domains_store.init_db()
+    limit = None
+    if "--limit" in sys.argv:
+        i = sys.argv.index("--limit")
+        if i + 1 < len(sys.argv):
+            limit = max(1, int(sys.argv[i + 1]))
+    print(f"[*] Launching Dork Search Engine Harvester v2 (DDG+Yahoo+Bing+AOL, paginated){f', limit={limit}' if limit else ''}...")
+    all_domains = await harvest(pages=2, limit=limit)
+
     print(f"\n[+] Total unique target domains harvested: {len(all_domains)}")
+    added = domains_store.upsert(all_domains, source="dork", priority=3)
+    print(f"[+] DB upsert: +{added} new")
     out_file = "data/dork_harvested.txt"
-    with open(out_file, "w", encoding="utf-8") as f:
-        for d in sorted(all_domains):
-            f.write(d + "\n")
-    print(f"[+] Saved to {out_file}")
+    total = domains_store.export_txt(out_file)
+    print(f"[+] exported {total} pool domains -> {out_file}")
+    s = domains_store.stats()
+    print(f"[=] pool: {s['total']} total | sources={s['by_source']} | pending scan={s['pending']}")
 
 if __name__ == "__main__":
     asyncio.run(main())

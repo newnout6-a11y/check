@@ -180,32 +180,15 @@ async def extract_domains_from_topic(session: aiohttp.ClientSession, topic_url: 
     return domains, priority_live_domains
 
 
-async def main():
-    print("=" * 80)
-    print("[*] HARVEST DONORS v3 — TARGETED SUBSCRIPTIONS, LMS, GIVEWP & STATUS SCRAPER")
-    print(f"[*] Priority Slugs: {len(PRIORITY_SLUGS)} | Extended Slugs: {len(EXTENDED_SLUGS)}")
-    print("=" * 80)
-    
-    # Load existing domains if available to preserve history
-    existing_domains = set()
-    out_path = os.path.join("data", "harvested_domains.txt")
-    if os.path.exists(out_path):
-        try:
-            with open(out_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    c = sanitize_host(line.strip())
-                    if c:
-                        existing_domains.add(c)
-            print(f"[*] Loaded {len(existing_domains)} pre-existing harvested domains.")
-        except Exception:
-            pass
-
+async def harvest() -> tuple[set, set]:
+    """Sprint 3.1: ядро добычи отделено от записи — возвращает (все домены, приоритетные)."""
     headers = {"User-Agent": UA}
     conn = aiohttp.TCPConnector(ssl=False, limit=60)
+    priority_domains = set()
     async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         all_topics = []
         print("[*] Gathering forum topic URLs across categories...", flush=True)
-        
+
         # High-priority slugs get up to 10 pages, extended get 4 pages
         for i, slug in enumerate(ALL_SLUGS, 1):
             max_pages = 10 if slug in PRIORITY_SLUGS else 4
@@ -213,39 +196,52 @@ async def main():
             if topics:
                 print(f"  [{i:02}/{len(ALL_SLUGS)}] {slug:50} -> {len(topics):3} topics", flush=True)
                 all_topics.extend(topics)
-                
+
         all_topics = list(set(all_topics))
         print(f"\n[*] Total unique topics collected: {len(all_topics)}", flush=True)
         print("[*] Parsing topics for donor store domains and status reports...", flush=True)
-        
+
         sem = asyncio.Semaphore(40)
         tasks = [extract_domains_from_topic(session, t, sem) for t in all_topics]
         results = await asyncio.gather(*tasks)
-        
-        unique_domains = set(existing_domains)
-        priority_domains = set()
-        
+
+        unique_domains = set()
         for d_set, p_set in results:
             unique_domains.update(d_set)
             priority_domains.update(p_set)
-            
-        print(f"\n[+] Total unique candidate domains: {len(unique_domains)}")
-        print(f"[+] Priority Live/Subs domains:     {len(priority_domains)}")
-        
-        os.makedirs("data", exist_ok=True)
-        
-        # Sort domains: Priority first (excluding staging/dev), then normal clean domains, then staging
-        clean_priority = [d for d in priority_domains if not any(k in d for k in DEV_KEYWORDS)]
-        clean_others = [d for d in (unique_domains - priority_domains) if not any(k in d for k in DEV_KEYWORDS)]
-        dev_domains = [d for d in unique_domains if any(k in d for k in DEV_KEYWORDS)]
-        
-        final_sorted = sorted(clean_priority) + sorted(clean_others) + sorted(dev_domains)
-        with open(out_path, "w", encoding="utf-8") as f:
-            for d in final_sorted:
-                f.write(d + "\n")
-                
-        print(f"[+] Successfully saved {len(final_sorted)} domains to {out_path}", flush=True)
-        print("=" * 80)
+    return unique_domains, priority_domains
+
+
+async def main():
+    import domains_store
+    domains_store.init_db()
+
+    print("=" * 80)
+    print("[*] HARVEST DONORS v4 — TARGETED SUBSCRIPTIONS, LMS, GIVEWP & STATUS SCRAPER")
+    print(f"[*] Priority Slugs: {len(PRIORITY_SLUGS)} | Extended Slugs: {len(EXTENDED_SLUGS)}")
+    print("=" * 80)
+
+    unique_domains, priority_domains = await harvest()
+    print(f"\n[+] Harvested this run: {len(unique_domains)} | Priority Live/Subs: {len(priority_domains)}")
+
+    os.makedirs("data", exist_ok=True)
+
+    # SQLite — межсессионный кэш (INSERT OR IGNORE, история не теряется)
+    clean_priority = [d for d in priority_domains if not any(k in d for k in DEV_KEYWORDS)]
+    clean_others = [d for d in (unique_domains - priority_domains) if not any(k in d for k in DEV_KEYWORDS)]
+    dev_domains = [d for d in unique_domains if any(k in d for k in DEV_KEYWORDS)]
+    n1 = domains_store.upsert(clean_priority, source="forum", priority=1)
+    n2 = domains_store.upsert(clean_others, source="forum", priority=2)
+    n3 = domains_store.upsert(dev_domains, source="forum", priority=3)
+    print(f"[+] DB upsert: +{n1} priority / +{n2} normal / +{n3} dev (new only)")
+
+    # txt-экспорт по-прежнему полный пул из db, отсортированный по приоритету
+    out_path = os.path.join("data", "harvested_domains.txt")
+    total = domains_store.export_txt(out_path)
+    print(f"[+] exported {total} domains -> {out_path}")
+    s = domains_store.stats()
+    print(f"[=] pool: {s['total']} total | sources={s['by_source']} | pending scan={s['pending']}")
+    print("=" * 80)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень проекта при любом cwd
 
+import os
 import gate_client as gc
 
 cards = [gc.gen_probe_card() for _ in range(50)]
@@ -142,3 +143,33 @@ for _ in range(3):
     pp.mark_bad(p1)   # добиваем до alive=False и снимаем sticky
 assert pp._sticky.get('donor-x') != p1, 'sticky not released after death'
 print('proxy pool sticky/mark_bad OK')
+
+# --- Спринт 2: SQLite-хранилище доменов (roundtrip на живом db с очисткой) ---
+import domains_store
+import sqlite3 as _sq
+domains_store.init_db()
+test_dom = 'zz-sprint2-test.example'
+with _sq.connect(domains_store.DB_PATH) as c:  # идемпотентность: остатки прошлых прогонов
+    c.execute('DELETE FROM domains WHERE domain=?', (test_dom,))
+n_added = domains_store.upsert([test_dom, test_dom], source='dork', priority=3)
+assert n_added == 1, 'dedupe broken'
+n_up = domains_store.upsert([test_dom], source='forum', priority=1)
+assert n_up == 0, 're-insert must be ignored'
+with _sq.connect(domains_store.DB_PATH) as c:
+    row = c.execute('SELECT source, priority FROM domains WHERE domain=?', (test_dom,)).fetchone()
+# источник/first_seen приклеиваются при первой вставке; приоритет улучшается до лучшей полосы (MIN)
+assert row[0] == 'dork' and row[1] == 1, f'source sticks, best-lane priority wins: {row}'
+due = domains_store.due_for_scan(hours=24)
+assert any(r['domain'] == test_dom for r in due), 'fresh insert must be due'
+domains_store.mark_scanned(test_dom, 'READY')
+due2 = domains_store.due_for_scan(hours=24)
+assert not any(r['domain'] == test_dom for r in due2), 'scanned must leave queue'
+st = domains_store.stats()
+assert st['total'] >= 1
+txt_path = 'data/_sprint2_export_test.txt'
+n_exp = domains_store.export_txt(txt_path)
+assert n_exp >= st['total']
+os.remove(txt_path)
+with _sq.connect(domains_store.DB_PATH) as c:
+    c.execute('DELETE FROM domains WHERE domain=?', (test_dom,))
+print(f"domains_store roundtrip OK: total={st['total']} sources={st['by_source']} pending={st['pending']}")
