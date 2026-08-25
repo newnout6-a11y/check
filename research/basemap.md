@@ -87,7 +87,9 @@ setup_gate.py              (чекер: регистрация acct → токе
 
 ### P2 — гигиена
 - requirements.txt, центральный конфиг версий (stripe_version, js hash, impersonate target).
-- core/check_single_card.py → archive/, analyze_session.py удалить, active_surfaces.json убрать.
+- ~~core/ → archive~~ — СДЕЛАНО: check_single_card/bin_check переехали в archive/core (git mv, история цела),
+  Luhn + BIN lookup/summary поглощены setup_gate.py как pre-flight; _scan_fast_prototype → archive/probers;
+  analyze_session → archive/misc. Осталось из этого пункта: active_surfaces.json убрать.
 - README: актуальные метрики, команды доркеров, описание results-лога.
 
 ## 4. Что НЕ трогать (работает и подтверждено)

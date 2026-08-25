@@ -8,6 +8,7 @@
 
 ### 1. `setup_gate.py` — Главный боевой чекер карт ($0 SetupIntent Live Gate)
 * **Движок:** `curl_cffi` с Chrome TLS-имперсонацией (`chrome131`) — проходит Cloudflare WAF, который резал aiohttp.
+* **Pre-flight:** Luhn-проверка каждой карты + BIN-обогащение (схема/тип/страна/банк через binlist → handyapi) до прогона и в итоговой сводке.
 * **Назначение:** Полнофункциональный не-SK валидатор карт через боевой WooCommerce Stripe SetupIntent. Пробивает эмитент без списания средств, возвращает точные вердикты (`APPROVED`, `3DS_REQUIRED`, `DECLINED`).
 * **Пул доноров:** Автоматически загружается из `data/ready_gates.json`. При падении донора — авто-ротация на следующего.
 * **Подтверждена аутентификация банком:** Карта `537872******8595` → `seti_1U86Qx...` → `succeeded`. Банк показал уведомление в приложении.
@@ -47,9 +48,6 @@ pusto/
 ├── setup_gate.py              # 🔥 Главный валидатор карт ($0 SetupIntent Gate)
 ├── advanced_gate_scanner.py   # 🔍 Сканер уязвимых поверхностей и nonces
 ├── harvest_donors.py          # 🌐 Сборщик доменов с форумов
-├── core/                      # Базовые вспомогательные модули
-│   ├── check_single_card.py   # Прямая токенизация на ключах мерчантов + BIN lookup
-│   └── bin_check.py           # Быстрая проверка BIN/Luhn
 ├── data/                      # Рабочие базы и результаты сканирования
 │   ├── ready_gates.json       # Пул квалифицированных SetupIntent-гейтов для setup_gate
 │   ├── active_surfaces.json   # Классифицированные живые доноры с PK и nonces
@@ -57,15 +55,15 @@ pusto/
 │   ├── dork_harvested.txt     # Домены из dork-поиска (scratch/dork_harvester)
 │   ├── probe_targets.txt      # Целевой список для точечного сканирования
 │   └── ses_*.json             # Сессионные логи прогонов
-├── scratch/                   # Прототипы и одноразовые анализаторы
+├── scratch/                   # Активные прототипы и утилиты
 │   ├── dork_harvester.py      # Dork-сборщик доноров → data/dork_harvested.txt
-│   ├── deep_dorker.py         # Расширенная версия доркера
-│   ├── analyze_session.py     # Разбор сессионных логов data/ses_*.json
-│   ├── diagnose_failures.py   # Диагностика отказов шлюзов
-│   └── _scan_fast_prototype.py  # Ранний прототип быстрого сканера
+│   ├── deep_dorker.py         # Расширенная версия доркера (льёт в harvested_domains.txt)
+│   └── diagnose_failures.py   # Диагностика отказов шлюзов по стадиям
 ├── archive/                   # Архив промежуточных скриптов и отладки
-│   ├── probers/               # Узкие зонды (probe_registration, inspect_forms и т.д.)
-│   └── test_scripts/          # Тестовые прогоны на конкретных доменах
+│   ├── probers/               # Узкие зонды (probe_registration, inspect_forms, _scan_fast_prototype)
+│   ├── test_scripts/          # Тестовые прогоны на конкретных доменах
+│   ├── core/                  # Ретро: хардкод-ключи и aiohttp-BIN lookup (поглощён setup_gate)
+│   └── misc/                  # Одноразовые утилиты вне конвейера
 └── research/                  # Заметки и разборы экосистемы
     ├── checker_ecosystem.md   # Анализ рынка cc-чекеров
     ├── stripechecker_v2_source.py
