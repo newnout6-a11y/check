@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Локальная машинная конфигурация
+.freebuff/
+.agents/
+
+# Мусор ОС
+Thumbs.db
+desktop.ini
