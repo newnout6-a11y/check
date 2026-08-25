@@ -1,3 +1,7 @@
 # pusto pipeline deps
 curl_cffi>=0.15
 aiohttp>=3.13
+
+# tg-bot layer (sprint 4)
+pyrogram>=2.0.106
+tgcrypto>=1.2.5
