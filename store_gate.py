@@ -7,6 +7,7 @@
 # Крышка: берём самый дешёвый продукт каталога, отказ если дороже max-price.
 import argparse
 import asyncio
+import random
 import sys
 from pathlib import Path
 
@@ -121,5 +122,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import random
     asyncio.run(main())

@@ -2,8 +2,10 @@
 # Sprint 5: единый конфиг порогов и констант пайплайна.
 # Всё, что раньше было размазано по файлам магическими числами.
 
-# --- Stripe ---
-from gate_client import STRIPE_API_VERSION, STRIPE_JS_BUILD  # re-export
+# --- Stripe (первоисточник — менять ЗДЕСЬ) ---
+STRIPE_API_VERSION = "2024-06-20"
+STRIPE_JS_BUILD = "c1fbe29896"
+CHROME_IMPERSONATE = "chrome131"
 
 # --- PaymentIntent vector (Фаза 2) ---
 MAX_PI_AMOUNT_CENTS = 10000        # выше — CHARGE_RISK, не подтверждаем ($100)

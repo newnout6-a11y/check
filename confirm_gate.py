@@ -120,9 +120,11 @@ class ConfirmGateSession:
                 r = await self.s.post(ep, data={}, timeout=10)
                 txt = r.text
                 m = gc.RE_CLIENT_SECRET.search(txt)
-                if m and await self._adopt_secret(m.group(1)):
-                    print(f"    [+] Minted fresh secret via {ep}", flush=True)
-                    return True
+                if m:
+                    ok, _ = await self._adopt_secret(m.group(1))
+                    if ok:
+                        print(f"    [+] Minted fresh secret via {ep}", flush=True)
+                        return True
             except Exception:
                 pass
             self.mint_idx += 1

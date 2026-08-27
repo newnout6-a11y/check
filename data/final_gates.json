@@ -1,0 +1,142 @@
+[
+  {
+    "domain": "www.blackbeltprotein.com.au",
+    "base_url": "https://www.blackbeltprotein.com.au",
+    "reg_url": "https://www.blackbeltprotein.com.au/my-account/",
+    "add_pm_url": "https://www.blackbeltprotein.com.au/my-account/add-payment-method/",
+    "ajax_url": "https://www.blackbeltprotein.com.au/wp-admin/admin-ajax.php",
+    "pk_live": "pk_live_516EhAIEb3qM4yDCE03WDX86sPnEdaN0v4r6kwxRIAINHzs7sChCl9migSlIPuCoE5xwqySWo8m8qlxrg6uUYtQo400gTiJSQk4",
+    "gate_type": "wc_stripe_upe",
+    "upe_nonce": "1d81aa29c2",
+    "legacy_nonce": "",
+    "updated_at": 1787829908,
+    "status": "READY",
+    "cards_checked": 2,
+    "latency_avg_ms": 7303,
+    "success_rate": 0.595,
+    "fail_count": 0,
+    "last_success_ts": 1787829908,
+    "vector": "setup_intent"
+  },
+  {
+    "domain": "essexmonastery.com",
+    "base_url": "https://essexmonastery.com",
+    "pk_live": "pk_live_51HDuYnAWvjv33NmhYfVGgDzG5P4nKV2VtCjKBIN7zAruBe6ZycPk0ogyGUFiSuxLHY2OL7dihOWIVlS1PcZ3m9tu00OiB37zsf",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 399,
+    "updated_at": 1787832203,
+    "status": "READY"
+  },
+  {
+    "domain": "herbaura.fr",
+    "base_url": "https://herbaura.fr",
+    "pk_live": "pk_live_51QPMcdRvPWXsLEUixpewCTvM9bInhJvUhQfFLssKJYh3vGAExt9tq1WAsJ6zG4bUQ1e9lLBnZHwWQkNMd2cRpkKF001050FfO0",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "APPROVED@PAID",
+    "cheapest_cents": 990,
+    "updated_at": 1787832217,
+    "status": "READY"
+  },
+  {
+    "domain": "rocketgeek.com",
+    "base_url": "https://rocketgeek.com",
+    "pk_live": "pk_live_5153BeCDTX57OKyr3c3ek7Jih2B1eDlPr2KBHGrQOKCxOflJG5Z98BwUtq0siI28cPm61QO3v5bPuQoIykddn7Gw800ihOJNT4B",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 100,
+    "updated_at": 1787832239,
+    "status": "READY"
+  },
+  {
+    "domain": "thimpress.com",
+    "base_url": "https://thimpress.com",
+    "pk_live": "pk_live_51M7a07DEwAoDfstZypH5dyYiVi7sKepmenWKcBYqCYsU8LfuMJARQFjMtlMMUWRG1f89z07vjcZLzM6GvLog90x600IAR2sCEn",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 10,
+    "updated_at": 1787832262,
+    "status": "READY"
+  },
+  {
+    "domain": "cherryarts.org",
+    "base_url": "https://cherryarts.org",
+    "pk_live": "pk_live_51ChJzdAwEfivoEtajS3y0t5jGvAqQ74gAc5d3Ys7Cr9KuXTwrDNATuJ1mOewES6ud3DlHS95GW2RueA8Lq6w5I6Z00wH1ukof2",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 1200,
+    "updated_at": 1787832295,
+    "status": "READY"
+  },
+  {
+    "domain": "madatshop.com",
+    "base_url": "https://madatshop.com",
+    "pk_live": "pk_live_51QQ9qBGfYmslzLHpXfLETBF9UzOOASKMGlq3ss4vYNBfCCBDI5wb2iFmesFcub3WHXEFIMFwM3PO3dJHePjKoUWa004AWY23iZ",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 10,
+    "updated_at": 1787832306,
+    "status": "READY"
+  },
+  {
+    "domain": "pianowizardacademy.com",
+    "base_url": "https://pianowizardacademy.com",
+    "pk_live": "pk_live_51CRuYWIRnXQPkN7cXF8kggYBokJ9LvD4EI4wk6UY4Mk33Mliluc8C16nR3QE99Ib9KTzUR3QpCAOF7T5y8YulDdV00lZWdHsKC",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 4995,
+    "updated_at": 1787833743,
+    "status": "READY"
+  },
+  {
+    "domain": "theposhpundit.co.uk",
+    "base_url": "https://theposhpundit.co.uk",
+    "pk_live": "pk_live_51M2j4SJhgkrWqux6eFxVSU3p9sl110u6WKCMsYnoxO14ILbR9rP2UuVrnlh2ZacUGN2iQxbKyoSZ2rrvMweyT2cD009mS8tB5g",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 2000,
+    "updated_at": 1787833786,
+    "status": "READY"
+  },
+  {
+    "domain": "wellyou.lt",
+    "base_url": "https://wellyou.lt",
+    "pk_live": "pk_live_51OWM1yFkDf0Fc87T3srbtvDJBsbXClIMK6BHDkTg5H6Q2v6UZQBHKAO0QNMXIx9BkTXdqy3r2h0zIrDNrZNOasmA00E6RnV95z",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "APPROVED@PAID",
+    "cheapest_cents": 2240,
+    "updated_at": 1787833793,
+    "status": "READY"
+  },
+  {
+    "domain": "themakersclub.it",
+    "base_url": "https://themakersclub.it",
+    "pk_live": "pk_live_51RLhLjE7Zhzto6azPDhUNyD7ImkNIZ25Nj8NJAD6CiZqk1P7mp0UYU7PmAcJ0wMM6axsN3XQAB1ntcjJQ4QNSxEz00Z3bdqIKv",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 1800,
+    "updated_at": 1787839147,
+    "status": "READY"
+  },
+  {
+    "domain": "tricolistica.com",
+    "base_url": "https://tricolistica.com",
+    "pk_live": "pk_live_51KEAhzIK7ZcS0HjAg1HGp6fDJpy3yZUyBuOfvGd6HAnPs0WlXU5ajhWaEVRzmUrpy4kamV7HuIR88rBahIqBAXQV00P02JrWh2",
+    "gate_type": "woo_store_api",
+    "vector": "store_confirm",
+    "verify_status": "DECLINED",
+    "cheapest_cents": 500,
+    "updated_at": 1787839148,
+    "status": "READY"
+  }
+]

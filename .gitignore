@@ -23,3 +23,6 @@ bot/*.session*
 # Мусор ОС
 Thumbs.db
 desktop.ini
+
+# Лог сессии DSH
+session.jsonl

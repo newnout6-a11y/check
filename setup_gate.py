@@ -22,18 +22,6 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
 
-# Sprint 5: country_name -> alpha2 для bins.antipublic.cc (третьего источника)
-_COUNTRY_A2 = {
-    "united states": "US", "canada": "CA", "united kingdom": "GB", "australia": "AU",
-    "germany": "DE", "france": "FR", "italy": "IT", "spain": "ES", "netherlands": "NL",
-    "sweden": "SE", "switzerland": "CH", "ireland": "IE", "new zealand": "NZ",
-    "brazil": "BR", "mexico": "MX", "india": "IN", "japan": "JP", "singapore": "SG",
-    "poland": "PL", "portugal": "PT", "belgium": "BE", "austria": "AT", "norway": "NO",
-    "denmark": "DK", "finland": "FI", "czech republic": "CZ", "romania": "RO",
-    "turkey": "TR", "israel": "IL", "south africa": "ZA", "qatar": "QA",
-    "united arab emirates": "AE", "saudi arabia": "SA", "hong kong": "HK",
-}
-
 
 async def bin_lookup(bin_num: str) -> dict:
     # binlist -> handyapi -> bins.antipublic.cc (Sprint 5: третий источник),
@@ -54,7 +42,7 @@ async def bin_lookup(bin_num: str) -> dict:
                             "scheme": d.get("brand"),
                             "type": d.get("type"),
                             "bank": {"name": d.get("bank")},
-                            "country": {"alpha2": _COUNTRY_A2.get(c_name, ""),
+                            "country": {"alpha2": gc._ANTIPUBLIC_A2.get(c_name, ""),
                                         "name": d.get("country_name")},
                             "level": d.get("level"), "_src": "antipublic",
                         }

@@ -45,7 +45,7 @@ def _normalize(cc: str, mm: str, yy: str, cvv: str) -> str | None:
     year = str(yy).strip()
     if len(year) == 2:
         year = "20" + year
-    if not (4 <= len(year) <= 4 and year.isdigit()):
+    if not (len(year) == 4 and year.isdigit()):
         return None
     return f"{cc}|{month:02d}|{year}|{str(cvv).strip()}"
 

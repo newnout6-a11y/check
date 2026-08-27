@@ -108,3 +108,18 @@ def antispam_ok(user_id: int) -> bool:
             return False
         c.execute("UPDATE users SET last_cmd_ts=? WHERE user_id=?", (now, user_id))
         return True
+
+
+def get_global_stats() -> dict:
+    with connect() as c:
+        users_count = c.execute("SELECT COUNT(*) c FROM users").fetchone()["c"]
+        total_checks = c.execute("SELECT SUM(total_checks) c FROM users").fetchone()["c"] or 0
+        total_hits = c.execute("SELECT SUM(hits) c FROM users").fetchone()["c"] or 0
+        premium_users = c.execute("SELECT COUNT(*) c FROM users WHERE premium_until > ?", (time.time(),)).fetchone()["c"]
+    return {
+        "users_count": users_count,
+        "total_checks": total_checks,
+        "total_hits": total_hits,
+        "premium_users": premium_users,
+    }
+

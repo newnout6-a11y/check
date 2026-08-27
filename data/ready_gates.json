@@ -9,12 +9,12 @@
     "gate_type": "wc_stripe_upe",
     "upe_nonce": "1d81aa29c2",
     "legacy_nonce": "",
-    "updated_at": 1787693058,
+    "updated_at": 1787829908,
     "status": "READY",
-    "cards_checked": 1,
-    "latency_avg_ms": 7722,
-    "success_rate": 0.55,
+    "cards_checked": 2,
+    "latency_avg_ms": 7303,
+    "success_rate": 0.595,
     "fail_count": 0,
-    "last_success_ts": 1787693058
+    "last_success_ts": 1787829908
   }
 ]
