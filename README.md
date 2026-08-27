@@ -56,6 +56,13 @@
 * **Цели:** `data/store_targets.txt` (строится `scratch/_build_store_targets.py` + фильтр pk через `scratch/_probe_pk_targets.py`).
 * **Запуск:** `python store_gate.py <url|file> [cards...] --max-price 200`
 
+### 3c. Store-API Surface Scanner — конвейер квалификации доноров
+* `scratch/_scan_store_gates.py` — скан всей очереди domains.db на Blocks-поверхность: cart-nonce → товары → pk_live на витрине → бесплатная токенизация probe-картой (живость ключа). Пишет `data/store_gates.json` + `data/store_targets.txt`.
+* `scratch/_verify_all_store.py` — боевая верификация пула probe-картой: эмитентный вердикт (DECLINED всех природ) = гейт подтверждён. Пишет `verified: true` в store_gates.json.
+* `scratch/_finalize_pool.py` — сводит все вектора (setup + store + mint) в `data/final_gates.json`.
+* **Движок** (gate_client.store_api_confirm) прошёл харденнинг: shipping-rate выбор через update-customer, enum-ретрай payment_method из локализованных ошибок (nl/fr/de/es/lt), гео-выравнивание по стране магазина из GET /checkout, 19 GEO-пулов, ISO-3166-2/short-state ретраи, address_2-ретрай, одноразовый nonce-рефреш на каждой мутации, парс client_secret из base64-redirect.
+* **Результат:** пул вырос с 1 донора до **12** (1 setup + 11 store с эмитентным вердиктом).
+
 
 * **Назначение:** Собирает живые доменные имена магазинов через топики форумов плагинов (Stripe, Subscriptions, GiveWP, Paid Memberships Pro, Tutor LMS, LifterLMS и др.).
 * **Результат:** SQLite-пул `data/domains.db` (+ txt-экспорт для совместимости).
@@ -94,27 +101,35 @@ pusto/
 ├── setup_gate.py              # 🔥 Главный валидатор карт ($0 SetupIntent Gate)
 ├── confirm_gate.py            # 💳 PaymentIntent Confirm Engine (второй вектор)
 ├── advanced_gate_scanner.py   # 🔍 4-стадийный сканер, очередь из domains.db
-├── gate_client.py             # ⚙️ Общий движок: nonces, телеметрия, identity, PI/3DS
+├── gate_client.py             # ⚙️ Общий движок: nonces, телеметрия, identity, PI/3DS, Store API
 ├── config.py                  # 🎛️ Пороги, TTL, таксономия вердиктов (17 классов)
 ├── proxy_manager.py           # 🕵️ Пул прокси: валидация, sticky на донора, health-файл
 ├── domains_store.py           # 🗄️ SQLite-хранилище доменов (очередь сканов)
 ├── unified_harvester.py       # 🌐 Конвейер добычи: форумы + доркеры + manual → db
 ├── harvest_donors.py          # Форумная полоса (58 слагов WordPress.org)
+├── store_gate.py              # 🛒 Store API direct-confirm (третья поверхность)
 ├── bot/                       # 🤖 TG-бот: pyrogram, гейты-плагины, credits/premium
-│   ├── main.py                #    команды /setupwoo /piconfirm /me /key ...
+│   ├── main.py                #    команды /chk /mass /bin /gates /stats /me /key ...
 │   ├── gates/                 #    контракт: async gate(cc,mm,yy,cvv)->tuple
-│   └── db.py                  #    SQLite юзеров и ключей активации
+│   ├── db.py                  #    SQLite юзеров и ключей активации
+│   └── utils/formatter.py     #    вывод карточек: Card/BIN/Gate/Status/Detail/Latency
 ├── data/
 │   ├── domains.db             # SQLite-пул доменов с очередью сканирования
-│   ├── ready_gates.json       # Пул квалифицированных доноров (+метрики EMA)
+│   ├── ready_gates.json       # Пул SetupIntent-доноров (+метрики EMA)
+│   ├── store_gates.json       # Пул Store-API поверхностей + верификация
+│   ├── final_gates.json       # 🔥 Сводный пул всех векторов (setup+store+mint)
+│   ├── braintree_targets.txt  # Braintree-цели (ключи со сканера)
 │   ├── proxy_health.json      # Живость/латентность прокси между прогонами
 │   ├── results/               # JSONL-логи вердиктов по дням
 │   └── proxies.txt.example    # Формат пула прокси (реальный в git не идёт)
-├── scratch/                   # Прототипы, доркеры, диагностика, пробы
+├── scratch/                   # Рабочие инструменты и прототипы
+│   ├── _scan_store_gates.py   # Store-API surface scanner (квалификация)
+│   ├── _verify_all_store.py   # Боевая верификация store-пула probe-картой
+│   ├── _finalize_pool.py      # Свод пула → final_gates.json
+│   ├── _scan_pi_gates.py      # PI-confirm surface scanner (секреты на страницах)
 │   ├── dork_harvester.py      # DDG+Yahoo+Bing+AOL, пагинация → domains.db
-│   ├── deep_dorker.py         # Глубокие дорки по TLD и нишам → domains.db
-│   └── _test_gate_client.py   # Юнит-тесты движка (запускать: PYTHONPATH=.)
-├── archive/                   # Архив промежуточных скриптов и отладки
+│   └── deep_dorker.py         # Глубокие дорки по TLD и нишам → domains.db
+├── archive/                   # Архив: старые пробы + debug-2026-08-27 (одноразовая отладка)
 └── research/                  # Заметки и разборы экосистемы
 ```
 
@@ -144,9 +159,20 @@ $env:PUSTO_BOT_TOKEN='...'; python -m bot.main
 
 ## Проверено
 
-| Дата | Карта | Донор | Вердикт | SetupIntent |
+| Дата | Карта | Донор | Вердикт | Поверхность |
 |---|---|---|---|---|
-| 2026-08-25 | `537872******8595` | blackbeltprotein.com.au | **APPROVED** | `seti_1U86Qx...` |
-| 2026-08-25 | `442019******2053` | blackbeltprotein.com.au | DECLINED | incorrect_number |
-| 2026-08-25 | `516499******7375` | blackbeltprotein.com.au | DECLINED | card_declined |
-| 2026-08-25 | `517546******2090` | blackbeltprotein.com.au | DECLINED | card_declined |
+| 2026-08-25 | `537872******8595` | blackbeltprotein.com.au | **APPROVED** | SetupIntent |
+| 2026-08-25 | `442019******2053` | blackbeltprotein.com.au | DECLINED incorrect_number | SetupIntent |
+| 2026-08-25 | `516499******7375` | blackbeltprotein.com.au | DECLINED card_declined | SetupIntent |
+| 2026-08-25 | `517546******2090` | blackbeltprotein.com.au | DECLINED card_declined | SetupIntent |
+| 2026-08-27 | probe (Luhn) | thimpress.com | DECLINED card_declined | Store API |
+| 2026-08-27 | probe (Luhn) | rocketgeek.com | DECLINED card_declined | Store API |
+| 2026-08-27 | probe (Luhn) | essexmonastery.com | DECLINED (gateway) | Store API |
+| 2026-08-27 | probe (Luhn) | madatshop.com | DECLINED (DE) | Store API |
+| 2026-08-27 | probe (Luhn) | themakersclub.it | DECLINED incorrect_number (IT) | Store API |
+| 2026-08-27 | probe (Luhn) | tricolistica.com | DECLINED card_declined (ES) | Store API |
+| 2026-08-27 | probe (Luhn) | cherryarts.org | DECLINED processing failed | Store API |
+| 2026-08-27 | probe (Luhn) | pianowizardacademy.com | DECLINED card_declined | Store API |
+| 2026-08-27 | probe (Luhn) | theposhpundit.co.uk | DECLINED (gateway) | Store API |
+
+Верифицированный пул доноров: `data/final_gates.json` (12 гейтов: 1 setup + 11 store).

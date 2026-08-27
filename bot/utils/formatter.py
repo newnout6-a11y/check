@@ -36,17 +36,21 @@ def format_single(card_raw: str, binfo: dict, gate_name: str,
             f"{line}")
 
 
-def format_mass(results: list[dict]) -> str:
-    """results: [{card, binfo?, status, detail}]"""
-    hits = sum(1 for r in results if config.is_hit(r["status"]))
-    warns = sum(1 for r in results
-                if r["status"] not in config.HIT_VERDICTS and r["status"] != "DECLINED")
-    fails = sum(1 for r in results if r["status"] == "DECLINED")
-    lines = ["━━━ MASS CHECK RESULTS ━━━",
-             f"Total: {len(results)} | ✅ {hits} | ❌ {fails} | ⚠️ {warns}"]
+def format_mass(results: list[dict], header: bool = True) -> str:
+    """results: [{card, binfo?, status, detail}]; header=False — только строки
+    (когда вызывающая сторона строит свой заголовок со счётчиками)."""
+    lines = []
+    if header:
+        hits = sum(1 for r in results if config.is_hit(r["status"]))
+        warns = sum(1 for r in results
+                    if r["status"] not in config.HIT_VERDICTS and r["status"] != "DECLINED")
+        fails = sum(1 for r in results if r["status"] == "DECLINED")
+        lines += ["━━━ MASS CHECK RESULTS ━━━",
+                  f"Total: {len(results)} | ✅ {hits} | ❌ {fails} | ⚠️ {warns}"]
     for r in results:
         b = r.get("binfo") or {}
-        bs = "/".join(str(b.get(k) or "?") for k in ("scheme", "type")) or "?"
-        lines.append(f"{config.icon(r['status'])} {r['card']} | {bs} | {r['status']}"
+        bs = "/".join(str(b.get(k)) for k in ("scheme", "type") if b.get(k))
+        bs_s = f" | {bs}" if bs else ""
+        lines.append(f"{config.icon(r['status'])} {r['card']}{bs_s} | {r['status']}"
                      + (f" ({r['detail'][:40]})" if r.get("detail") else ""))
     return "\n".join(lines)

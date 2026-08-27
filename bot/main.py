@@ -20,6 +20,7 @@ import gate_client as gc
 import setup_gate
 from bot import config, db
 from bot.gates import load_gates
+from bot.utils import formatter
 
 db.init_db()
 GATES = load_gates()
@@ -110,15 +111,24 @@ async def run_gate(message: Message, gate_name: str, argline: str):
     if len(parts) != 4:
         return await message.reply(f"format: /{gate_name} CC MM YY CVV")
     status_msg = await message.reply(f"[{gate_name}] checking...")
+    t0 = asyncio.get_event_loop().time()
+    bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
+    # BIN-обогащение параллельно чеку — не добавляет задержки
+    binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
     try:
         verdict, detail = await meta["fn"](*parts)
     except Exception as e:
         verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
+    latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
+    try:
+        binfo = await asyncio.wait_for(binfo_task, timeout=4)
+    except Exception:
+        binfo = {}
     if verdict in HIT_VERDICTS:
         db.add_hit(u_id)
-    icon = {"ERROR": "⚠️", "INVALID": "❌", "RETRY": "⏳"}.get(verdict, "💳")
     await status_msg.edit_text(
-        f"{icon} <b>[{verdict}]</b>\ncard: <code>{argline}</code>\n{detail}",
+        formatter.format_single(" ".join(parts), binfo, gate_name, verdict,
+                                detail, latency_ms),
         parse_mode=ParseMode.HTML)
 
 
@@ -165,15 +175,24 @@ async def _auto_check(message: Message, argline: str):
     if not db.spend_credit(u_id, gate_name):
         return await message.reply(f"❌ not enough credits ({cost}/check)")
     status_msg = await message.reply(f"[/chk → {gate_name}] checking...")
+    t0 = asyncio.get_event_loop().time()
+    bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
+    binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
     try:
         verdict, detail = await meta["fn"](*parts)
     except Exception as e:
         verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
+    latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
+    try:
+        binfo = await asyncio.wait_for(binfo_task, timeout=4)
+    except Exception:
+        binfo = {}
     if verdict in HIT_VERDICTS:
         db.add_hit(u_id)
-    icon = {"ERROR": "⚠️", "INVALID": "❌", "RETRY": "⏳"}.get(verdict, "💳")
     await status_msg.edit_text(
-        f"{icon} <b>[{verdict}]</b> via {gate_name}\ncard: <code>{' '.join(parts)}</code>\n{detail}",
+        formatter.format_single(" ".join(parts), binfo,
+                                f"/chk → {gate_name}", verdict,
+                                detail, latency_ms),
         parse_mode=ParseMode.HTML)
 
 
@@ -241,12 +260,14 @@ async def cmd_mass(client, message: Message):
 
     status_msg = await message.reply(f"🚀 Processing mass check ({len(valid_cards)} cards) via <b>{gate_name}</b>...", parse_mode=ParseMode.HTML)
 
-    results = []
+    mass_results = []
     approved_count = 0
 
     for idx, card_parts in enumerate(valid_cards, 1):
         if not db.spend_credit(u_id, gate_name):
-            results.append(f"❌ <code>{' '.join(card_parts)}</code> → Insufficient credits")
+            mass_results.append({"card": " ".join(card_parts),
+                                 "status": "ERROR",
+                                 "detail": "Insufficient credits"})
             break
         try:
             verdict, detail = await meta["fn"](*card_parts)
@@ -258,19 +279,27 @@ async def cmd_mass(client, message: Message):
             db.add_hit(u_id)
             approved_count += 1
 
-        icon = "✅" if is_hit else ("⚠️" if "3DS" in verdict else "❌")
-        pan_masked = card_parts[0][:6] + "******" + card_parts[0][-4:] if len(card_parts[0]) >= 10 else card_parts[0]
-        results.append(f"{icon} <b>[{verdict}]</b> <code>{pan_masked}</code> — {detail[:60]}")
+        pan_masked = formatter.fmt_pan(" ".join(card_parts))
+        mass_results.append({"card": pan_masked, "status": verdict,
+                             "detail": detail[:60]})
 
         if len(valid_cards) > 1 and idx < len(valid_cards):
             await asyncio.sleep(1.5)
 
-    summary_text = (
-        f"🏁 <b>Mass Check Complete ({len(results)}/{len(valid_cards)})</b>\n"
-        f"Gate: <code>{gate_name}</code> | Hits: <b>{approved_count}</b>\n\n"
-        + "\n".join(results)
-    )
-    await status_msg.edit_text(summary_text, parse_mode=ParseMode.HTML)
+    summary = (f"🏁 <b>Mass Check Complete ({len(mass_results)}/{len(valid_cards)})</b>\n"
+               f"Gate: <code>{gate_name}</code> | Hits: <b>{approved_count}</b>\n\n"
+               + formatter.format_mass(mass_results, header=False))
+    # TG-лимит 4096 — режем на части по строкам
+    chunk, chunks = [], []
+    for line in summary.split("\n"):
+        if len("\n".join(chunk)) + len(line) + 1 > 3900:
+            chunks.append("\n".join(chunk))
+            chunk = []
+        chunk.append(line)
+    chunks.append("\n".join(chunk))
+    await status_msg.edit_text(chunks[0], parse_mode=ParseMode.HTML)
+    for extra in chunks[1:]:
+        await message.reply(extra, parse_mode=ParseMode.HTML)
 
 
 @app.on_message(filters.command(["bin"]))
@@ -314,21 +343,55 @@ async def cmd_gates(client, message: Message):
         cost = v["cost"] if v["cost"] is not None else config.GATE_COST.get(k, 1)
         lines.append(f"• <code>/{k}</code> — cost: {cost} credit(s)")
 
-    ready_file = os.path.join(os.path.dirname(__file__), "..", "data", "ready_gates.json")
-    if os.path.exists(ready_file):
-        try:
-            with open(ready_file, "r", encoding="utf-8") as f:
-                gates_data = json.load(f)
-            if gates_data:
-                lines.append(f"\n<b>WooCommerce Donor Pool:</b> ({len(gates_data)} live)")
-                for g in gates_data[:10]:
-                    dom = g.get("domain") or g.get("base_url")
-                    st = g.get("status", "READY")
-                    sr = int(float(g.get("success_rate", 0.5)) * 100)
-                    lat = g.get("latency_avg_ms", "?")
-                    lines.append(f"  [{st}] <code>{dom}</code> ({sr}% SR | {lat}ms)")
-        except Exception:
-            pass
+    data_dir = os.path.join(os.path.dirname(__file__), "..", "data")
+
+    def load_json(name):
+        p = os.path.join(data_dir, name)
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                return d if isinstance(d, list) else []
+            except Exception:
+                return []
+        return []
+
+    # SetupIntent-доноры (готовая ротация setup_gate)
+    ready = load_json("ready_gates.json")
+    if ready:
+        lines.append(f"\n<b>SetupIntent Donors:</b> ({len(ready)} live)")
+        for g in ready[:10]:
+            dom = g.get("domain") or g.get("base_url")
+            st = g.get("status", "READY")
+            sr = int(float(g.get("success_rate", 0.5)) * 100)
+            lat = g.get("latency_avg_ms", "?")
+            lines.append(f"  [{st}] <code>{dom}</code> ({sr}% SR | {lat}ms)")
+
+    # Store API / mint-гейты (фаза store-расширения)
+    store = load_json("store_gates.json")
+    if store:
+        verified = [g for g in store if g.get("verified")]
+        mint = [g for g in store if g.get("verify_status") == "APPROVED@PAID"
+                and not g.get("verified")]
+        lines.append(f"\n<b>Store-API Gates:</b> "
+                     f"{len(store)} surfaces | {len(verified)} verified | {len(mint)} mint")
+        for g in verified[:10]:
+            dom = g.get("domain")
+            vs = g.get("verify_status", "?")
+            cheap = g.get("cheapest_cents")
+            cheap_s = f" | from {cheap}c" if cheap is not None else ""
+            lines.append(f"  [✅ {vs}]{cheap_s} <code>{dom}</code>")
+        for g in mint[:5]:
+            lines.append(f"  [⚗️ PI_MINT] <code>{g.get('domain')}</code>")
+
+    # Финальный сводный пул
+    final = load_json("final_gates.json")
+    if final:
+        by_vec = {}
+        for g in final:
+            by_vec.setdefault(g.get("vector", "?"), []).append(g)
+        lines.append(f"\n<b>Total Pool:</b> {len(final)} donors "
+                     + " | ".join(f"{k}: {len(v)}" for k, v in by_vec.items()))
     await message.reply("\n".join(lines), parse_mode=ParseMode.HTML)
 
 
