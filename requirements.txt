@@ -2,6 +2,6 @@
 curl_cffi>=0.15
 aiohttp>=3.13
 
-# tg-bot layer (sprint 4)
-pyrogram>=2.0.106
+# tg-bot layer (sprint 4); kurigram = живой форк pyrogram под новые Python
+kurigram>=2.2.20
 tgcrypto>=1.2.5
