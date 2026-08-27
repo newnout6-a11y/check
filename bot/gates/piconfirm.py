@@ -17,7 +17,7 @@ _gs: ConfirmGateSession | None = None
 def _target() -> str:
     t = os.environ.get("PUSTO_PI_TARGET", "")
     if not t:
-        p = os.path.join(os.path.dirname(__file__), "..", "data", "pi_target.txt")
+        p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "pi_target.txt")
         if os.path.exists(p):
             with open(p, encoding="utf-8") as f:
                 for line in f:
@@ -29,22 +29,33 @@ def _target() -> str:
 
 def _normalize(cc: str, mm: str, yy: str, cvv: str) -> str | None:
     cc = "".join(ch for ch in str(cc) if ch.isdigit())
-    if not gc.check_luhn(cc):
+    if not (13 <= len(cc) <= 19) or not gc.check_luhn(cc):
         return None
     try:
         month = int(str(mm).strip().lstrip("0") or "0")
     except ValueError:
         return None
+    if not 1 <= month <= 12:
+        return None
     year = str(yy).strip()
     if len(year) == 2:
         year = "20" + year
+    if not (len(year) == 4 and year.isdigit()):
+        return None
     return f"{cc}|{month:02d}|{year}|{str(cvv).strip()}"
 
 
 async def _get_session() -> ConfirmGateSession:
     global _gs
-    if _gs is not None and _gs.s is not None:
+    # TTL/смена цели: закэшенная сессия жива, только если цель не поменялась
+    if _gs is not None and _gs.s is not None and _gs.target == _target():
         return _gs
+    if _gs is not None:
+        try:
+            await _gs.close()
+        except Exception:
+            pass
+        _gs = None
     target = _target()
     if not target:
         raise RuntimeError("PI target not configured (env PUSTO_PI_TARGET / data/pi_target.txt)")

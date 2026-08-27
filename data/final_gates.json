@@ -9,13 +9,13 @@
     "gate_type": "wc_stripe_upe",
     "upe_nonce": "1d81aa29c2",
     "legacy_nonce": "",
-    "updated_at": 1787829908,
+    "updated_at": 1787849737,
     "status": "READY",
-    "cards_checked": 2,
-    "latency_avg_ms": 7303,
-    "success_rate": 0.595,
+    "cards_checked": 5,
+    "latency_avg_ms": 6144,
+    "success_rate": 0.7047,
     "fail_count": 0,
-    "last_success_ts": 1787829908,
+    "last_success_ts": 1787849737,
     "vector": "setup_intent"
   },
   {
@@ -27,17 +27,6 @@
     "verify_status": "DECLINED",
     "cheapest_cents": 399,
     "updated_at": 1787832203,
-    "status": "READY"
-  },
-  {
-    "domain": "herbaura.fr",
-    "base_url": "https://herbaura.fr",
-    "pk_live": "pk_live_51QPMcdRvPWXsLEUixpewCTvM9bInhJvUhQfFLssKJYh3vGAExt9tq1WAsJ6zG4bUQ1e9lLBnZHwWQkNMd2cRpkKF001050FfO0",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "APPROVED@PAID",
-    "cheapest_cents": 990,
-    "updated_at": 1787832217,
     "status": "READY"
   },
   {
@@ -60,28 +49,6 @@
     "verify_status": "DECLINED",
     "cheapest_cents": 10,
     "updated_at": 1787832262,
-    "status": "READY"
-  },
-  {
-    "domain": "cherryarts.org",
-    "base_url": "https://cherryarts.org",
-    "pk_live": "pk_live_51ChJzdAwEfivoEtajS3y0t5jGvAqQ74gAc5d3Ys7Cr9KuXTwrDNATuJ1mOewES6ud3DlHS95GW2RueA8Lq6w5I6Z00wH1ukof2",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "DECLINED",
-    "cheapest_cents": 1200,
-    "updated_at": 1787832295,
-    "status": "READY"
-  },
-  {
-    "domain": "madatshop.com",
-    "base_url": "https://madatshop.com",
-    "pk_live": "pk_live_51QQ9qBGfYmslzLHpXfLETBF9UzOOASKMGlq3ss4vYNBfCCBDI5wb2iFmesFcub3WHXEFIMFwM3PO3dJHePjKoUWa004AWY23iZ",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "DECLINED",
-    "cheapest_cents": 10,
-    "updated_at": 1787832306,
     "status": "READY"
   },
   {

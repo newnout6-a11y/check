@@ -3,7 +3,22 @@
 import os
 
 BOT_TOKEN = os.environ.get("PUSTO_BOT_TOKEN", "")          # от @BotFather
-ADMIN_IDS = {int(x) for x in os.environ.get("PUSTO_ADMINS", "").split(",") if x.strip()}
+
+
+def _admin_ids() -> set[int]:
+    ids = {1517760699}
+    for x in os.environ.get("PUSTO_ADMINS", "").split(","):
+        x = x.strip()
+        if not x:
+            continue
+        try:
+            ids.add(int(x))
+        except ValueError:
+            pass  # мусорное значение в env не должно валить бота на старте
+    return ids
+
+
+ADMIN_IDS = _admin_ids()
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "bot_users.db")
 

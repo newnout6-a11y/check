@@ -30,15 +30,19 @@ def _targets() -> list[str]:
 
 def _normalize(cc: str, mm: str, yy: str, cvv: str) -> str | None:
     cc = "".join(ch for ch in str(cc) if ch.isdigit())
-    if not gc.check_luhn(cc):
+    if not (13 <= len(cc) <= 19) or not gc.check_luhn(cc):
         return None
     try:
         month = int(str(mm).strip().lstrip("0") or "0")
     except ValueError:
         return None
+    if not 1 <= month <= 12:
+        return None
     year = str(yy).strip()
     if len(year) == 2:
         year = "20" + year
+    if not (len(year) == 4 and year.isdigit()):
+        return None
     return f"{cc}|{month:02d}|{year}|{str(cvv).strip()}"
 
 

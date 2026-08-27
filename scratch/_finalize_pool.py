@@ -5,9 +5,13 @@ import json
 store = json.load(open("data/store_gates.json", encoding="utf-8"))
 ready = json.load(open("data/ready_gates.json", encoding="utf-8"))
 
-verified_store = [g for g in store if g.get("verified")]
+# фантомные (phantom) и мёртвые (dead_surface) гейты в пул не идут
+verified_store = [g for g in store if g.get("verified")
+                  and not g.get("phantom") and not g.get("dead_surface")]
 mint_store = [g for g in store
-              if not g.get("verified") and g.get("verify_status") == "APPROVED@PAID"]
+              if not g.get("verified") and not g.get("phantom")
+              and not g.get("dead_surface")
+              and g.get("verify_status") == "APPROVED@PAID"]
 
 pool = []
 for g in ready:

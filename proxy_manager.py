@@ -135,7 +135,7 @@ async def maybe_pool(explicit_proxy: str | None) -> tuple[ProxyPool | None, str 
     print(f"[*] Proxy validation: {pp.status_line()}")
     if alive == 0:
         print("[!] All proxies dead — running direct")
-        return pp, None
+        return None, None
     return pp, None
 
 

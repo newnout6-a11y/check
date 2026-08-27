@@ -54,19 +54,25 @@ async def bin_lookup(bin_num: str) -> dict:
 
 
 def bin_summary(binfo: dict) -> str:
-    # binlist отдаёт lower-case ключи, handyapi — Capitalized; покрываем оба
     if not binfo:
         return "?"
     g = lambda *keys: next((binfo[k] for k in keys if k in binfo and binfo[k]), "")
-    bank = g("bank", "Bank")
+    bank = g("bank", "Bank", "Issuer", "issuer")
     country = g("country", "Country")
+    c_a2 = ""
+    if isinstance(country, dict):
+        c_a2 = country.get("alpha2") or country.get("Alpha2") or country.get("A2") or country.get("a2") or country.get("name") or ""
+    elif isinstance(country, str):
+        c_a2 = country.strip()
     parts = [
-        str(g("scheme", "Scheme") or "?"),
-        str(g("type", "Type")),
-        str(country.get("alpha2", "") if isinstance(country, dict) else ""),
+        str(g("scheme", "Scheme", "brand") or "?"),
+        str(g("type", "Type") or ""),
+        str(c_a2),
     ]
     if isinstance(bank, dict) and bank.get("name"):
         parts.append(str(bank["name"])[:18])
+    elif isinstance(bank, str) and bank:
+        parts.append(str(bank)[:18])
     out = "/".join(p for p in parts if p and p != "?")
     return out or "?"
 
@@ -447,13 +453,13 @@ async def main():
     # Pre-flight: Luhn sanity + BIN enrichment
     bins: dict[str, dict] = {}
     for idx, c in enumerate(cards, 1):
-        parts = c.split("|")
-        num = parts[0].strip()
+        parsed = gc.parse_card(c)
+        num = parsed["number"]
         if not gc.check_luhn(num):
             print(f"[!] WARNING: card #{idx} fails Luhn: {num}")
-        if len(parts) < 4 or parts[3].strip() == "000":
+        if not parsed.get("cvc") or parsed.get("cvc") == "000":
             print(f"[!] WARNING: card #{idx} has no/zero CVC — random generated, best case CCN-verdict")
-    for prefix in sorted({c.split("|")[0][:6] for c in cards}):
+    for prefix in sorted({gc.extract_pan(c)[:6] for c in cards if len(gc.extract_pan(c)) >= 6}):
         bins[prefix] = await bin_lookup(prefix)
         if bins[prefix]:
             print(f"[i] BIN {prefix}: {bin_summary(bins[prefix])}")

@@ -50,12 +50,22 @@ def get_user(user_id: int) -> dict:
         return dict(row) if row else {}
 
 
+def is_developer(u: dict) -> bool:
+    return u.get("user_id") in config.ADMIN_IDS
+
+
 def is_premium(u: dict) -> bool:
+    if is_developer(u):
+        return True
     return u.get("premium_until", 0) > time.time()
 
 
 def spend_credit(user_id: int, gate: str) -> bool:
-    """Премиум чекает без кредитов; обычный списывает GATE_COST[gate]."""
+    """Премиум чекает без кредитов; разработчик — безлимитно."""
+    if user_id in config.ADMIN_IDS:
+        with connect() as c:
+            c.execute("UPDATE users SET total_checks = total_checks + 1 WHERE user_id=?", (user_id,))
+        return True
     cost = 0 if is_premium(get_user(user_id)) else config.GATE_COST.get(gate, 1)
     with connect() as c:
         row = c.execute("SELECT credits FROM users WHERE user_id=?", (user_id,)).fetchone()
@@ -63,6 +73,21 @@ def spend_credit(user_id: int, gate: str) -> bool:
             return False
         c.execute("UPDATE users SET credits = credits - ?, total_checks = total_checks + 1 "
                   "WHERE user_id=?", (cost, user_id))
+        return True
+
+
+def refund_credit(user_id: int, gate: str) -> bool:
+    """Возврат кредита при сбое движка (verdict ERROR) + откат счётчика проверок."""
+    cost = 0 if user_id in config.ADMIN_IDS else \
+        (0 if is_premium(get_user(user_id)) else config.GATE_COST.get(gate, 1))
+    with connect() as c:
+        row = c.execute("SELECT credits, total_checks FROM users WHERE user_id=?",
+                        (user_id,)).fetchone()
+        if not row or cost == 0:
+            return False
+        c.execute("UPDATE users SET credits = credits + ?, "
+                  "total_checks = MAX(0, total_checks - 1) WHERE user_id=?",
+                  (cost, user_id))
         return True
 
 
@@ -77,7 +102,10 @@ def redeem_key(user_id: int, key: str) -> str:
         row = c.execute("SELECT * FROM keys WHERE key=? AND used_by IS NULL",
                         (key.strip(),)).fetchone()
         if not row:
-            return "❌ Key invalid or already used."
+            return "❌ Неверный или уже активированный ключ."
+        if not row["days"] and not row["credits"]:
+            # пустой ключ не помечается used — не сгорает впустую
+            return "❌ Пустой ключ (0 дней / 0 кредитов) — попросите админа перевыпустить."
         c.execute("UPDATE keys SET used_by=?, used_at=? WHERE key=?",
                   (user_id, int(time.time()), key.strip()))
         if row["days"]:
@@ -85,12 +113,12 @@ def redeem_key(user_id: int, key: str) -> str:
             base = max(int(u.get("premium_until") or 0), int(time.time()))
             c.execute("UPDATE users SET premium_until=? WHERE user_id=?",
                       (base + row["days"] * 86400, user_id))
-            return f"✅ Premium +{row['days']}d"
+            return f"✅ Премиум активирован (+{row['days']} дн.)"
         if row["credits"]:
             c.execute("UPDATE users SET credits = credits + ? WHERE user_id=?",
                       (row["credits"], user_id))
-            return f"✅ +{row['credits']} credits"
-    return "❌ Empty key."
+            return f"✅ Начислено +{row['credits']} кредитов"
+    return "❌ Пустой ключ."
 
 
 def add_key(key: str, days: int = 0, credits: int = 0):

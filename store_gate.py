@@ -44,9 +44,11 @@ async def bin_lookup(bin_num: str) -> dict:
                 if r.status_code == 200:
                     d = r.json()
                     if pick == "antipublic":
+                        c_name = str(d.get("country_name", "")).lower()
                         d = {"scheme": d.get("brand"), "type": d.get("type"),
                              "bank": {"name": d.get("bank")},
-                             "country": {"alpha2": "", "name": d.get("country_name")},
+                             "country": {"alpha2": gc._ANTIPUBLIC_A2.get(c_name, ""),
+                                         "name": d.get("country_name")},
                              "level": d.get("level")}
                     d["_src"] = pick
                     return d

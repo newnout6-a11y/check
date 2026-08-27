@@ -171,7 +171,11 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 conf_resp = r_conf.json()
 
                 raw_str = json.dumps(conf_resp).lower()
-                if "testmode_charges_only" in raw_str or "secret_key_required" in raw_str or "livemode" in raw_str and "false" in raw_str:
+                # livemode-детект: строгое поле JSON, а не любой 'false' в тексте —
+                # success:false + livemode:true это штатный live-decline ответ плагина
+                if ("testmode_charges_only" in raw_str
+                        or "secret_key_required" in raw_str
+                        or re.search(r'"livemode"\s*:\s*"?false', raw_str)):
                     return None
 
                 is_live_verdict = (

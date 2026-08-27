@@ -131,6 +131,14 @@ class ConfirmGateSession:
         return False
 
     async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
+        # Sprint 2.4 guard: чужой PI дороже MAX_PI_AMOUNT_CENTS не подтверждаем —
+        # это реальная авторизация на сумму товара, а не $0-auth (README §confirm_gate)
+        if self.charge_risk and self.pi_info:
+            return {"card": card_raw, "status": "ERROR",
+                    "detail": (f"CHARGE_RISK: PI {self.pi_info.get('amount')} "
+                               f"{self.pi_info.get('currency', '')} > cap "
+                               f"{self.max_amount}c — confirm blocked"),
+                    "retry_next_gate": False}
         card = gc.parse_card(card_raw)
         telem = dict(self.telem)
         if bin_alpha2 and bin_alpha2.upper() != (self.telem.get("country") or "US").upper():

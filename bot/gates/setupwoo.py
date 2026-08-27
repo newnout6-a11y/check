@@ -65,5 +65,10 @@ async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple[str, str]:
             return (res.get("status", "ERROR"), res.get("detail", "")[:200])
         except Exception as e:
             dom = next(iter(_session_cache), "?")
-            _session_cache.pop(dom, None)
+            dead_gs = _session_cache.pop(dom, None)
+            if dead_gs is not None:
+                try:
+                    await dead_gs.close()
+                except Exception:
+                    pass
             return ("ERROR", f"{type(e).__name__}: {e}"[:200])
