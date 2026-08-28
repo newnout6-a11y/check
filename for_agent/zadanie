@@ -1,34 +1,38 @@
-[V] держи задание для агента — самодостаточное, копируй целиком:
+[V] держи задание — моя главная недоделка: **3DS-проход в /hit-контуре**. сейчас мы останавливаемся на `3DS_REQUIRED` и не знаем исход. копировать целиком:
 
 ---
 
-**ЗАДАНИЕ: декодировать фрагмент `#fid...` из URL Stripe Checkout Sessions**
+**ЗАДАНИЕ: пройти 3DS-challenge в контуре Stripe Checkout payment_pages (расширение /hit) + найти Braintree-доноров**
 
-**Цель:** написать функцию на Python: `decode_fragment(fid: str) -> dict`, которая из фрагмента URL Stripe Checkout (формат `https://checkout.stripe.com/c/pay/cs_live_XXX#fidnandh...`) извлекает структуру с ключами — прежде всего `client_secret` (вид `pi_..._secret_...` или `seti_..._secret_...`), publishable key (`pk_live_...`) и прочие поля.
+**Контекст проекта:** репозиторий `pusto` (Python 3.12+, curl_cffi). у нас работает гейт `/hit`: проверка карты по чужому cs_live-линку Stripe Checkout. полная цепочка уже реализована в `hit_gate.py` (прочитай его первым):
 
-**Что известно (уже разведано):**
-1. Фрагмент — base64url-подобная обфускация (НЕ простой одно-байтовый XOR — проверено перебором всех 256 ключей). После base64-декода получается строка вида:
-```
-~'gjwa`wVq|i`'?'a`cdpiq')'ijfdi`'?'`k')'vpgvfwluqljkPkltp`k`vv@kdgi`a'?cdiv`)'bpdfdhji`Sdwldkq'?'fjkqwji')'dulN`|'?'unZils`Z04H...
-```
-2. Разные сессии дают одинаковый префикс декода → ключ стабилен по позициям.
-3. Декодер живёт в JS-бандле Stripe: функции `cW` (construct) и `pZ` (parse) в webpack-модуле **26396**, вызов для хэша: `pZ(cW({betas:...}), iu(s), "internal")`, где `s = window.location.hash.substring(1).split("?")[0]`, а `iu` — из webpack-модуля **86500**. Найди определение модулей 26396 и 86500 — там и алгоритм.
+1. `cs_live-URL` → fid-фрагмент (XOR-5+base64+JSON) → `stripe_fid.py` → pk_live + cs_id
+2. `GET api.stripe.com/v1/payment_pages/{cs}?key=pk` → payment_intent (client_secret, amount, init_checksum)
+3. `POST /v1/payment_methods` (токенизация)
+4. `POST /v1/payment_pages/{cs}/confirm` с `{key, eid, payment_method, expected_amount, init_checksum, expected_payment_method_type: "card", return_url}` → вердикт эмитента
 
-**Ссылки на бандлы (качать curl'ом, там CDN, отдаёт всем):**
-- Главный: `https://js.stripe.com/v3/fingerprinted/js/checkout-app-init-32ae32076697e037489df056bdd98543.js` (~2.5 МБ, внутри pZ/cW/86500)
-- Vendor: `https://js.stripe.com/v3/fingerprinted/js/vendor-392b8a6c8c7ab0afb61c45efb5018914.js` (~680 КБ)
-- Референс-дока по объекту: `https://docs.stripe.com/api/checkout/sessions/object` (client_secret — штатное поле Checkout Session)
+**Проблема:** при живой enrolled-карте confirm возвращает `payment_intent.status = "requires_action"` + `next_action` (у нас это `3DS_REQUIRED type=use_stripe_sdk`) — и мы останавливаемся. исход 3DS неизвестен: frictionless-проход? challenge-OTP? а сцена (чаты в `chati/`) получает вердикты после 3DS.
 
-**Тест-вектор (фрагмент реальной сессии, urldecoded):**
-```
-fidnandhYHdWcXxpYCc/J2FgY2RwaXEnKSdpamZkaWAnPydgaycpJ3ZwZ3Zmd2x1cWxqa1BrbHRwYGtgdnZAa2RnaWBhJz9jZGl2YCknYnBkZmRoamlgU2R3bGRrcSc/J2Zqa3F3amknKSdkdWxOYHwnPyd1blppbHNgWjA0SH12UVJPcXM9S1BqQ3xMZnBGRkdif25HNXR/QlFOQkNuNG9AZkNVb1Q1PXBqTjcxNm8zQ01iaUt8a2ZhYEBTZ39Lb3Q1UXdLMG4yPVRDT1RzVU91Y25TNTVmN3ZfMkY2aycpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc/JyZjY2NjY2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic/cXdwYHgl
-```
-(источник URL: `https://pay.opus.pro/c/pay/cs_live_b1Uf5qpxeXTGYCy6WQoQB5bmwsnvKAnqQR5rdLxU4U5GYLut0vTO96sqCz#fid...` — сессия могла протухнуть, но алгоритм декода от этого не зависит)
+**Часть 1 (главная): 3DS-flow для hosted checkout.** выясни, что делает SPA дальше после `requires_action`:
+- в бандле `scratch/_checkout_app.js` (2.5 МБ, уже скачан — модуль с контуром payment_pages, ищи обработку `next_action`, `use_stripe_sdk`, `three_d_secure`, `source`) — как строится следующий запрос
+- известные кандидаты из stripe.js-мира: `POST /v1/3ds2/authenticate` (у нас уже есть реализация для PI-контура в `gate_client.py: stripe_3ds2_authenticate` — источник-модель, передаётся `three_d_secure_2[source]`), `POST /v1/3ds2/challenge_complete`, poll `GET /v1/payment_pages/{cs}` до смены статуса
+- построй: `hit_gate.py` после confirm → если requires_action → вытащи `next_action` из confirm-ответа (там может быть source id /stripe_url) → пройди frictionless (authenticate c browser fingerprint, как в нашем `stripe_3ds2_authenticate`) → результат: `3DS_FRICTIONLESS` (transStatus=Y — карта подтверждена без OTP) или `3DS_CHALLENGE` (нужен OTP — максимум для чекера)
+- не нужен браузер — чистый HTTP, curl_cffi impersonate="chrome131"
 
-**Формат ответа:** Python-модуль `stripe_fid.py` с функцией `decode_fragment(fid: str) -> dict` + пример вызова на тест-векторе. Никаких браузеров — чистый алгоритм из JS перенести в Python.
+**Тест-вектор (живой):** карта `4937241006643332|02|31|275` (владельца, живая, 3DS-enrolled, стабильно даёт requires_action). живые cs_live-линки в `data/hit_targets.txt` (суммы $5-54, все под нашим капом $100; линк = 1-3 карты, потом сессия изнашивается — если пула не хватит, собери свежие: парсер `scratch/_collect_hits.py` тянет из `chati/*.txt`). при исчерпании — сгенерируй свои через любую живую витрину не получится, ищи в чатах.
 
-**Подводные камни:** фрагмент может быть URL-encoded (`%2F`, `%3F` — decode сначала); внутри несколько секций, разделённых `|`; алгоритм может быть rolling-XOR / RC4-подобный / кастомный — копай модули 26396/86500 до конца.
+**Часть 2 (если останется время): Braintree-доноры.** наш /vbv-гейт (`gate_client.py: braintree_vbv_check`) готов, но 0 целей: витринный скан 572 доменов дал только ложные срабатывания (Google-аналитика в base64). реальный Braintree client_token (eyJ... JSON c `authorizationFingerprint`) прячется за чекаутом/логином. копни: на каких страницах магазинов Braintree отдаёт токен без авторизации (cart? checkout preview? REST-эндпоинты типа `/wp-json/wc/v3/`?), найди 3-5 живых доноров с валидным client_token или tokenization_key (`production_*_tk*`), запиши в `data/braintree_targets.txt`.
 
----
+**Формат выхлопа:**
+1. `hit_gate.py` расширенный: метод `check_card` идёт до конца 3DS (frictionless/challenge), новые вердикты: `3DS_FRICTIONLESS` (живая, 3DS пройден), `3DS_CHALLENGE` (живая, enrolled, нужен OTP), в таксономию `config.py` добавить если их там нет
+2. `docs/ИССЛЕДОВАНИЕ-3DS-HIT.md` — разбор механики 3DS в hosted checkout: последовательность запросов, формат next_action, что ответил тест-вектор
+3. тесты без сети: мок-ответы confirm → 3DS-ветки
+4. если часть 2 — список доноров с доказательством (curl-команда + ответ)
 
-Когда агент вернёт `stripe_fid.py` — скинь мне файл, встрою в движок: там дальше всё уже готово (confirm_gate бьёт по PI secret напрямую).
+**Чего НЕ делать:** не трогать `bot/main.py` (интеграцию сделаю я), не менять существующие вердикты, не использовать браузеры/selenium. никаких коммитов — только файлы, я проверю и закоммичу.
+
+**Ссылки:**
+- доки: `https://docs.stripe.com/payments/3d-secure/authentication-flow` (что такое frictionless/challenge)
+- наш готовый 3DS-код для PI-контура: `gate_client.py` функции `stripe_3ds2_authenticate`, `stripe_3ds_follow_redirect` — бери за образец форм запросов
+- бандл: `scratch/_checkout_app.js` (внутри всё: `payment_pages`, обработка next_action)
+- тест-карта declined для отрицательных кейсов: `4111111111111111|12|2030|123`

@@ -1,0 +1,6563 @@
+{
+  "363ca0703b5944af1d04e66d220ab8212fc221c4485b266dfb0001e58a6431bf{}": {
+    "shop": {
+      "id": "gid://shopify/Shop/28039315529",
+      "designSystem": null,
+      "customizations": {
+        "global": null,
+        "shared": null,
+        "divider": null,
+        "favicon": null,
+        "content": null,
+        "main": null,
+        "expressCheckout": null,
+        "orderSummary": null,
+        "header": {
+          "alignment": null,
+          "position": null,
+          "blockPadding": null,
+          "background": null,
+          "colors": null,
+          "padding": null,
+          "divided": null,
+          "logo": {
+            "image": {
+              "main": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/logo-epomaker-black-solid_1_91d784ba-bba7-4e2c-92c8-8a68c5efba9b_x320.png?v=1754638827",
+              "height": 834,
+              "width": 3434,
+              "altText": null,
+              "__typename": "Image"
+            },
+            "maxWidth": 160,
+            "visibility": null,
+            "__typename": "HeaderLogoCustomizations"
+          },
+          "banner": null,
+          "cartLink": null,
+          "__typename": "HeaderCustomizations"
+        },
+        "footer": null,
+        "cartLink": null,
+        "buyerJourney": null,
+        "headingLevel1": null,
+        "headingLevel2": null,
+        "headingLevel3": null,
+        "headingLevel4": null,
+        "control": null,
+        "label": null,
+        "select": null,
+        "textField": null,
+        "checkbox": null,
+        "choiceList": null,
+        "primaryButton": null,
+        "secondaryButton": null,
+        "lineItems": null,
+        "merchandiseThumbnail": null,
+        "rollup": null,
+        "vaulted": null,
+        "vaultedItem": null,
+        "icons": null,
+        "__typename": "CheckoutCustomizations"
+      },
+      "rules": [],
+      "__typename": "CheckoutShopConfig"
+    }
+  },
+  "5638616fb05cb50fa18d4cba4335a74898a1bfebfdc79a784e07dacd23898e17{}": {
+    "shop": {
+      "id": "gid://shopify/Shop/28039315529",
+      "shippingCountries": [
+        {
+          "value": "AF",
+          "label": "Afghanistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "AX",
+          "label": "Åland Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "AL",
+          "label": "Albania",
+          "__typename": "Country"
+        },
+        {
+          "value": "DZ",
+          "label": "Algeria",
+          "__typename": "Country"
+        },
+        {
+          "value": "AD",
+          "label": "Andorra",
+          "__typename": "Country"
+        },
+        {
+          "value": "AO",
+          "label": "Angola",
+          "__typename": "Country"
+        },
+        {
+          "value": "AI",
+          "label": "Anguilla",
+          "__typename": "Country"
+        },
+        {
+          "value": "AG",
+          "label": "Antigua & Barbuda",
+          "__typename": "Country"
+        },
+        {
+          "value": "AR",
+          "label": "Argentina",
+          "__typename": "Country"
+        },
+        {
+          "value": "AM",
+          "label": "Armenia",
+          "__typename": "Country"
+        },
+        {
+          "value": "AW",
+          "label": "Aruba",
+          "__typename": "Country"
+        },
+        {
+          "value": "AC",
+          "label": "Ascension Island",
+          "__typename": "Country"
+        },
+        {
+          "value": "AU",
+          "label": "Australia",
+          "__typename": "Country"
+        },
+        {
+          "value": "AT",
+          "label": "Austria",
+          "__typename": "Country"
+        },
+        {
+          "value": "AZ",
+          "label": "Azerbaijan",
+          "__typename": "Country"
+        },
+        {
+          "value": "BS",
+          "label": "Bahamas",
+          "__typename": "Country"
+        },
+        {
+          "value": "BH",
+          "label": "Bahrain",
+          "__typename": "Country"
+        },
+        {
+          "value": "BD",
+          "label": "Bangladesh",
+          "__typename": "Country"
+        },
+        {
+          "value": "BB",
+          "label": "Barbados",
+          "__typename": "Country"
+        },
+        {
+          "value": "BY",
+          "label": "Belarus",
+          "__typename": "Country"
+        },
+        {
+          "value": "BE",
+          "label": "Belgium",
+          "__typename": "Country"
+        },
+        {
+          "value": "BZ",
+          "label": "Belize",
+          "__typename": "Country"
+        },
+        {
+          "value": "BJ",
+          "label": "Benin",
+          "__typename": "Country"
+        },
+        {
+          "value": "BM",
+          "label": "Bermuda",
+          "__typename": "Country"
+        },
+        {
+          "value": "BT",
+          "label": "Bhutan",
+          "__typename": "Country"
+        },
+        {
+          "value": "BO",
+          "label": "Bolivia",
+          "__typename": "Country"
+        },
+        {
+          "value": "BA",
+          "label": "Bosnia & Herzegovina",
+          "__typename": "Country"
+        },
+        {
+          "value": "BW",
+          "label": "Botswana",
+          "__typename": "Country"
+        },
+        {
+          "value": "BR",
+          "label": "Brazil",
+          "__typename": "Country"
+        },
+        {
+          "value": "IO",
+          "label": "British Indian Ocean Territory",
+          "__typename": "Country"
+        },
+        {
+          "value": "VG",
+          "label": "British Virgin Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "BN",
+          "label": "Brunei",
+          "__typename": "Country"
+        },
+        {
+          "value": "BG",
+          "label": "Bulgaria",
+          "__typename": "Country"
+        },
+        {
+          "value": "BF",
+          "label": "Burkina Faso",
+          "__typename": "Country"
+        },
+        {
+          "value": "BI",
+          "label": "Burundi",
+          "__typename": "Country"
+        },
+        {
+          "value": "KH",
+          "label": "Cambodia",
+          "__typename": "Country"
+        },
+        {
+          "value": "CM",
+          "label": "Cameroon",
+          "__typename": "Country"
+        },
+        {
+          "value": "CA",
+          "label": "Canada",
+          "__typename": "Country"
+        },
+        {
+          "value": "CV",
+          "label": "Cape Verde",
+          "__typename": "Country"
+        },
+        {
+          "value": "BQ",
+          "label": "Caribbean Netherlands",
+          "__typename": "Country"
+        },
+        {
+          "value": "KY",
+          "label": "Cayman Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "CF",
+          "label": "Central African Republic",
+          "__typename": "Country"
+        },
+        {
+          "value": "TD",
+          "label": "Chad",
+          "__typename": "Country"
+        },
+        {
+          "value": "CL",
+          "label": "Chile",
+          "__typename": "Country"
+        },
+        {
+          "value": "CN",
+          "label": "China",
+          "__typename": "Country"
+        },
+        {
+          "value": "CX",
+          "label": "Christmas Island",
+          "__typename": "Country"
+        },
+        {
+          "value": "CC",
+          "label": "Cocos (Keeling) Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "CO",
+          "label": "Colombia",
+          "__typename": "Country"
+        },
+        {
+          "value": "KM",
+          "label": "Comoros",
+          "__typename": "Country"
+        },
+        {
+          "value": "CG",
+          "label": "Congo - Brazzaville",
+          "__typename": "Country"
+        },
+        {
+          "value": "CD",
+          "label": "Congo - Kinshasa",
+          "__typename": "Country"
+        },
+        {
+          "value": "CK",
+          "label": "Cook Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "CR",
+          "label": "Costa Rica",
+          "__typename": "Country"
+        },
+        {
+          "value": "HR",
+          "label": "Croatia",
+          "__typename": "Country"
+        },
+        {
+          "value": "CW",
+          "label": "Curaçao",
+          "__typename": "Country"
+        },
+        {
+          "value": "CY",
+          "label": "Cyprus",
+          "__typename": "Country"
+        },
+        {
+          "value": "CZ",
+          "label": "Czechia",
+          "__typename": "Country"
+        },
+        {
+          "value": "CI",
+          "label": "Côte d’Ivoire",
+          "__typename": "Country"
+        },
+        {
+          "value": "DK",
+          "label": "Denmark",
+          "__typename": "Country"
+        },
+        {
+          "value": "DJ",
+          "label": "Djibouti",
+          "__typename": "Country"
+        },
+        {
+          "value": "DM",
+          "label": "Dominica",
+          "__typename": "Country"
+        },
+        {
+          "value": "DO",
+          "label": "Dominican Republic",
+          "__typename": "Country"
+        },
+        {
+          "value": "EC",
+          "label": "Ecuador",
+          "__typename": "Country"
+        },
+        {
+          "value": "EG",
+          "label": "Egypt",
+          "__typename": "Country"
+        },
+        {
+          "value": "SV",
+          "label": "El Salvador",
+          "__typename": "Country"
+        },
+        {
+          "value": "GQ",
+          "label": "Equatorial Guinea",
+          "__typename": "Country"
+        },
+        {
+          "value": "ER",
+          "label": "Eritrea",
+          "__typename": "Country"
+        },
+        {
+          "value": "EE",
+          "label": "Estonia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SZ",
+          "label": "Eswatini",
+          "__typename": "Country"
+        },
+        {
+          "value": "ET",
+          "label": "Ethiopia",
+          "__typename": "Country"
+        },
+        {
+          "value": "FK",
+          "label": "Falkland Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "FO",
+          "label": "Faroe Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "FJ",
+          "label": "Fiji",
+          "__typename": "Country"
+        },
+        {
+          "value": "FI",
+          "label": "Finland",
+          "__typename": "Country"
+        },
+        {
+          "value": "FR",
+          "label": "France",
+          "__typename": "Country"
+        },
+        {
+          "value": "GF",
+          "label": "French Guiana",
+          "__typename": "Country"
+        },
+        {
+          "value": "PF",
+          "label": "French Polynesia",
+          "__typename": "Country"
+        },
+        {
+          "value": "TF",
+          "label": "French Southern Territories",
+          "__typename": "Country"
+        },
+        {
+          "value": "GA",
+          "label": "Gabon",
+          "__typename": "Country"
+        },
+        {
+          "value": "GM",
+          "label": "Gambia",
+          "__typename": "Country"
+        },
+        {
+          "value": "GE",
+          "label": "Georgia",
+          "__typename": "Country"
+        },
+        {
+          "value": "DE",
+          "label": "Germany",
+          "__typename": "Country"
+        },
+        {
+          "value": "GH",
+          "label": "Ghana",
+          "__typename": "Country"
+        },
+        {
+          "value": "GI",
+          "label": "Gibraltar",
+          "__typename": "Country"
+        },
+        {
+          "value": "GR",
+          "label": "Greece",
+          "__typename": "Country"
+        },
+        {
+          "value": "GL",
+          "label": "Greenland",
+          "__typename": "Country"
+        },
+        {
+          "value": "GD",
+          "label": "Grenada",
+          "__typename": "Country"
+        },
+        {
+          "value": "GP",
+          "label": "Guadeloupe",
+          "__typename": "Country"
+        },
+        {
+          "value": "GT",
+          "label": "Guatemala",
+          "__typename": "Country"
+        },
+        {
+          "value": "GG",
+          "label": "Guernsey",
+          "__typename": "Country"
+        },
+        {
+          "value": "GN",
+          "label": "Guinea",
+          "__typename": "Country"
+        },
+        {
+          "value": "GW",
+          "label": "Guinea-Bissau",
+          "__typename": "Country"
+        },
+        {
+          "value": "GY",
+          "label": "Guyana",
+          "__typename": "Country"
+        },
+        {
+          "value": "HT",
+          "label": "Haiti",
+          "__typename": "Country"
+        },
+        {
+          "value": "HN",
+          "label": "Honduras",
+          "__typename": "Country"
+        },
+        {
+          "value": "HK",
+          "label": "Hong Kong SAR",
+          "__typename": "Country"
+        },
+        {
+          "value": "HU",
+          "label": "Hungary",
+          "__typename": "Country"
+        },
+        {
+          "value": "IS",
+          "label": "Iceland",
+          "__typename": "Country"
+        },
+        {
+          "value": "IN",
+          "label": "India",
+          "__typename": "Country"
+        },
+        {
+          "value": "ID",
+          "label": "Indonesia",
+          "__typename": "Country"
+        },
+        {
+          "value": "IQ",
+          "label": "Iraq",
+          "__typename": "Country"
+        },
+        {
+          "value": "IE",
+          "label": "Ireland",
+          "__typename": "Country"
+        },
+        {
+          "value": "IM",
+          "label": "Isle of Man",
+          "__typename": "Country"
+        },
+        {
+          "value": "IL",
+          "label": "Israel",
+          "__typename": "Country"
+        },
+        {
+          "value": "IT",
+          "label": "Italy",
+          "__typename": "Country"
+        },
+        {
+          "value": "JM",
+          "label": "Jamaica",
+          "__typename": "Country"
+        },
+        {
+          "value": "JP",
+          "label": "Japan",
+          "__typename": "Country"
+        },
+        {
+          "value": "JE",
+          "label": "Jersey",
+          "__typename": "Country"
+        },
+        {
+          "value": "JO",
+          "label": "Jordan",
+          "__typename": "Country"
+        },
+        {
+          "value": "KZ",
+          "label": "Kazakhstan",
+          "__typename": "Country"
+        },
+        {
+          "value": "KE",
+          "label": "Kenya",
+          "__typename": "Country"
+        },
+        {
+          "value": "KI",
+          "label": "Kiribati",
+          "__typename": "Country"
+        },
+        {
+          "value": "XK",
+          "label": "Kosovo",
+          "__typename": "Country"
+        },
+        {
+          "value": "KW",
+          "label": "Kuwait",
+          "__typename": "Country"
+        },
+        {
+          "value": "KG",
+          "label": "Kyrgyzstan",
+          "__typename": "Country"
+        },
+        {
+          "value": "LA",
+          "label": "Laos",
+          "__typename": "Country"
+        },
+        {
+          "value": "LV",
+          "label": "Latvia",
+          "__typename": "Country"
+        },
+        {
+          "value": "LB",
+          "label": "Lebanon",
+          "__typename": "Country"
+        },
+        {
+          "value": "LS",
+          "label": "Lesotho",
+          "__typename": "Country"
+        },
+        {
+          "value": "LR",
+          "label": "Liberia",
+          "__typename": "Country"
+        },
+        {
+          "value": "LY",
+          "label": "Libya",
+          "__typename": "Country"
+        },
+        {
+          "value": "LI",
+          "label": "Liechtenstein",
+          "__typename": "Country"
+        },
+        {
+          "value": "LT",
+          "label": "Lithuania",
+          "__typename": "Country"
+        },
+        {
+          "value": "LU",
+          "label": "Luxembourg",
+          "__typename": "Country"
+        },
+        {
+          "value": "MO",
+          "label": "Macao SAR",
+          "__typename": "Country"
+        },
+        {
+          "value": "MG",
+          "label": "Madagascar",
+          "__typename": "Country"
+        },
+        {
+          "value": "MW",
+          "label": "Malawi",
+          "__typename": "Country"
+        },
+        {
+          "value": "MY",
+          "label": "Malaysia",
+          "__typename": "Country"
+        },
+        {
+          "value": "MV",
+          "label": "Maldives",
+          "__typename": "Country"
+        },
+        {
+          "value": "ML",
+          "label": "Mali",
+          "__typename": "Country"
+        },
+        {
+          "value": "MT",
+          "label": "Malta",
+          "__typename": "Country"
+        },
+        {
+          "value": "MQ",
+          "label": "Martinique",
+          "__typename": "Country"
+        },
+        {
+          "value": "MR",
+          "label": "Mauritania",
+          "__typename": "Country"
+        },
+        {
+          "value": "MU",
+          "label": "Mauritius",
+          "__typename": "Country"
+        },
+        {
+          "value": "YT",
+          "label": "Mayotte",
+          "__typename": "Country"
+        },
+        {
+          "value": "MX",
+          "label": "Mexico",
+          "__typename": "Country"
+        },
+        {
+          "value": "MD",
+          "label": "Moldova",
+          "__typename": "Country"
+        },
+        {
+          "value": "MC",
+          "label": "Monaco",
+          "__typename": "Country"
+        },
+        {
+          "value": "MN",
+          "label": "Mongolia",
+          "__typename": "Country"
+        },
+        {
+          "value": "ME",
+          "label": "Montenegro",
+          "__typename": "Country"
+        },
+        {
+          "value": "MS",
+          "label": "Montserrat",
+          "__typename": "Country"
+        },
+        {
+          "value": "MA",
+          "label": "Morocco",
+          "__typename": "Country"
+        },
+        {
+          "value": "MZ",
+          "label": "Mozambique",
+          "__typename": "Country"
+        },
+        {
+          "value": "MM",
+          "label": "Myanmar (Burma)",
+          "__typename": "Country"
+        },
+        {
+          "value": "NA",
+          "label": "Namibia",
+          "__typename": "Country"
+        },
+        {
+          "value": "NR",
+          "label": "Nauru",
+          "__typename": "Country"
+        },
+        {
+          "value": "NP",
+          "label": "Nepal",
+          "__typename": "Country"
+        },
+        {
+          "value": "NL",
+          "label": "Netherlands",
+          "__typename": "Country"
+        },
+        {
+          "value": "NC",
+          "label": "New Caledonia",
+          "__typename": "Country"
+        },
+        {
+          "value": "NZ",
+          "label": "New Zealand",
+          "__typename": "Country"
+        },
+        {
+          "value": "NI",
+          "label": "Nicaragua",
+          "__typename": "Country"
+        },
+        {
+          "value": "NE",
+          "label": "Niger",
+          "__typename": "Country"
+        },
+        {
+          "value": "NG",
+          "label": "Nigeria",
+          "__typename": "Country"
+        },
+        {
+          "value": "NU",
+          "label": "Niue",
+          "__typename": "Country"
+        },
+        {
+          "value": "NF",
+          "label": "Norfolk Island",
+          "__typename": "Country"
+        },
+        {
+          "value": "MK",
+          "label": "North Macedonia",
+          "__typename": "Country"
+        },
+        {
+          "value": "NO",
+          "label": "Norway",
+          "__typename": "Country"
+        },
+        {
+          "value": "OM",
+          "label": "Oman",
+          "__typename": "Country"
+        },
+        {
+          "value": "PK",
+          "label": "Pakistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "PS",
+          "label": "Palestinian Territories",
+          "__typename": "Country"
+        },
+        {
+          "value": "PA",
+          "label": "Panama",
+          "__typename": "Country"
+        },
+        {
+          "value": "PG",
+          "label": "Papua New Guinea",
+          "__typename": "Country"
+        },
+        {
+          "value": "PY",
+          "label": "Paraguay",
+          "__typename": "Country"
+        },
+        {
+          "value": "PE",
+          "label": "Peru",
+          "__typename": "Country"
+        },
+        {
+          "value": "PH",
+          "label": "Philippines",
+          "__typename": "Country"
+        },
+        {
+          "value": "PN",
+          "label": "Pitcairn Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "PL",
+          "label": "Poland",
+          "__typename": "Country"
+        },
+        {
+          "value": "PT",
+          "label": "Portugal",
+          "__typename": "Country"
+        },
+        {
+          "value": "QA",
+          "label": "Qatar",
+          "__typename": "Country"
+        },
+        {
+          "value": "RE",
+          "label": "Réunion",
+          "__typename": "Country"
+        },
+        {
+          "value": "RO",
+          "label": "Romania",
+          "__typename": "Country"
+        },
+        {
+          "value": "RU",
+          "label": "Russia",
+          "__typename": "Country"
+        },
+        {
+          "value": "RW",
+          "label": "Rwanda",
+          "__typename": "Country"
+        },
+        {
+          "value": "WS",
+          "label": "Samoa",
+          "__typename": "Country"
+        },
+        {
+          "value": "SM",
+          "label": "San Marino",
+          "__typename": "Country"
+        },
+        {
+          "value": "ST",
+          "label": "São Tomé & Príncipe",
+          "__typename": "Country"
+        },
+        {
+          "value": "SA",
+          "label": "Saudi Arabia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SN",
+          "label": "Senegal",
+          "__typename": "Country"
+        },
+        {
+          "value": "RS",
+          "label": "Serbia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SC",
+          "label": "Seychelles",
+          "__typename": "Country"
+        },
+        {
+          "value": "SL",
+          "label": "Sierra Leone",
+          "__typename": "Country"
+        },
+        {
+          "value": "SG",
+          "label": "Singapore",
+          "__typename": "Country"
+        },
+        {
+          "value": "SX",
+          "label": "Sint Maarten",
+          "__typename": "Country"
+        },
+        {
+          "value": "SK",
+          "label": "Slovakia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SI",
+          "label": "Slovenia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SB",
+          "label": "Solomon Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "SO",
+          "label": "Somalia",
+          "__typename": "Country"
+        },
+        {
+          "value": "ZA",
+          "label": "South Africa",
+          "__typename": "Country"
+        },
+        {
+          "value": "GS",
+          "label": "South Georgia & South Sandwich Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "KR",
+          "label": "South Korea",
+          "__typename": "Country"
+        },
+        {
+          "value": "SS",
+          "label": "South Sudan",
+          "__typename": "Country"
+        },
+        {
+          "value": "ES",
+          "label": "Spain",
+          "__typename": "Country"
+        },
+        {
+          "value": "LK",
+          "label": "Sri Lanka",
+          "__typename": "Country"
+        },
+        {
+          "value": "BL",
+          "label": "St. Barthélemy",
+          "__typename": "Country"
+        },
+        {
+          "value": "SH",
+          "label": "St. Helena",
+          "__typename": "Country"
+        },
+        {
+          "value": "KN",
+          "label": "St. Kitts & Nevis",
+          "__typename": "Country"
+        },
+        {
+          "value": "LC",
+          "label": "St. Lucia",
+          "__typename": "Country"
+        },
+        {
+          "value": "MF",
+          "label": "St. Martin",
+          "__typename": "Country"
+        },
+        {
+          "value": "PM",
+          "label": "St. Pierre & Miquelon",
+          "__typename": "Country"
+        },
+        {
+          "value": "VC",
+          "label": "St. Vincent & Grenadines",
+          "__typename": "Country"
+        },
+        {
+          "value": "SD",
+          "label": "Sudan",
+          "__typename": "Country"
+        },
+        {
+          "value": "SR",
+          "label": "Suriname",
+          "__typename": "Country"
+        },
+        {
+          "value": "SJ",
+          "label": "Svalbard & Jan Mayen",
+          "__typename": "Country"
+        },
+        {
+          "value": "SE",
+          "label": "Sweden",
+          "__typename": "Country"
+        },
+        {
+          "value": "CH",
+          "label": "Switzerland",
+          "__typename": "Country"
+        },
+        {
+          "value": "TW",
+          "label": "Taiwan",
+          "__typename": "Country"
+        },
+        {
+          "value": "TJ",
+          "label": "Tajikistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "TZ",
+          "label": "Tanzania",
+          "__typename": "Country"
+        },
+        {
+          "value": "TH",
+          "label": "Thailand",
+          "__typename": "Country"
+        },
+        {
+          "value": "TL",
+          "label": "Timor-Leste",
+          "__typename": "Country"
+        },
+        {
+          "value": "TG",
+          "label": "Togo",
+          "__typename": "Country"
+        },
+        {
+          "value": "TK",
+          "label": "Tokelau",
+          "__typename": "Country"
+        },
+        {
+          "value": "TO",
+          "label": "Tonga",
+          "__typename": "Country"
+        },
+        {
+          "value": "TT",
+          "label": "Trinidad & Tobago",
+          "__typename": "Country"
+        },
+        {
+          "value": "TA",
+          "label": "Tristan da Cunha",
+          "__typename": "Country"
+        },
+        {
+          "value": "TN",
+          "label": "Tunisia",
+          "__typename": "Country"
+        },
+        {
+          "value": "TR",
+          "label": "Türkiye",
+          "__typename": "Country"
+        },
+        {
+          "value": "TM",
+          "label": "Turkmenistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "TC",
+          "label": "Turks & Caicos Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "TV",
+          "label": "Tuvalu",
+          "__typename": "Country"
+        },
+        {
+          "value": "UM",
+          "label": "U.S. Outlying Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "UG",
+          "label": "Uganda",
+          "__typename": "Country"
+        },
+        {
+          "value": "UA",
+          "label": "Ukraine",
+          "__typename": "Country"
+        },
+        {
+          "value": "AE",
+          "label": "United Arab Emirates",
+          "__typename": "Country"
+        },
+        {
+          "value": "GB",
+          "label": "United Kingdom",
+          "__typename": "Country"
+        },
+        {
+          "value": "US",
+          "label": "United States",
+          "__typename": "Country"
+        },
+        {
+          "value": "UY",
+          "label": "Uruguay",
+          "__typename": "Country"
+        },
+        {
+          "value": "UZ",
+          "label": "Uzbekistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "VU",
+          "label": "Vanuatu",
+          "__typename": "Country"
+        },
+        {
+          "value": "VA",
+          "label": "Vatican City",
+          "__typename": "Country"
+        },
+        {
+          "value": "VE",
+          "label": "Venezuela",
+          "__typename": "Country"
+        },
+        {
+          "value": "VN",
+          "label": "Vietnam",
+          "__typename": "Country"
+        },
+        {
+          "value": "WF",
+          "label": "Wallis & Futuna",
+          "__typename": "Country"
+        },
+        {
+          "value": "EH",
+          "label": "Western Sahara",
+          "__typename": "Country"
+        },
+        {
+          "value": "YE",
+          "label": "Yemen",
+          "__typename": "Country"
+        },
+        {
+          "value": "ZM",
+          "label": "Zambia",
+          "__typename": "Country"
+        },
+        {
+          "value": "ZW",
+          "label": "Zimbabwe",
+          "__typename": "Country"
+        }
+      ],
+      "__typename": "CheckoutShopConfig"
+    }
+  },
+  "19224c2fca0d615eb31be7c5d293fc5cb1e86f106c57c23e8658482592142c7e{\"queryString\":\"_r=AQAB6fSHrcjKIRMyHmy-h71nd2jUxBVOQguDOyPZDOaN\"}": {
+    "shop": {
+      "defaultShippingDetails": {
+        "country": {
+          "code": "NO",
+          "name": "Norway",
+          "autofillPostalCodeEnabled": false,
+          "autofillCityEnabled": false,
+          "localizationKeys": {
+            "address2": null,
+            "postalCode": null,
+            "zone": "region_label",
+            "neighborhood": null,
+            "city": null,
+            "district": null,
+            "subdistrict": null,
+            "__typename": "AddressLocalizationKeys"
+          },
+          "labels": {
+            "firstName": "First name",
+            "lastName": "Last name",
+            "company": "Company",
+            "address1": "Street and house number",
+            "address2": "Apartment, suite, etc",
+            "city": "City",
+            "country": "Country/region",
+            "zone": "Region",
+            "postalCode": "Postal code",
+            "phone": "Phone",
+            "__typename": "AddressLabels"
+          },
+          "zones": [],
+          "formatting": {
+            "edit": "{country}_{firstName}{lastName}_{company}_{address1}_{address2}_{zip}{city}_{phone}",
+            "show": "{firstName} {lastName}_{company}_{address1}_{address2}_{zip} {city}_{country}_{phone}",
+            "__typename": "AddressFormat"
+          },
+          "extendedFormatting": null,
+          "extendedFormattingV2": null,
+          "autocompletionField": "ADDRESS1",
+          "neighborhoodRequired": false,
+          "streetNameRequired": false,
+          "streetNumberRequired": false,
+          "districtRequired": false,
+          "subdistrictRequired": false,
+          "buildingNumberRequired": false,
+          "buildingNumberMayBeInAddress2": false,
+          "pureNumericPostalCode": true,
+          "postalCodeRequired": true,
+          "__typename": "Country"
+        },
+        "zone": null,
+        "__typename": "DefaultShippingDetails"
+      },
+      "remoteShopConfigurations": [],
+      "paymentMethodAutoSelectionDisabled": false,
+      "emailMarketing": "UNCHECKED",
+      "__typename": "CheckoutShopConfig"
+    },
+    "httpRequestInfo": {
+      "locale": "en-NO",
+      "localeDirection": "ltr",
+      "geolocation": {
+        "country": {
+          "code": "NO",
+          "name": "Norway",
+          "autofillPostalCodeEnabled": false,
+          "autofillCityEnabled": false,
+          "localizationKeys": {
+            "address2": null,
+            "postalCode": null,
+            "zone": "region_label",
+            "neighborhood": null,
+            "city": null,
+            "district": null,
+            "subdistrict": null,
+            "__typename": "AddressLocalizationKeys"
+          },
+          "labels": {
+            "firstName": "First name",
+            "lastName": "Last name",
+            "company": "Company",
+            "address1": "Street and house number",
+            "address2": "Apartment, suite, etc",
+            "city": "City",
+            "country": "Country/region",
+            "zone": "Region",
+            "postalCode": "Postal code",
+            "phone": "Phone",
+            "__typename": "AddressLabels"
+          },
+          "zones": [],
+          "formatting": {
+            "edit": "{country}_{firstName}{lastName}_{company}_{address1}_{address2}_{zip}{city}_{phone}",
+            "show": "{firstName} {lastName}_{company}_{address1}_{address2}_{zip} {city}_{country}_{phone}",
+            "__typename": "AddressFormat"
+          },
+          "extendedFormatting": null,
+          "extendedFormattingV2": null,
+          "autocompletionField": "ADDRESS1",
+          "neighborhoodRequired": false,
+          "streetNameRequired": false,
+          "streetNumberRequired": false,
+          "districtRequired": false,
+          "subdistrictRequired": false,
+          "buildingNumberRequired": false,
+          "buildingNumberMayBeInAddress2": false,
+          "pureNumericPostalCode": true,
+          "postalCodeRequired": true,
+          "__typename": "Country"
+        },
+        "zone": null,
+        "coordinates": {
+          "latitude": 59.1346,
+          "longitude": 10.2211,
+          "__typename": "GeographicalCoordinates"
+        },
+        "__typename": "Geolocation"
+      },
+      "__typename": "HttpRequestInfo"
+    },
+    "mobileCheckoutSdkConfig": {
+      "checkoutAuthenticationResult": null,
+      "colorScheme": "LIGHT",
+      "version": null,
+      "schema": null,
+      "variant": null,
+      "suppressPixels": true,
+      "__typename": "MobileCheckoutSdkConfig"
+    },
+    "checkoutSheetProtocolConfig": null,
+    "embed": null
+  },
+  "0dd6c4767af3de53d5a12cd70502427fdfa661bc95d1b01a38d04e8dabce8b5e{}": {
+    "shop": {
+      "hostedFieldsUrl": "https://checkout.pci.shopifyinc.com/dist/card_fields.js",
+      "domain": "epomaker.com",
+      "detailedDomains": [
+        {
+          "host": "epomaker.myshopify.com",
+          "targetType": "ONLINE_STORE",
+          "behaviour": "REDIRECT",
+          "__typename": "DetailedDomain"
+        },
+        {
+          "host": "epomaker.com",
+          "targetType": "ONLINE_STORE",
+          "behaviour": "PRIMARY",
+          "__typename": "DetailedDomain"
+        },
+        {
+          "host": "www.epomaker.com",
+          "targetType": "ONLINE_STORE",
+          "behaviour": "REDIRECT",
+          "__typename": "DetailedDomain"
+        },
+        {
+          "host": "epomaker.account.myshopify.com",
+          "targetType": "CUSTOMER_ACCOUNT",
+          "behaviour": "PRIMARY",
+          "__typename": "DetailedDomain"
+        }
+      ],
+      "name": "EPOMAKER",
+      "id": "gid://shopify/Shop/28039315529",
+      "allowExtensionDevelopment": false,
+      "lpmWithUiExtensionEnabled": false,
+      "storefrontDomains": [
+        "epomaker.myshopify.com",
+        "epomaker.com",
+        "www.epomaker.com",
+        "epomaker.account.myshopify.com"
+      ],
+      "merchantPolicies": [
+        {
+          "handle": "refund-policy",
+          "url": "https://epomaker.myshopify.com/28039315529/policies/refund-policy.html?locale=en-NO",
+          "__typename": "MerchantPolicy"
+        },
+        {
+          "handle": "shipping-policy",
+          "url": "https://epomaker.myshopify.com/28039315529/policies/shipping-policy.html?locale=en-NO",
+          "__typename": "MerchantPolicy"
+        },
+        {
+          "handle": "privacy-policy",
+          "url": "https://epomaker.myshopify.com/28039315529/policies/privacy-policy.html?locale=en-NO",
+          "__typename": "MerchantPolicy"
+        },
+        {
+          "handle": "terms-of-service",
+          "url": "https://epomaker.myshopify.com/28039315529/policies/terms-of-service.html?locale=en-NO",
+          "__typename": "MerchantPolicy"
+        },
+        {
+          "handle": "contact-information",
+          "url": "https://epomaker.myshopify.com/28039315529/policies/contact-information.html?locale=en-NO",
+          "__typename": "MerchantPolicy"
+        }
+      ],
+      "country": {
+        "code": "US",
+        "name": "United States",
+        "autofillPostalCodeEnabled": false,
+        "autofillCityEnabled": false,
+        "localizationKeys": {
+          "address2": null,
+          "postalCode": "zip_code_label",
+          "zone": "state_label",
+          "neighborhood": null,
+          "city": null,
+          "district": null,
+          "subdistrict": null,
+          "__typename": "AddressLocalizationKeys"
+        },
+        "labels": {
+          "firstName": "First name",
+          "lastName": "Last name",
+          "company": "Company",
+          "address1": "Address",
+          "address2": "Apartment, suite, etc",
+          "city": "City",
+          "country": "Country/region",
+          "zone": "State",
+          "postalCode": "ZIP code",
+          "phone": "Phone",
+          "__typename": "AddressLabels"
+        },
+        "zones": [
+          {
+            "code": "AL",
+            "name": "Alabama",
+            "nameWithAlternates": [
+              "Alabama"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AK",
+            "name": "Alaska",
+            "nameWithAlternates": [
+              "Alaska"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AS",
+            "name": "American Samoa",
+            "nameWithAlternates": [
+              "American Samoa"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AZ",
+            "name": "Arizona",
+            "nameWithAlternates": [
+              "Arizona"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AR",
+            "name": "Arkansas",
+            "nameWithAlternates": [
+              "Arkansas"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "CA",
+            "name": "California",
+            "nameWithAlternates": [
+              "California"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "CO",
+            "name": "Colorado",
+            "nameWithAlternates": [
+              "Colorado"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "CT",
+            "name": "Connecticut",
+            "nameWithAlternates": [
+              "Connecticut"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "DE",
+            "name": "Delaware",
+            "nameWithAlternates": [
+              "Delaware"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "FM",
+            "name": "Micronesia",
+            "nameWithAlternates": [
+              "Federated States of Micronesia",
+              "Micronesia"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "FL",
+            "name": "Florida",
+            "nameWithAlternates": [
+              "Florida"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "GA",
+            "name": "Georgia",
+            "nameWithAlternates": [
+              "Georgia"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "GU",
+            "name": "Guam",
+            "nameWithAlternates": [
+              "Guam"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "HI",
+            "name": "Hawaii",
+            "nameWithAlternates": [
+              "Hawaii"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "ID",
+            "name": "Idaho",
+            "nameWithAlternates": [
+              "Idaho"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "IL",
+            "name": "Illinois",
+            "nameWithAlternates": [
+              "Illinois"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "IN",
+            "name": "Indiana",
+            "nameWithAlternates": [
+              "Indiana"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "IA",
+            "name": "Iowa",
+            "nameWithAlternates": [
+              "Iowa"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "KS",
+            "name": "Kansas",
+            "nameWithAlternates": [
+              "Kansas"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "KY",
+            "name": "Kentucky",
+            "nameWithAlternates": [
+              "Kentucky"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "LA",
+            "name": "Louisiana",
+            "nameWithAlternates": [
+              "Louisiana"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "ME",
+            "name": "Maine",
+            "nameWithAlternates": [
+              "Maine"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MH",
+            "name": "Marshall Islands",
+            "nameWithAlternates": [
+              "Marshall Islands"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MD",
+            "name": "Maryland",
+            "nameWithAlternates": [
+              "Maryland"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MA",
+            "name": "Massachusetts",
+            "nameWithAlternates": [
+              "Massachusetts"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MI",
+            "name": "Michigan",
+            "nameWithAlternates": [
+              "Michigan"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MN",
+            "name": "Minnesota",
+            "nameWithAlternates": [
+              "Minnesota"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MS",
+            "name": "Mississippi",
+            "nameWithAlternates": [
+              "Mississippi"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MO",
+            "name": "Missouri",
+            "nameWithAlternates": [
+              "Missouri"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MT",
+            "name": "Montana",
+            "nameWithAlternates": [
+              "Montana"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NE",
+            "name": "Nebraska",
+            "nameWithAlternates": [
+              "Nebraska"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NV",
+            "name": "Nevada",
+            "nameWithAlternates": [
+              "Nevada"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NH",
+            "name": "New Hampshire",
+            "nameWithAlternates": [
+              "New Hampshire"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NJ",
+            "name": "New Jersey",
+            "nameWithAlternates": [
+              "New Jersey"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NM",
+            "name": "New Mexico",
+            "nameWithAlternates": [
+              "New Mexico"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NY",
+            "name": "New York",
+            "nameWithAlternates": [
+              "New York"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "NC",
+            "name": "North Carolina",
+            "nameWithAlternates": [
+              "North Carolina"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "ND",
+            "name": "North Dakota",
+            "nameWithAlternates": [
+              "North Dakota"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "MP",
+            "name": "Northern Mariana Islands",
+            "nameWithAlternates": [
+              "Northern Mariana Islands"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "OH",
+            "name": "Ohio",
+            "nameWithAlternates": [
+              "Ohio"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "OK",
+            "name": "Oklahoma",
+            "nameWithAlternates": [
+              "Oklahoma"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "OR",
+            "name": "Oregon",
+            "nameWithAlternates": [
+              "Oregon"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "PW",
+            "name": "Palau",
+            "nameWithAlternates": [
+              "Palau"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "PA",
+            "name": "Pennsylvania",
+            "nameWithAlternates": [
+              "Pennsylvania"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "PR",
+            "name": "Puerto Rico",
+            "nameWithAlternates": [
+              "Puerto Rico"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "RI",
+            "name": "Rhode Island",
+            "nameWithAlternates": [
+              "Rhode Island"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "SC",
+            "name": "South Carolina",
+            "nameWithAlternates": [
+              "South Carolina"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "SD",
+            "name": "South Dakota",
+            "nameWithAlternates": [
+              "South Dakota"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "TN",
+            "name": "Tennessee",
+            "nameWithAlternates": [
+              "Tennessee"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "TX",
+            "name": "Texas",
+            "nameWithAlternates": [
+              "Texas"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "UT",
+            "name": "Utah",
+            "nameWithAlternates": [
+              "Utah"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "VT",
+            "name": "Vermont",
+            "nameWithAlternates": [
+              "Vermont"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "VA",
+            "name": "Virginia",
+            "nameWithAlternates": [
+              "Virginia"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "WA",
+            "name": "Washington",
+            "nameWithAlternates": [
+              "Washington"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "DC",
+            "name": "Washington DC",
+            "nameWithAlternates": [
+              "District of Columbia",
+              "Washington DC"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "WV",
+            "name": "West Virginia",
+            "nameWithAlternates": [
+              "West Virginia"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "WI",
+            "name": "Wisconsin",
+            "nameWithAlternates": [
+              "Wisconsin"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "WY",
+            "name": "Wyoming",
+            "nameWithAlternates": [
+              "Wyoming"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "VI",
+            "name": "U.S. Virgin Islands",
+            "nameWithAlternates": [
+              "Virgin Islands",
+              "U.S. Virgin Islands"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AA",
+            "name": "Armed Forces Americas",
+            "nameWithAlternates": [
+              "Armed Forces Americas"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AE",
+            "name": "Armed Forces Europe",
+            "nameWithAlternates": [
+              "Armed Forces Europe"
+            ],
+            "__typename": "AddressZone"
+          },
+          {
+            "code": "AP",
+            "name": "Armed Forces Pacific",
+            "nameWithAlternates": [
+              "Armed Forces Pacific"
+            ],
+            "__typename": "AddressZone"
+          }
+        ],
+        "formatting": {
+          "edit": "{country}_{firstName}{lastName}_{company}_{address1}_{address2}_{city}{province}{zip}_{phone}",
+          "show": "{firstName} {lastName}_{company}_{address1}_{address2}_{city} {province} {zip}_{country}_{phone}",
+          "__typename": "AddressFormat"
+        },
+        "extendedFormatting": null,
+        "extendedFormattingV2": null,
+        "autocompletionField": "ADDRESS1",
+        "neighborhoodRequired": false,
+        "streetNameRequired": false,
+        "streetNumberRequired": false,
+        "districtRequired": false,
+        "subdistrictRequired": false,
+        "buildingNumberRequired": true,
+        "buildingNumberMayBeInAddress2": false,
+        "pureNumericPostalCode": false,
+        "postalCodeRequired": true,
+        "__typename": "Country"
+      },
+      "billingCountries": [
+        {
+          "value": "AF",
+          "label": "Afghanistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "AX",
+          "label": "Åland Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "AL",
+          "label": "Albania",
+          "__typename": "Country"
+        },
+        {
+          "value": "DZ",
+          "label": "Algeria",
+          "__typename": "Country"
+        },
+        {
+          "value": "AD",
+          "label": "Andorra",
+          "__typename": "Country"
+        },
+        {
+          "value": "AO",
+          "label": "Angola",
+          "__typename": "Country"
+        },
+        {
+          "value": "AI",
+          "label": "Anguilla",
+          "__typename": "Country"
+        },
+        {
+          "value": "AG",
+          "label": "Antigua & Barbuda",
+          "__typename": "Country"
+        },
+        {
+          "value": "AR",
+          "label": "Argentina",
+          "__typename": "Country"
+        },
+        {
+          "value": "AM",
+          "label": "Armenia",
+          "__typename": "Country"
+        },
+        {
+          "value": "AW",
+          "label": "Aruba",
+          "__typename": "Country"
+        },
+        {
+          "value": "AC",
+          "label": "Ascension Island",
+          "__typename": "Country"
+        },
+        {
+          "value": "AU",
+          "label": "Australia",
+          "__typename": "Country"
+        },
+        {
+          "value": "AT",
+          "label": "Austria",
+          "__typename": "Country"
+        },
+        {
+          "value": "AZ",
+          "label": "Azerbaijan",
+          "__typename": "Country"
+        },
+        {
+          "value": "BS",
+          "label": "Bahamas",
+          "__typename": "Country"
+        },
+        {
+          "value": "BH",
+          "label": "Bahrain",
+          "__typename": "Country"
+        },
+        {
+          "value": "BD",
+          "label": "Bangladesh",
+          "__typename": "Country"
+        },
+        {
+          "value": "BB",
+          "label": "Barbados",
+          "__typename": "Country"
+        },
+        {
+          "value": "BY",
+          "label": "Belarus",
+          "__typename": "Country"
+        },
+        {
+          "value": "BE",
+          "label": "Belgium",
+          "__typename": "Country"
+        },
+        {
+          "value": "BZ",
+          "label": "Belize",
+          "__typename": "Country"
+        },
+        {
+          "value": "BJ",
+          "label": "Benin",
+          "__typename": "Country"
+        },
+        {
+          "value": "BM",
+          "label": "Bermuda",
+          "__typename": "Country"
+        },
+        {
+          "value": "BT",
+          "label": "Bhutan",
+          "__typename": "Country"
+        },
+        {
+          "value": "BO",
+          "label": "Bolivia",
+          "__typename": "Country"
+        },
+        {
+          "value": "BA",
+          "label": "Bosnia & Herzegovina",
+          "__typename": "Country"
+        },
+        {
+          "value": "BW",
+          "label": "Botswana",
+          "__typename": "Country"
+        },
+        {
+          "value": "BR",
+          "label": "Brazil",
+          "__typename": "Country"
+        },
+        {
+          "value": "IO",
+          "label": "British Indian Ocean Territory",
+          "__typename": "Country"
+        },
+        {
+          "value": "VG",
+          "label": "British Virgin Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "BN",
+          "label": "Brunei",
+          "__typename": "Country"
+        },
+        {
+          "value": "BG",
+          "label": "Bulgaria",
+          "__typename": "Country"
+        },
+        {
+          "value": "BF",
+          "label": "Burkina Faso",
+          "__typename": "Country"
+        },
+        {
+          "value": "BI",
+          "label": "Burundi",
+          "__typename": "Country"
+        },
+        {
+          "value": "KH",
+          "label": "Cambodia",
+          "__typename": "Country"
+        },
+        {
+          "value": "CM",
+          "label": "Cameroon",
+          "__typename": "Country"
+        },
+        {
+          "value": "CA",
+          "label": "Canada",
+          "__typename": "Country"
+        },
+        {
+          "value": "CV",
+          "label": "Cape Verde",
+          "__typename": "Country"
+        },
+        {
+          "value": "BQ",
+          "label": "Caribbean Netherlands",
+          "__typename": "Country"
+        },
+        {
+          "value": "KY",
+          "label": "Cayman Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "CF",
+          "label": "Central African Republic",
+          "__typename": "Country"
+        },
+        {
+          "value": "TD",
+          "label": "Chad",
+          "__typename": "Country"
+        },
+        {
+          "value": "CL",
+          "label": "Chile",
+          "__typename": "Country"
+        },
+        {
+          "value": "CN",
+          "label": "China",
+          "__typename": "Country"
+        },
+        {
+          "value": "CX",
+          "label": "Christmas Island",
+          "__typename": "Country"
+        },
+        {
+          "value": "CC",
+          "label": "Cocos (Keeling) Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "CO",
+          "label": "Colombia",
+          "__typename": "Country"
+        },
+        {
+          "value": "KM",
+          "label": "Comoros",
+          "__typename": "Country"
+        },
+        {
+          "value": "CG",
+          "label": "Congo - Brazzaville",
+          "__typename": "Country"
+        },
+        {
+          "value": "CD",
+          "label": "Congo - Kinshasa",
+          "__typename": "Country"
+        },
+        {
+          "value": "CK",
+          "label": "Cook Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "CR",
+          "label": "Costa Rica",
+          "__typename": "Country"
+        },
+        {
+          "value": "HR",
+          "label": "Croatia",
+          "__typename": "Country"
+        },
+        {
+          "value": "CW",
+          "label": "Curaçao",
+          "__typename": "Country"
+        },
+        {
+          "value": "CY",
+          "label": "Cyprus",
+          "__typename": "Country"
+        },
+        {
+          "value": "CZ",
+          "label": "Czechia",
+          "__typename": "Country"
+        },
+        {
+          "value": "CI",
+          "label": "Côte d’Ivoire",
+          "__typename": "Country"
+        },
+        {
+          "value": "DK",
+          "label": "Denmark",
+          "__typename": "Country"
+        },
+        {
+          "value": "DJ",
+          "label": "Djibouti",
+          "__typename": "Country"
+        },
+        {
+          "value": "DM",
+          "label": "Dominica",
+          "__typename": "Country"
+        },
+        {
+          "value": "DO",
+          "label": "Dominican Republic",
+          "__typename": "Country"
+        },
+        {
+          "value": "EC",
+          "label": "Ecuador",
+          "__typename": "Country"
+        },
+        {
+          "value": "EG",
+          "label": "Egypt",
+          "__typename": "Country"
+        },
+        {
+          "value": "SV",
+          "label": "El Salvador",
+          "__typename": "Country"
+        },
+        {
+          "value": "GQ",
+          "label": "Equatorial Guinea",
+          "__typename": "Country"
+        },
+        {
+          "value": "ER",
+          "label": "Eritrea",
+          "__typename": "Country"
+        },
+        {
+          "value": "EE",
+          "label": "Estonia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SZ",
+          "label": "Eswatini",
+          "__typename": "Country"
+        },
+        {
+          "value": "ET",
+          "label": "Ethiopia",
+          "__typename": "Country"
+        },
+        {
+          "value": "FK",
+          "label": "Falkland Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "FO",
+          "label": "Faroe Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "FJ",
+          "label": "Fiji",
+          "__typename": "Country"
+        },
+        {
+          "value": "FI",
+          "label": "Finland",
+          "__typename": "Country"
+        },
+        {
+          "value": "FR",
+          "label": "France",
+          "__typename": "Country"
+        },
+        {
+          "value": "GF",
+          "label": "French Guiana",
+          "__typename": "Country"
+        },
+        {
+          "value": "PF",
+          "label": "French Polynesia",
+          "__typename": "Country"
+        },
+        {
+          "value": "TF",
+          "label": "French Southern Territories",
+          "__typename": "Country"
+        },
+        {
+          "value": "GA",
+          "label": "Gabon",
+          "__typename": "Country"
+        },
+        {
+          "value": "GM",
+          "label": "Gambia",
+          "__typename": "Country"
+        },
+        {
+          "value": "GE",
+          "label": "Georgia",
+          "__typename": "Country"
+        },
+        {
+          "value": "DE",
+          "label": "Germany",
+          "__typename": "Country"
+        },
+        {
+          "value": "GH",
+          "label": "Ghana",
+          "__typename": "Country"
+        },
+        {
+          "value": "GI",
+          "label": "Gibraltar",
+          "__typename": "Country"
+        },
+        {
+          "value": "GR",
+          "label": "Greece",
+          "__typename": "Country"
+        },
+        {
+          "value": "GL",
+          "label": "Greenland",
+          "__typename": "Country"
+        },
+        {
+          "value": "GD",
+          "label": "Grenada",
+          "__typename": "Country"
+        },
+        {
+          "value": "GP",
+          "label": "Guadeloupe",
+          "__typename": "Country"
+        },
+        {
+          "value": "GT",
+          "label": "Guatemala",
+          "__typename": "Country"
+        },
+        {
+          "value": "GG",
+          "label": "Guernsey",
+          "__typename": "Country"
+        },
+        {
+          "value": "GN",
+          "label": "Guinea",
+          "__typename": "Country"
+        },
+        {
+          "value": "GW",
+          "label": "Guinea-Bissau",
+          "__typename": "Country"
+        },
+        {
+          "value": "GY",
+          "label": "Guyana",
+          "__typename": "Country"
+        },
+        {
+          "value": "HT",
+          "label": "Haiti",
+          "__typename": "Country"
+        },
+        {
+          "value": "HN",
+          "label": "Honduras",
+          "__typename": "Country"
+        },
+        {
+          "value": "HK",
+          "label": "Hong Kong SAR",
+          "__typename": "Country"
+        },
+        {
+          "value": "HU",
+          "label": "Hungary",
+          "__typename": "Country"
+        },
+        {
+          "value": "IS",
+          "label": "Iceland",
+          "__typename": "Country"
+        },
+        {
+          "value": "IN",
+          "label": "India",
+          "__typename": "Country"
+        },
+        {
+          "value": "ID",
+          "label": "Indonesia",
+          "__typename": "Country"
+        },
+        {
+          "value": "IQ",
+          "label": "Iraq",
+          "__typename": "Country"
+        },
+        {
+          "value": "IE",
+          "label": "Ireland",
+          "__typename": "Country"
+        },
+        {
+          "value": "IM",
+          "label": "Isle of Man",
+          "__typename": "Country"
+        },
+        {
+          "value": "IL",
+          "label": "Israel",
+          "__typename": "Country"
+        },
+        {
+          "value": "IT",
+          "label": "Italy",
+          "__typename": "Country"
+        },
+        {
+          "value": "JM",
+          "label": "Jamaica",
+          "__typename": "Country"
+        },
+        {
+          "value": "JP",
+          "label": "Japan",
+          "__typename": "Country"
+        },
+        {
+          "value": "JE",
+          "label": "Jersey",
+          "__typename": "Country"
+        },
+        {
+          "value": "JO",
+          "label": "Jordan",
+          "__typename": "Country"
+        },
+        {
+          "value": "KZ",
+          "label": "Kazakhstan",
+          "__typename": "Country"
+        },
+        {
+          "value": "KE",
+          "label": "Kenya",
+          "__typename": "Country"
+        },
+        {
+          "value": "KI",
+          "label": "Kiribati",
+          "__typename": "Country"
+        },
+        {
+          "value": "XK",
+          "label": "Kosovo",
+          "__typename": "Country"
+        },
+        {
+          "value": "KW",
+          "label": "Kuwait",
+          "__typename": "Country"
+        },
+        {
+          "value": "KG",
+          "label": "Kyrgyzstan",
+          "__typename": "Country"
+        },
+        {
+          "value": "LA",
+          "label": "Laos",
+          "__typename": "Country"
+        },
+        {
+          "value": "LV",
+          "label": "Latvia",
+          "__typename": "Country"
+        },
+        {
+          "value": "LB",
+          "label": "Lebanon",
+          "__typename": "Country"
+        },
+        {
+          "value": "LS",
+          "label": "Lesotho",
+          "__typename": "Country"
+        },
+        {
+          "value": "LR",
+          "label": "Liberia",
+          "__typename": "Country"
+        },
+        {
+          "value": "LY",
+          "label": "Libya",
+          "__typename": "Country"
+        },
+        {
+          "value": "LI",
+          "label": "Liechtenstein",
+          "__typename": "Country"
+        },
+        {
+          "value": "LT",
+          "label": "Lithuania",
+          "__typename": "Country"
+        },
+        {
+          "value": "LU",
+          "label": "Luxembourg",
+          "__typename": "Country"
+        },
+        {
+          "value": "MO",
+          "label": "Macao SAR",
+          "__typename": "Country"
+        },
+        {
+          "value": "MG",
+          "label": "Madagascar",
+          "__typename": "Country"
+        },
+        {
+          "value": "MW",
+          "label": "Malawi",
+          "__typename": "Country"
+        },
+        {
+          "value": "MY",
+          "label": "Malaysia",
+          "__typename": "Country"
+        },
+        {
+          "value": "MV",
+          "label": "Maldives",
+          "__typename": "Country"
+        },
+        {
+          "value": "ML",
+          "label": "Mali",
+          "__typename": "Country"
+        },
+        {
+          "value": "MT",
+          "label": "Malta",
+          "__typename": "Country"
+        },
+        {
+          "value": "MQ",
+          "label": "Martinique",
+          "__typename": "Country"
+        },
+        {
+          "value": "MR",
+          "label": "Mauritania",
+          "__typename": "Country"
+        },
+        {
+          "value": "MU",
+          "label": "Mauritius",
+          "__typename": "Country"
+        },
+        {
+          "value": "YT",
+          "label": "Mayotte",
+          "__typename": "Country"
+        },
+        {
+          "value": "MX",
+          "label": "Mexico",
+          "__typename": "Country"
+        },
+        {
+          "value": "MD",
+          "label": "Moldova",
+          "__typename": "Country"
+        },
+        {
+          "value": "MC",
+          "label": "Monaco",
+          "__typename": "Country"
+        },
+        {
+          "value": "MN",
+          "label": "Mongolia",
+          "__typename": "Country"
+        },
+        {
+          "value": "ME",
+          "label": "Montenegro",
+          "__typename": "Country"
+        },
+        {
+          "value": "MS",
+          "label": "Montserrat",
+          "__typename": "Country"
+        },
+        {
+          "value": "MA",
+          "label": "Morocco",
+          "__typename": "Country"
+        },
+        {
+          "value": "MZ",
+          "label": "Mozambique",
+          "__typename": "Country"
+        },
+        {
+          "value": "MM",
+          "label": "Myanmar (Burma)",
+          "__typename": "Country"
+        },
+        {
+          "value": "NA",
+          "label": "Namibia",
+          "__typename": "Country"
+        },
+        {
+          "value": "NR",
+          "label": "Nauru",
+          "__typename": "Country"
+        },
+        {
+          "value": "NP",
+          "label": "Nepal",
+          "__typename": "Country"
+        },
+        {
+          "value": "NL",
+          "label": "Netherlands",
+          "__typename": "Country"
+        },
+        {
+          "value": "NC",
+          "label": "New Caledonia",
+          "__typename": "Country"
+        },
+        {
+          "value": "NZ",
+          "label": "New Zealand",
+          "__typename": "Country"
+        },
+        {
+          "value": "NI",
+          "label": "Nicaragua",
+          "__typename": "Country"
+        },
+        {
+          "value": "NE",
+          "label": "Niger",
+          "__typename": "Country"
+        },
+        {
+          "value": "NG",
+          "label": "Nigeria",
+          "__typename": "Country"
+        },
+        {
+          "value": "NU",
+          "label": "Niue",
+          "__typename": "Country"
+        },
+        {
+          "value": "NF",
+          "label": "Norfolk Island",
+          "__typename": "Country"
+        },
+        {
+          "value": "MK",
+          "label": "North Macedonia",
+          "__typename": "Country"
+        },
+        {
+          "value": "NO",
+          "label": "Norway",
+          "__typename": "Country"
+        },
+        {
+          "value": "OM",
+          "label": "Oman",
+          "__typename": "Country"
+        },
+        {
+          "value": "PK",
+          "label": "Pakistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "PS",
+          "label": "Palestinian Territories",
+          "__typename": "Country"
+        },
+        {
+          "value": "PA",
+          "label": "Panama",
+          "__typename": "Country"
+        },
+        {
+          "value": "PG",
+          "label": "Papua New Guinea",
+          "__typename": "Country"
+        },
+        {
+          "value": "PY",
+          "label": "Paraguay",
+          "__typename": "Country"
+        },
+        {
+          "value": "PE",
+          "label": "Peru",
+          "__typename": "Country"
+        },
+        {
+          "value": "PH",
+          "label": "Philippines",
+          "__typename": "Country"
+        },
+        {
+          "value": "PN",
+          "label": "Pitcairn Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "PL",
+          "label": "Poland",
+          "__typename": "Country"
+        },
+        {
+          "value": "PT",
+          "label": "Portugal",
+          "__typename": "Country"
+        },
+        {
+          "value": "QA",
+          "label": "Qatar",
+          "__typename": "Country"
+        },
+        {
+          "value": "RE",
+          "label": "Réunion",
+          "__typename": "Country"
+        },
+        {
+          "value": "RO",
+          "label": "Romania",
+          "__typename": "Country"
+        },
+        {
+          "value": "RU",
+          "label": "Russia",
+          "__typename": "Country"
+        },
+        {
+          "value": "RW",
+          "label": "Rwanda",
+          "__typename": "Country"
+        },
+        {
+          "value": "WS",
+          "label": "Samoa",
+          "__typename": "Country"
+        },
+        {
+          "value": "SM",
+          "label": "San Marino",
+          "__typename": "Country"
+        },
+        {
+          "value": "ST",
+          "label": "São Tomé & Príncipe",
+          "__typename": "Country"
+        },
+        {
+          "value": "SA",
+          "label": "Saudi Arabia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SN",
+          "label": "Senegal",
+          "__typename": "Country"
+        },
+        {
+          "value": "RS",
+          "label": "Serbia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SC",
+          "label": "Seychelles",
+          "__typename": "Country"
+        },
+        {
+          "value": "SL",
+          "label": "Sierra Leone",
+          "__typename": "Country"
+        },
+        {
+          "value": "SG",
+          "label": "Singapore",
+          "__typename": "Country"
+        },
+        {
+          "value": "SX",
+          "label": "Sint Maarten",
+          "__typename": "Country"
+        },
+        {
+          "value": "SK",
+          "label": "Slovakia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SI",
+          "label": "Slovenia",
+          "__typename": "Country"
+        },
+        {
+          "value": "SB",
+          "label": "Solomon Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "SO",
+          "label": "Somalia",
+          "__typename": "Country"
+        },
+        {
+          "value": "ZA",
+          "label": "South Africa",
+          "__typename": "Country"
+        },
+        {
+          "value": "GS",
+          "label": "South Georgia & South Sandwich Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "KR",
+          "label": "South Korea",
+          "__typename": "Country"
+        },
+        {
+          "value": "SS",
+          "label": "South Sudan",
+          "__typename": "Country"
+        },
+        {
+          "value": "ES",
+          "label": "Spain",
+          "__typename": "Country"
+        },
+        {
+          "value": "LK",
+          "label": "Sri Lanka",
+          "__typename": "Country"
+        },
+        {
+          "value": "BL",
+          "label": "St. Barthélemy",
+          "__typename": "Country"
+        },
+        {
+          "value": "SH",
+          "label": "St. Helena",
+          "__typename": "Country"
+        },
+        {
+          "value": "KN",
+          "label": "St. Kitts & Nevis",
+          "__typename": "Country"
+        },
+        {
+          "value": "LC",
+          "label": "St. Lucia",
+          "__typename": "Country"
+        },
+        {
+          "value": "MF",
+          "label": "St. Martin",
+          "__typename": "Country"
+        },
+        {
+          "value": "PM",
+          "label": "St. Pierre & Miquelon",
+          "__typename": "Country"
+        },
+        {
+          "value": "VC",
+          "label": "St. Vincent & Grenadines",
+          "__typename": "Country"
+        },
+        {
+          "value": "SD",
+          "label": "Sudan",
+          "__typename": "Country"
+        },
+        {
+          "value": "SR",
+          "label": "Suriname",
+          "__typename": "Country"
+        },
+        {
+          "value": "SJ",
+          "label": "Svalbard & Jan Mayen",
+          "__typename": "Country"
+        },
+        {
+          "value": "SE",
+          "label": "Sweden",
+          "__typename": "Country"
+        },
+        {
+          "value": "CH",
+          "label": "Switzerland",
+          "__typename": "Country"
+        },
+        {
+          "value": "TW",
+          "label": "Taiwan",
+          "__typename": "Country"
+        },
+        {
+          "value": "TJ",
+          "label": "Tajikistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "TZ",
+          "label": "Tanzania",
+          "__typename": "Country"
+        },
+        {
+          "value": "TH",
+          "label": "Thailand",
+          "__typename": "Country"
+        },
+        {
+          "value": "TL",
+          "label": "Timor-Leste",
+          "__typename": "Country"
+        },
+        {
+          "value": "TG",
+          "label": "Togo",
+          "__typename": "Country"
+        },
+        {
+          "value": "TK",
+          "label": "Tokelau",
+          "__typename": "Country"
+        },
+        {
+          "value": "TO",
+          "label": "Tonga",
+          "__typename": "Country"
+        },
+        {
+          "value": "TT",
+          "label": "Trinidad & Tobago",
+          "__typename": "Country"
+        },
+        {
+          "value": "TA",
+          "label": "Tristan da Cunha",
+          "__typename": "Country"
+        },
+        {
+          "value": "TN",
+          "label": "Tunisia",
+          "__typename": "Country"
+        },
+        {
+          "value": "TR",
+          "label": "Türkiye",
+          "__typename": "Country"
+        },
+        {
+          "value": "TM",
+          "label": "Turkmenistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "TC",
+          "label": "Turks & Caicos Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "TV",
+          "label": "Tuvalu",
+          "__typename": "Country"
+        },
+        {
+          "value": "UM",
+          "label": "U.S. Outlying Islands",
+          "__typename": "Country"
+        },
+        {
+          "value": "UG",
+          "label": "Uganda",
+          "__typename": "Country"
+        },
+        {
+          "value": "UA",
+          "label": "Ukraine",
+          "__typename": "Country"
+        },
+        {
+          "value": "AE",
+          "label": "United Arab Emirates",
+          "__typename": "Country"
+        },
+        {
+          "value": "GB",
+          "label": "United Kingdom",
+          "__typename": "Country"
+        },
+        {
+          "value": "US",
+          "label": "United States",
+          "__typename": "Country"
+        },
+        {
+          "value": "UY",
+          "label": "Uruguay",
+          "__typename": "Country"
+        },
+        {
+          "value": "UZ",
+          "label": "Uzbekistan",
+          "__typename": "Country"
+        },
+        {
+          "value": "VU",
+          "label": "Vanuatu",
+          "__typename": "Country"
+        },
+        {
+          "value": "VA",
+          "label": "Vatican City",
+          "__typename": "Country"
+        },
+        {
+          "value": "VE",
+          "label": "Venezuela",
+          "__typename": "Country"
+        },
+        {
+          "value": "VN",
+          "label": "Vietnam",
+          "__typename": "Country"
+        },
+        {
+          "value": "WF",
+          "label": "Wallis & Futuna",
+          "__typename": "Country"
+        },
+        {
+          "value": "EH",
+          "label": "Western Sahara",
+          "__typename": "Country"
+        },
+        {
+          "value": "YE",
+          "label": "Yemen",
+          "__typename": "Country"
+        },
+        {
+          "value": "ZM",
+          "label": "Zambia",
+          "__typename": "Country"
+        },
+        {
+          "value": "ZW",
+          "label": "Zimbabwe",
+          "__typename": "Country"
+        }
+      ],
+      "popularBillingCountries": [
+        {
+          "value": "US",
+          "label": "United States",
+          "__typename": "Country"
+        },
+        {
+          "value": "CN",
+          "label": "China",
+          "__typename": "Country"
+        },
+        {
+          "value": "DE",
+          "label": "Germany",
+          "__typename": "Country"
+        }
+      ],
+      "popularShippingCountries": [
+        {
+          "value": "US",
+          "label": "United States",
+          "__typename": "Country"
+        },
+        {
+          "value": "CN",
+          "label": "China",
+          "__typename": "Country"
+        },
+        {
+          "value": "DE",
+          "label": "Germany",
+          "__typename": "Country"
+        },
+        {
+          "value": "CA",
+          "label": "Canada",
+          "__typename": "Country"
+        },
+        {
+          "value": "ES",
+          "label": "Spain",
+          "__typename": "Country"
+        }
+      ],
+      "storefront": {
+        "url": "https://epomaker.com",
+        "hasStorefront": true,
+        "previewReturnUrl": null,
+        "__typename": "CheckoutStorefrontConfig"
+      },
+      "theme": {
+        "id": "168196309300",
+        "cityhash": "10586171372802259339",
+        "__typename": "ThemeConfig"
+      },
+      "trackingPixels": [],
+      "onlineStoreChat": null,
+      "facebookCapiEnabled": true,
+      "myshopifyDomain": "epomaker.myshopify.com",
+      "translations": "{\"tips\":{\"description\":\"Your tip goes to the EPOMAKER warehouse team who pick, pack, and ship your order.\",\"message\":\" Thank you — our warehouse team really appreciates it.\"}}",
+      "customerAccountRequirement": "OPTIONAL",
+      "smsMarketing": "OFF",
+      "shippingRatesReloadStrategy": {
+        "AF": 3,
+        "AX": 3,
+        "AL": 3,
+        "DZ": 3,
+        "AO": 3,
+        "AI": 3,
+        "AG": 3,
+        "AR": {
+          "B": 3,
+          "K": 3,
+          "H": 3,
+          "U": 3,
+          "C": 3,
+          "X": 3,
+          "W": 3,
+          "E": 3,
+          "P": 3,
+          "Y": 3,
+          "L": 3,
+          "F": 3,
+          "M": 3,
+          "N": 3,
+          "Q": 3,
+          "R": 3,
+          "A": 3,
+          "J": 3,
+          "D": 3,
+          "Z": 3,
+          "S": 3,
+          "G": 3,
+          "V": 3,
+          "T": 3
+        },
+        "AM": 3,
+        "AW": 3,
+        "AC": 3,
+        "AZ": 3,
+        "BS": 3,
+        "BD": 3,
+        "BB": 3,
+        "BZ": 3,
+        "BJ": 3,
+        "BM": 3,
+        "BT": 3,
+        "BO": 3,
+        "BW": 3,
+        "IO": 3,
+        "BF": 3,
+        "BI": 3,
+        "CV": 3,
+        "BQ": 3,
+        "KY": 3,
+        "CF": 3,
+        "TD": 3,
+        "CL": {
+          "AN": 3,
+          "AR": 3,
+          "AP": 3,
+          "AT": 3,
+          "AI": 3,
+          "BI": 3,
+          "CO": 3,
+          "LL": 3,
+          "LR": 3,
+          "MA": 3,
+          "ML": 3,
+          "NB": 3,
+          "LI": 3,
+          "RM": 3,
+          "TA": 3,
+          "VS": 3
+        },
+        "CX": 3,
+        "CC": 3,
+        "CO": {
+          "AMA": 3,
+          "ANT": 3,
+          "ARA": 3,
+          "ATL": 3,
+          "DC": 3,
+          "BOL": 3,
+          "BOY": 3,
+          "CAL": 3,
+          "CAQ": 3,
+          "CAS": 3,
+          "CAU": 3,
+          "CES": 3,
+          "CHO": 3,
+          "COR": 3,
+          "CUN": 3,
+          "GUA": 3,
+          "GUV": 3,
+          "HUI": 3,
+          "LAG": 3,
+          "MAG": 3,
+          "MET": 3,
+          "NAR": 3,
+          "NSA": 3,
+          "PUT": 3,
+          "QUI": 3,
+          "RIS": 3,
+          "SAP": 3,
+          "SAN": 3,
+          "SUC": 3,
+          "TOL": 3,
+          "VAC": 3,
+          "VAU": 3,
+          "VID": 3
+        },
+        "KM": 3,
+        "CG": 3,
+        "CD": 3,
+        "CK": 3,
+        "CR": {
+          "CR-A": 3,
+          "CR-C": 3,
+          "CR-G": 3,
+          "CR-H": 3,
+          "CR-L": 3,
+          "CR-P": 3,
+          "CR-SJ": 3
+        },
+        "CI": 3,
+        "CW": 3,
+        "DJ": 3,
+        "DM": 3,
+        "DO": 3,
+        "EC": 3,
+        "SV": {
+          "SV-AH": 3,
+          "SV-CA": 3,
+          "SV-CH": 3,
+          "SV-CU": 3,
+          "SV-LI": 3,
+          "SV-PA": 3,
+          "SV-UN": 3,
+          "SV-MO": 3,
+          "SV-SM": 3,
+          "SV-SS": 3,
+          "SV-SV": 3,
+          "SV-SA": 3,
+          "SV-SO": 3,
+          "SV-US": 3
+        },
+        "GQ": 3,
+        "ER": 3,
+        "SZ": 3,
+        "ET": 3,
+        "FK": 3,
+        "FO": 3,
+        "FJ": 3,
+        "GF": 3,
+        "PF": 3,
+        "TF": 3,
+        "GA": 3,
+        "GM": 3,
+        "GE": 3,
+        "GH": 3,
+        "GL": 3,
+        "GD": 3,
+        "GP": 3,
+        "GT": {
+          "AVE": 3,
+          "BVE": 3,
+          "CMT": 3,
+          "CQM": 3,
+          "EPR": 3,
+          "ESC": 3,
+          "GUA": 3,
+          "HUE": 3,
+          "IZA": 3,
+          "JAL": 3,
+          "JUT": 3,
+          "PET": 3,
+          "QUE": 3,
+          "QUI": 3,
+          "RET": 3,
+          "SAC": 3,
+          "SMA": 3,
+          "SRO": 3,
+          "SOL": 3,
+          "SUC": 3,
+          "TOT": 3,
+          "ZAC": 3
+        },
+        "GN": 3,
+        "GW": 3,
+        "GY": 3,
+        "HT": 3,
+        "VA": 3,
+        "HN": 3,
+        "HU": 3,
+        "IQ": 3,
+        "IM": 3,
+        "JM": 3,
+        "JO": 3,
+        "KZ": 3,
+        "KE": 3,
+        "KI": 3,
+        "XK": 3,
+        "KG": 3,
+        "LB": 3,
+        "LS": 3,
+        "LR": 3,
+        "LY": 3,
+        "MG": 3,
+        "MW": 3,
+        "MV": 3,
+        "ML": 3,
+        "MT": 3,
+        "MQ": 3,
+        "MR": 3,
+        "MU": 3,
+        "YT": 3,
+        "MD": 3,
+        "MN": 3,
+        "ME": 3,
+        "MS": 3,
+        "MA": 3,
+        "MZ": 3,
+        "MM": 3,
+        "NA": 3,
+        "NR": 3,
+        "NP": 3,
+        "NC": 3,
+        "NZ": {
+          "CIT": 3,
+          "AUK": 3,
+          "BOP": 3,
+          "CAN": 3,
+          "GIS": 3,
+          "HKB": 3,
+          "MWT": 3,
+          "MBH": 3,
+          "NSN": 3,
+          "NTL": 3,
+          "OTA": 3,
+          "STL": 3,
+          "TKI": 3,
+          "TAS": 3,
+          "WKO": 3,
+          "WGN": 3,
+          "WTC": 3
+        },
+        "NI": 3,
+        "NE": 3,
+        "NG": {
+          "AB": 3,
+          "FC": 3,
+          "AD": 3,
+          "AK": 3,
+          "AN": 3,
+          "BA": 3,
+          "BY": 3,
+          "BE": 3,
+          "BO": 3,
+          "CR": 3,
+          "DE": 3,
+          "EB": 3,
+          "ED": 3,
+          "EK": 3,
+          "EN": 3,
+          "GO": 3,
+          "IM": 3,
+          "JI": 3,
+          "KD": 3,
+          "KN": 3,
+          "KT": 3,
+          "KE": 3,
+          "KO": 3,
+          "KW": 3,
+          "LA": 3,
+          "NA": 3,
+          "NI": 3,
+          "OG": 3,
+          "ON": 3,
+          "OS": 3,
+          "OY": 3,
+          "PL": 3,
+          "RI": 3,
+          "SO": 3,
+          "TA": 3,
+          "YO": 3,
+          "ZA": 3
+        },
+        "NU": 3,
+        "NF": 3,
+        "MK": 3,
+        "OM": 3,
+        "PK": 3,
+        "PS": 3,
+        "PA": {
+          "PA-1": 3,
+          "PA-4": 3,
+          "PA-2": 3,
+          "PA-3": 3,
+          "PA-5": 3,
+          "PA-EM": 3,
+          "PA-6": 3,
+          "PA-KY": 3,
+          "PA-7": 3,
+          "PA-NB": 3,
+          "PA-8": 3,
+          "PA-10": 3,
+          "PA-9": 3
+        },
+        "PG": 3,
+        "PY": 3,
+        "PE": {
+          "PE-AMA": 3,
+          "PE-ANC": 3,
+          "PE-APU": 3,
+          "PE-ARE": 3,
+          "PE-AYA": 3,
+          "PE-CAJ": 3,
+          "PE-CAL": 3,
+          "PE-CUS": 3,
+          "PE-HUV": 3,
+          "PE-HUC": 3,
+          "PE-ICA": 3,
+          "PE-JUN": 3,
+          "PE-LAL": 3,
+          "PE-LAM": 3,
+          "PE-LIM": 3,
+          "PE-LMA": 3,
+          "PE-LOR": 3,
+          "PE-MDD": 3,
+          "PE-MOQ": 3,
+          "PE-PAS": 3,
+          "PE-PIU": 3,
+          "PE-PUN": 3,
+          "PE-SAM": 3,
+          "PE-TAC": 3,
+          "PE-TUM": 3,
+          "PE-UCA": 3
+        },
+        "PN": 3,
+        "QA": 3,
+        "CM": 3,
+        "RE": 3,
+        "RW": 3,
+        "BL": 3,
+        "SH": 3,
+        "KN": 3,
+        "LC": 3,
+        "MF": 3,
+        "WS": 3,
+        "SM": 3,
+        "ST": 3,
+        "SA": 3,
+        "SN": 3,
+        "RS": 3,
+        "SC": 3,
+        "SL": 3,
+        "SX": 3,
+        "SK": 3,
+        "SI": 3,
+        "SB": 3,
+        "SO": 3,
+        "ZA": {
+          "EC": 3,
+          "FS": 3,
+          "NL": 3,
+          "LP": 3,
+          "MP": 3,
+          "NW": 3,
+          "NC": 3,
+          "WC": 3,
+          "GP": 3
+        },
+        "GS": 3,
+        "SS": 3,
+        "LK": 3,
+        "VC": 3,
+        "SD": 3,
+        "SR": 3,
+        "SJ": 3,
+        "TJ": 3,
+        "TZ": 3,
+        "TL": 3,
+        "TG": 3,
+        "TK": 3,
+        "TO": 3,
+        "TT": 3,
+        "TA": 3,
+        "TN": 3,
+        "TM": 3,
+        "TC": 3,
+        "TV": 3,
+        "UG": 3,
+        "US": {
+          "AS": 3,
+          "GU": 3,
+          "MH": 3,
+          "MP": 3,
+          "PW": 3,
+          "PR": 3,
+          "RI": 3,
+          "VI": 3,
+          "AL": 3,
+          "AZ": 3,
+          "AR": 3,
+          "CA": 3,
+          "CO": 3,
+          "CT": 3,
+          "DE": 3,
+          "DC": 3,
+          "FM": 3,
+          "FL": 3,
+          "GA": 3,
+          "ID": 3,
+          "IL": 3,
+          "IN": 3,
+          "IA": 3,
+          "KS": 3,
+          "KY": 3,
+          "LA": 3,
+          "ME": 3,
+          "MD": 3,
+          "MA": 3,
+          "MI": 3,
+          "MN": 3,
+          "MS": 3,
+          "MO": 3,
+          "MT": 3,
+          "NE": 3,
+          "NV": 3,
+          "NH": 3,
+          "NJ": 3,
+          "NM": 3,
+          "NY": 3,
+          "NC": 3,
+          "ND": 3,
+          "OH": 3,
+          "OK": 3,
+          "OR": 3,
+          "PA": 3,
+          "SC": 3,
+          "SD": 3,
+          "TN": 3,
+          "TX": 3,
+          "UT": 3,
+          "VT": 3,
+          "VA": 3,
+          "WA": 3,
+          "WV": 3,
+          "WI": 3,
+          "WY": 3,
+          "AK": 3,
+          "HI": 3,
+          "AA": 3,
+          "AP": 3,
+          "AE": 3
+        },
+        "UM": 3,
+        "UY": {
+          "UY-AR": 3,
+          "UY-CA": 3,
+          "UY-CL": 3,
+          "UY-CO": 3,
+          "UY-DU": 3,
+          "UY-FS": 3,
+          "UY-FD": 3,
+          "UY-LA": 3,
+          "UY-MA": 3,
+          "UY-MO": 3,
+          "UY-PA": 3,
+          "UY-RN": 3,
+          "UY-RV": 3,
+          "UY-RO": 3,
+          "UY-SA": 3,
+          "UY-SJ": 3,
+          "UY-SO": 3,
+          "UY-TA": 3,
+          "UY-TT": 3
+        },
+        "UZ": 3,
+        "VU": 3,
+        "VE": {
+          "VE-Z": 3,
+          "VE-B": 3,
+          "VE-C": 3,
+          "VE-D": 3,
+          "VE-E": 3,
+          "VE-F": 3,
+          "VE-G": 3,
+          "VE-H": 3,
+          "VE-Y": 3,
+          "VE-W": 3,
+          "VE-A": 3,
+          "VE-I": 3,
+          "VE-J": 3,
+          "VE-X": 3,
+          "VE-K": 3,
+          "VE-L": 3,
+          "VE-M": 3,
+          "VE-N": 3,
+          "VE-O": 3,
+          "VE-P": 3,
+          "VE-R": 3,
+          "VE-S": 3,
+          "VE-T": 3,
+          "VE-U": 3,
+          "VE-V": 3
+        },
+        "VG": 3,
+        "WF": 3,
+        "EH": 3,
+        "YE": 3,
+        "ZM": 3,
+        "ZW": 3,
+        "HK": {
+          "HK": 3,
+          "KL": 3,
+          "NT": 3
+        },
+        "MO": 3,
+        "CN": {
+          "AH": 3,
+          "BJ": 3,
+          "CQ": 3,
+          "FJ": 3,
+          "GS": 3,
+          "GD": 3,
+          "GX": 3,
+          "GZ": 3,
+          "HI": 3,
+          "HE": 3,
+          "HL": 3,
+          "HA": 3,
+          "HB": 3,
+          "HN": 3,
+          "NM": 3,
+          "JS": 3,
+          "JX": 3,
+          "JL": 3,
+          "LN": 3,
+          "NX": 3,
+          "QH": 3,
+          "SN": 3,
+          "SD": 3,
+          "SH": 3,
+          "SX": 3,
+          "SC": 3,
+          "TJ": 3,
+          "XJ": 3,
+          "YZ": 3,
+          "YN": 3,
+          "ZJ": 3
+        },
+        "JP": {
+          "JP-01": 3,
+          "JP-02": 3,
+          "JP-03": 3,
+          "JP-04": 3,
+          "JP-05": 3,
+          "JP-06": 3,
+          "JP-07": 3,
+          "JP-08": 3,
+          "JP-09": 3,
+          "JP-10": 3,
+          "JP-11": 3,
+          "JP-12": 3,
+          "JP-13": 3,
+          "JP-14": 3,
+          "JP-15": 3,
+          "JP-16": 3,
+          "JP-17": 3,
+          "JP-18": 3,
+          "JP-19": 3,
+          "JP-20": 3,
+          "JP-21": 3,
+          "JP-22": 3,
+          "JP-23": 3,
+          "JP-24": 3,
+          "JP-25": 3,
+          "JP-26": 3,
+          "JP-27": 3,
+          "JP-28": 3,
+          "JP-29": 3,
+          "JP-30": 3,
+          "JP-31": 3,
+          "JP-32": 3,
+          "JP-33": 3,
+          "JP-34": 3,
+          "JP-35": 3,
+          "JP-36": 3,
+          "JP-37": 3,
+          "JP-38": 3,
+          "JP-39": 3,
+          "JP-40": 3,
+          "JP-41": 3,
+          "JP-42": 3,
+          "JP-43": 3,
+          "JP-44": 3,
+          "JP-45": 3,
+          "JP-46": 3,
+          "JP-47": 3
+        },
+        "TW": 3,
+        "BN": 3,
+        "KH": 3,
+        "ID": {
+          "AC": 3,
+          "BA": 3,
+          "BB": 3,
+          "BT": 3,
+          "BE": 3,
+          "GO": 3,
+          "JK": 3,
+          "JA": 3,
+          "JB": 3,
+          "JT": 3,
+          "JI": 3,
+          "KB": 3,
+          "KS": 3,
+          "KT": 3,
+          "KI": 3,
+          "KU": 3,
+          "KR": 3,
+          "LA": 3,
+          "MA": 3,
+          "MU": 3,
+          "SU": 3,
+          "NB": 3,
+          "NT": 3,
+          "PA": 3,
+          "PB": 3,
+          "RI": 3,
+          "SS": 3,
+          "SR": 3,
+          "SN": 3,
+          "ST": 3,
+          "SG": 3,
+          "SA": 3,
+          "SB": 3,
+          "YO": 3
+        },
+        "LA": 3,
+        "MY": {
+          "JHR": 3,
+          "KDH": 3,
+          "KTN": 3,
+          "KUL": 3,
+          "LBN": 3,
+          "MLK": 3,
+          "NSN": 3,
+          "PHG": 3,
+          "PNG": 3,
+          "PRK": 3,
+          "PLS": 3,
+          "PJY": 3,
+          "SBH": 3,
+          "SWK": 3,
+          "SGR": 3,
+          "TRG": 3
+        },
+        "PH": {
+          "PH-ABR": 3,
+          "PH-AGN": 3,
+          "PH-AGS": 3,
+          "PH-AKL": 3,
+          "PH-ALB": 3,
+          "PH-ANT": 3,
+          "PH-APA": 3,
+          "PH-AUR": 3,
+          "PH-BAS": 3,
+          "PH-BAN": 3,
+          "PH-BTN": 3,
+          "PH-BTG": 3,
+          "PH-BEN": 3,
+          "PH-BIL": 3,
+          "PH-BOH": 3,
+          "PH-BUK": 3,
+          "PH-BUL": 3,
+          "PH-CAG": 3,
+          "PH-CAN": 3,
+          "PH-CAS": 3,
+          "PH-CAM": 3,
+          "PH-CAP": 3,
+          "PH-CAT": 3,
+          "PH-CAV": 3,
+          "PH-CEB": 3,
+          "PH-NCO": 3,
+          "PH-COM": 3,
+          "PH-DAV": 3,
+          "PH-DAS": 3,
+          "PH-DVO": 3,
+          "PH-DAO": 3,
+          "PH-DIN": 3,
+          "PH-EAS": 3,
+          "PH-GUI": 3,
+          "PH-IFU": 3,
+          "PH-ILN": 3,
+          "PH-ILS": 3,
+          "PH-ILI": 3,
+          "PH-ISA": 3,
+          "PH-KAL": 3,
+          "PH-LUN": 3,
+          "PH-LAG": 3,
+          "PH-LAN": 3,
+          "PH-LAS": 3,
+          "PH-LEY": 3,
+          "PH-MAG": 3,
+          "PH-MAD": 3,
+          "PH-MAS": 3,
+          "PH-00": 3,
+          "PH-MSC": 3,
+          "PH-MSR": 3,
+          "PH-MOU": 3,
+          "PH-NEC": 3,
+          "PH-NER": 3,
+          "PH-NSA": 3,
+          "PH-NUE": 3,
+          "PH-NUV": 3,
+          "PH-MDC": 3,
+          "PH-MDR": 3,
+          "PH-PLW": 3,
+          "PH-PAM": 3,
+          "PH-PAN": 3,
+          "PH-QUE": 3,
+          "PH-QUI": 3,
+          "PH-RIZ": 3,
+          "PH-ROM": 3,
+          "PH-WSA": 3,
+          "PH-SAR": 3,
+          "PH-SIG": 3,
+          "PH-SOR": 3,
+          "PH-SCO": 3,
+          "PH-SLE": 3,
+          "PH-SUK": 3,
+          "PH-SLU": 3,
+          "PH-SUN": 3,
+          "PH-SUR": 3,
+          "PH-TAR": 3,
+          "PH-TAW": 3,
+          "PH-ZMB": 3,
+          "PH-ZAN": 3,
+          "PH-ZAS": 3,
+          "PH-ZSI": 3
+        },
+        "SG": 3,
+        "TH": {
+          "TH-37": 3,
+          "TH-15": 3,
+          "TH-10": 3,
+          "TH-38": 3,
+          "TH-31": 3,
+          "TH-24": 3,
+          "TH-18": 3,
+          "TH-36": 3,
+          "TH-22": 3,
+          "TH-50": 3,
+          "TH-57": 3,
+          "TH-20": 3,
+          "TH-86": 3,
+          "TH-46": 3,
+          "TH-62": 3,
+          "TH-71": 3,
+          "TH-40": 3,
+          "TH-81": 3,
+          "TH-52": 3,
+          "TH-51": 3,
+          "TH-42": 3,
+          "TH-16": 3,
+          "TH-58": 3,
+          "TH-44": 3,
+          "TH-49": 3,
+          "TH-26": 3,
+          "TH-73": 3,
+          "TH-48": 3,
+          "TH-30": 3,
+          "TH-60": 3,
+          "TH-80": 3,
+          "TH-55": 3,
+          "TH-96": 3,
+          "TH-39": 3,
+          "TH-43": 3,
+          "TH-12": 3,
+          "TH-13": 3,
+          "TH-94": 3,
+          "TH-S": 3,
+          "TH-82": 3,
+          "TH-93": 3,
+          "TH-56": 3,
+          "TH-67": 3,
+          "TH-76": 3,
+          "TH-66": 3,
+          "TH-65": 3,
+          "TH-14": 3,
+          "TH-54": 3,
+          "TH-83": 3,
+          "TH-25": 3,
+          "TH-77": 3,
+          "TH-85": 3,
+          "TH-70": 3,
+          "TH-21": 3,
+          "TH-45": 3,
+          "TH-27": 3,
+          "TH-47": 3,
+          "TH-11": 3,
+          "TH-74": 3,
+          "TH-75": 3,
+          "TH-19": 3,
+          "TH-91": 3,
+          "TH-17": 3,
+          "TH-33": 3,
+          "TH-90": 3,
+          "TH-64": 3,
+          "TH-72": 3,
+          "TH-84": 3,
+          "TH-32": 3,
+          "TH-63": 3,
+          "TH-92": 3,
+          "TH-23": 3,
+          "TH-34": 3,
+          "TH-41": 3,
+          "TH-61": 3,
+          "TH-53": 3,
+          "TH-95": 3,
+          "TH-35": 3
+        },
+        "VN": 3,
+        "AU": {
+          "ACT": 3,
+          "NSW": 3,
+          "NT": 3,
+          "QLD": 3,
+          "SA": 3,
+          "TAS": 3,
+          "VIC": 3,
+          "WA": 3
+        },
+        "AT": 3,
+        "BE": 3,
+        "BG": 3,
+        "HR": 3,
+        "CZ": 3,
+        "DK": 3,
+        "EE": 3,
+        "FI": 3,
+        "FR": 3,
+        "GR": 3,
+        "IS": 3,
+        "IE": {
+          "CW": 3,
+          "CN": 3,
+          "CE": 3,
+          "CO": 3,
+          "DL": 3,
+          "D": 3,
+          "G": 3,
+          "KY": 3,
+          "KE": 3,
+          "KK": 3,
+          "LS": 3,
+          "LM": 3,
+          "LK": 3,
+          "LD": 3,
+          "LH": 3,
+          "MO": 3,
+          "MH": 3,
+          "MN": 3,
+          "OY": 3,
+          "RN": 3,
+          "SO": 3,
+          "TA": 3,
+          "WD": 3,
+          "WH": 3,
+          "WX": 3,
+          "WW": 3
+        },
+        "IT": {
+          "AG": 3,
+          "AL": 3,
+          "AN": 3,
+          "AO": 3,
+          "AR": 3,
+          "AP": 3,
+          "AT": 3,
+          "AV": 3,
+          "BA": 3,
+          "BT": 3,
+          "BL": 3,
+          "BN": 3,
+          "BG": 3,
+          "BI": 3,
+          "BO": 3,
+          "BZ": 3,
+          "BS": 3,
+          "BR": 3,
+          "CA": 3,
+          "CL": 3,
+          "CB": 3,
+          "CI": 3,
+          "CE": 3,
+          "CT": 3,
+          "CZ": 3,
+          "CH": 3,
+          "CO": 3,
+          "CS": 3,
+          "CR": 3,
+          "KR": 3,
+          "CN": 3,
+          "EN": 3,
+          "FM": 3,
+          "FE": 3,
+          "FI": 3,
+          "FG": 3,
+          "FC": 3,
+          "FR": 3,
+          "GE": 3,
+          "GO": 3,
+          "GR": 3,
+          "IM": 3,
+          "IS": 3,
+          "AQ": 3,
+          "SP": 3,
+          "LT": 3,
+          "LE": 3,
+          "LC": 3,
+          "LI": 3,
+          "LO": 3,
+          "LU": 3,
+          "MC": 3,
+          "MN": 3,
+          "MS": 3,
+          "MT": 3,
+          "VS": 3,
+          "ME": 3,
+          "MI": 3,
+          "MO": 3,
+          "MB": 3,
+          "NA": 3,
+          "NO": 3,
+          "NU": 3,
+          "OG": 3,
+          "OT": 3,
+          "OR": 3,
+          "PD": 3,
+          "PA": 3,
+          "PR": 3,
+          "PV": 3,
+          "PG": 3,
+          "PU": 3,
+          "PE": 3,
+          "PC": 3,
+          "PI": 3,
+          "PT": 3,
+          "PN": 3,
+          "PZ": 3,
+          "PO": 3,
+          "RG": 3,
+          "RA": 3,
+          "RC": 3,
+          "RE": 3,
+          "RI": 3,
+          "RN": 3,
+          "RM": 3,
+          "RO": 3,
+          "SA": 3,
+          "SS": 3,
+          "SV": 3,
+          "SI": 3,
+          "SR": 3,
+          "SO": 3,
+          "TA": 3,
+          "TE": 3,
+          "TR": 3,
+          "TO": 3,
+          "TP": 3,
+          "TN": 3,
+          "TV": 3,
+          "TS": 3,
+          "UD": 3,
+          "VA": 3,
+          "VE": 3,
+          "VB": 3,
+          "VC": 3,
+          "VR": 3,
+          "VV": 3,
+          "VI": 3,
+          "VT": 3
+        },
+        "LV": 3,
+        "LT": 3,
+        "LU": 3,
+        "NL": 3,
+        "NO": 3,
+        "PL": 3,
+        "PT": {
+          "PT-20": 3,
+          "PT-01": 3,
+          "PT-02": 3,
+          "PT-03": 3,
+          "PT-04": 3,
+          "PT-05": 3,
+          "PT-06": 3,
+          "PT-07": 3,
+          "PT-08": 3,
+          "PT-09": 3,
+          "PT-10": 3,
+          "PT-11": 3,
+          "PT-30": 3,
+          "PT-12": 3,
+          "PT-13": 3,
+          "PT-14": 3,
+          "PT-15": 3,
+          "PT-16": 3,
+          "PT-17": 3,
+          "PT-18": 3
+        },
+        "ES": {
+          "C": 3,
+          "VI": 3,
+          "AB": 3,
+          "A": 3,
+          "AL": 3,
+          "O": 3,
+          "AV": 3,
+          "BA": 3,
+          "PM": 3,
+          "B": 3,
+          "BU": 3,
+          "CC": 3,
+          "CA": 3,
+          "S": 3,
+          "CS": 3,
+          "CE": 3,
+          "CR": 3,
+          "CO": 3,
+          "CU": 3,
+          "GI": 3,
+          "GR": 3,
+          "GU": 3,
+          "SS": 3,
+          "H": 3,
+          "HU": 3,
+          "J": 3,
+          "LO": 3,
+          "GC": 3,
+          "LE": 3,
+          "L": 3,
+          "LU": 3,
+          "M": 3,
+          "MA": 3,
+          "ML": 3,
+          "MU": 3,
+          "NA": 3,
+          "OR": 3,
+          "P": 3,
+          "PO": 3,
+          "SA": 3,
+          "TF": 3,
+          "SG": 3,
+          "SE": 3,
+          "SO": 3,
+          "T": 3,
+          "TE": 3,
+          "TO": 3,
+          "V": 3,
+          "VA": 3,
+          "BI": 3,
+          "ZA": 3,
+          "Z": 3
+        },
+        "SE": 3,
+        "DE": 3,
+        "CH": 3,
+        "KW": {
+          "KW-AH": 3,
+          "KW-KU": 3,
+          "KW-FA": 3,
+          "KW-JA": 3,
+          "KW-HA": 3,
+          "KW-MU": 3
+        },
+        "EG": {
+          "SU": 3,
+          "SHR": 3,
+          "ALX": 3,
+          "ASN": 3,
+          "AST": 3,
+          "BH": 3,
+          "BNS": 3,
+          "C": 3,
+          "DK": 3,
+          "DT": 3,
+          "FYM": 3,
+          "GH": 3,
+          "GZ": 3,
+          "HU": 3,
+          "IS": 3,
+          "KFS": 3,
+          "LX": 3,
+          "MT": 3,
+          "MN": 3,
+          "MNF": 3,
+          "WAD": 3,
+          "SIN": 3,
+          "PTS": 3,
+          "KB": 3,
+          "KN": 3,
+          "BA": 3,
+          "SHG": 3,
+          "JS": 3,
+          "SUZ": 3
+        },
+        "MX": {
+          "AGS": 3,
+          "BC": 3,
+          "BCS": 3,
+          "CAMP": 3,
+          "CHIS": 3,
+          "CHIH": 3,
+          "DF": 3,
+          "COAH": 3,
+          "COL": 3,
+          "DGO": 3,
+          "GTO": 3,
+          "GRO": 3,
+          "HGO": 3,
+          "JAL": 3,
+          "MEX": 3,
+          "MICH": 3,
+          "MOR": 3,
+          "NAY": 3,
+          "NL": 3,
+          "OAX": 3,
+          "PUE": 3,
+          "QRO": 3,
+          "Q ROO": 3,
+          "SLP": 3,
+          "SIN": 3,
+          "SON": 3,
+          "TAB": 3,
+          "TAMPS": 3,
+          "TLAX": 3,
+          "VER": 3,
+          "YUC": 3,
+          "ZAC": 3
+        },
+        "GB": {
+          "BFP": 3,
+          "ENG": 3,
+          "NIR": 3,
+          "SCT": 3,
+          "WLS": 3
+        },
+        "CA": {
+          "AB": 3,
+          "BC": 3,
+          "MB": 3,
+          "NB": 3,
+          "NL": 3,
+          "NT": 3,
+          "NS": 3,
+          "NU": 3,
+          "ON": 3,
+          "PE": 3,
+          "QC": 3,
+          "SK": 3,
+          "YT": 3
+        },
+        "BA": 3,
+        "RO": {
+          "AB": 3,
+          "AR": 3,
+          "AG": 3,
+          "BC": 3,
+          "BH": 3,
+          "BN": 3,
+          "BT": 3,
+          "BR": 3,
+          "BV": 3,
+          "B": 3,
+          "BZ": 3,
+          "CS": 3,
+          "CJ": 3,
+          "CT": 3,
+          "CV": 3,
+          "CL": 3,
+          "DJ": 3,
+          "DB": 3,
+          "GL": 3,
+          "GR": 3,
+          "GJ": 3,
+          "HR": 3,
+          "HD": 3,
+          "IL": 3,
+          "IS": 3,
+          "IF": 3,
+          "MM": 3,
+          "MH": 3,
+          "MS": 3,
+          "NT": 3,
+          "OT": 3,
+          "PH": 3,
+          "SJ": 3,
+          "SM": 3,
+          "SB": 3,
+          "SV": 3,
+          "TR": 3,
+          "TM": 3,
+          "TL": 3,
+          "VL": 3,
+          "VS": 3,
+          "VN": 3
+        },
+        "AD": 3,
+        "CY": 3,
+        "GI": 3,
+        "GG": 3,
+        "JE": 3,
+        "LI": 3,
+        "MC": 3,
+        "KR": {
+          "KR-26": 3,
+          "KR-43": 3,
+          "KR-44": 3,
+          "KR-27": 3,
+          "KR-30": 3,
+          "KR-42": 3,
+          "KR-29": 3,
+          "KR-47": 3,
+          "KR-41": 3,
+          "KR-48": 3,
+          "KR-28": 3,
+          "KR-49": 3,
+          "KR-45": 3,
+          "KR-46": 3,
+          "KR-50": 3,
+          "KR-11": 3,
+          "KR-31": 3
+        },
+        "*": 3,
+        "IL": 3,
+        "TR": 3,
+        "RU": {
+          "ALT": 3,
+          "AL": 3,
+          "AMU": 3,
+          "ARK": 3,
+          "AST": 3,
+          "BEL": 3,
+          "BRY": 3,
+          "CE": 3,
+          "CHE": 3,
+          "CHU": 3,
+          "CU": 3,
+          "IRK": 3,
+          "IVA": 3,
+          "YEV": 3,
+          "KB": 3,
+          "KGD": 3,
+          "KLU": 3,
+          "KAM": 3,
+          "KC": 3,
+          "KEM": 3,
+          "KHA": 3,
+          "KHM": 3,
+          "KIR": 3,
+          "KO": 3,
+          "KOS": 3,
+          "KDA": 3,
+          "KYA": 3,
+          "KGN": 3,
+          "KRS": 3,
+          "LEN": 3,
+          "LIP": 3,
+          "MAG": 3,
+          "ME": 3,
+          "MOW": 3,
+          "MOS": 3,
+          "MUR": 3,
+          "NIZ": 3,
+          "NGR": 3,
+          "NVS": 3,
+          "OMS": 3,
+          "ORE": 3,
+          "ORL": 3,
+          "PNZ": 3,
+          "PER": 3,
+          "PRI": 3,
+          "PSK": 3,
+          "AD": 3,
+          "BA": 3,
+          "BU": 3,
+          "DA": 3,
+          "IN": 3,
+          "KL": 3,
+          "KR": 3,
+          "KK": 3,
+          "MO": 3,
+          "SE": 3,
+          "TA": 3,
+          "ROS": 3,
+          "RYA": 3,
+          "SPE": 3,
+          "SA": 3,
+          "SAK": 3,
+          "SAM": 3,
+          "SAR": 3,
+          "SMO": 3,
+          "STA": 3,
+          "SVE": 3,
+          "TAM": 3,
+          "TOM": 3,
+          "TUL": 3,
+          "TVE": 3,
+          "TYU": 3,
+          "TY": 3,
+          "UD": 3,
+          "ULY": 3,
+          "VLA": 3,
+          "VGG": 3,
+          "VLG": 3,
+          "VOR": 3,
+          "YAN": 3,
+          "YAR": 3,
+          "ZAB": 3
+        },
+        "AE": {
+          "AZ": 3,
+          "AJ": 3,
+          "DU": 3,
+          "FU": 3,
+          "RK": 3,
+          "SH": 3,
+          "UQ": 3
+        },
+        "IN": {
+          "AN": 3,
+          "AP": 3,
+          "AR": 3,
+          "AS": 3,
+          "BR": 3,
+          "CH": 3,
+          "CG": 3,
+          "DN": 3,
+          "DD": 3,
+          "DL": 3,
+          "GA": 3,
+          "GJ": 3,
+          "HR": 3,
+          "HP": 3,
+          "JK": 3,
+          "JH": 3,
+          "KA": 3,
+          "KL": 3,
+          "LA": 3,
+          "LD": 3,
+          "MP": 3,
+          "MH": 3,
+          "MN": 3,
+          "ML": 3,
+          "MZ": 3,
+          "NL": 3,
+          "OR": 3,
+          "PY": 3,
+          "PB": 3,
+          "RJ": 3,
+          "SK": 3,
+          "TN": 3,
+          "TS": 3,
+          "TR": 3,
+          "UP": 3,
+          "UK": 3,
+          "WB": 3
+        },
+        "BH": 3,
+        "PM": 3,
+        "BR": {
+          "AC": 3,
+          "AL": 3,
+          "AP": 3,
+          "AM": 3,
+          "BA": 3,
+          "CE": 3,
+          "DF": 3,
+          "ES": 3,
+          "GO": 3,
+          "MA": 3,
+          "MT": 3,
+          "MS": 3,
+          "MG": 3,
+          "PA": 3,
+          "PB": 3,
+          "PR": 3,
+          "PE": 3,
+          "PI": 3,
+          "RJ": 3,
+          "RN": 3,
+          "RS": 3,
+          "RO": 3,
+          "RR": 3,
+          "SC": 3,
+          "SP": 3,
+          "SE": 3,
+          "TO": 3
+        },
+        "BY": 3,
+        "UA": 3
+      },
+      "billingAddressFormSettings": {
+        "address2": {
+          "mode": "OPTIONAL",
+          "__typename": "AddressFormField"
+        },
+        "company": {
+          "mode": "IGNORED",
+          "__typename": "AddressFormField"
+        },
+        "firstName": {
+          "mode": "REQUIRED",
+          "__typename": "AddressFormField"
+        },
+        "phone": {
+          "mode": "OPTIONAL",
+          "__typename": "AddressFormField"
+        },
+        "addressAutocompletion": false,
+        "__typename": "BillingAddressFormSettings"
+      },
+      "shopConfigurations": {
+        "defaultConfiguration": {
+          "contactInfoOptions": [
+            "EMAIL"
+          ],
+          "phoneMarketingDisclosure": null,
+          "addressFormSettings": {
+            "address2": {
+              "mode": "OPTIONAL",
+              "__typename": "AddressFormField"
+            },
+            "company": {
+              "mode": "IGNORED",
+              "__typename": "AddressFormField"
+            },
+            "firstName": {
+              "mode": "REQUIRED",
+              "__typename": "AddressFormField"
+            },
+            "phone": {
+              "mode": "REQUIRED",
+              "__typename": "AddressFormField"
+            },
+            "addressAutocompletion": false,
+            "addressValidation": true,
+            "__typename": "AddressFormSettings"
+          },
+          "__typename": "CountryConfiguration"
+        },
+        "countrySpecificConfigurations": [
+          {
+            "countries": [
+              "AF",
+              "AX",
+              "AL",
+              "DZ",
+              "AD",
+              "AO",
+              "AI",
+              "AG",
+              "AR",
+              "AM",
+              "AW",
+              "AC",
+              "AU",
+              "AT",
+              "AZ",
+              "BS",
+              "BH",
+              "BD",
+              "BB",
+              "BY",
+              "BE",
+              "BZ",
+              "BJ",
+              "BM",
+              "BT",
+              "BO",
+              "BA",
+              "BW",
+              "BR",
+              "IO",
+              "VG",
+              "BN",
+              "BG",
+              "BF",
+              "BI",
+              "KH",
+              "CM",
+              "CA",
+              "CV",
+              "BQ",
+              "KY",
+              "CF",
+              "TD",
+              "CL",
+              "CN",
+              "CX",
+              "CC",
+              "CO",
+              "KM",
+              "CG",
+              "CD",
+              "CK",
+              "CR",
+              "HR",
+              "CW",
+              "CY",
+              "CZ",
+              "CI",
+              "DK",
+              "DJ",
+              "DM",
+              "DO",
+              "EC",
+              "EG",
+              "SV",
+              "GQ",
+              "ER",
+              "EE",
+              "SZ",
+              "ET",
+              "FK",
+              "FO",
+              "FJ",
+              "FI",
+              "FR",
+              "GF",
+              "PF",
+              "TF",
+              "GA",
+              "GM",
+              "GE",
+              "DE",
+              "GH",
+              "GI",
+              "GR",
+              "GL",
+              "GD",
+              "GP",
+              "GT",
+              "GG",
+              "GN",
+              "GW",
+              "GY",
+              "HT",
+              "HN",
+              "HK",
+              "HU",
+              "IS",
+              "IN",
+              "ID",
+              "IQ",
+              "IE",
+              "IM",
+              "IL",
+              "IT",
+              "JM",
+              "JP",
+              "JE",
+              "JO",
+              "KZ",
+              "KE",
+              "KI",
+              "XK",
+              "KW",
+              "KG",
+              "LA",
+              "LV",
+              "LB",
+              "LS",
+              "LR",
+              "LY",
+              "LI",
+              "LT",
+              "LU",
+              "MO",
+              "MG",
+              "MW",
+              "MY",
+              "MV",
+              "ML",
+              "MT",
+              "MQ",
+              "MR",
+              "MU",
+              "YT",
+              "MX",
+              "MD",
+              "MC",
+              "MN",
+              "ME",
+              "MS",
+              "MA",
+              "MZ",
+              "MM",
+              "NA",
+              "NR",
+              "NP",
+              "NL",
+              "NC",
+              "NZ",
+              "NI",
+              "NE",
+              "NG",
+              "NU",
+              "NF",
+              "MK",
+              "NO",
+              "OM",
+              "PK",
+              "PS",
+              "PA",
+              "PG",
+              "PY",
+              "PE",
+              "PH",
+              "PN",
+              "PL",
+              "PT",
+              "QA",
+              "RE",
+              "RO",
+              "RU",
+              "RW",
+              "WS",
+              "SM",
+              "ST",
+              "SA",
+              "SN",
+              "RS",
+              "SC",
+              "SL",
+              "SG",
+              "SX",
+              "SK",
+              "SI",
+              "SB",
+              "SO",
+              "ZA",
+              "GS",
+              "KR",
+              "SS",
+              "ES",
+              "LK",
+              "BL",
+              "SH",
+              "KN",
+              "LC",
+              "MF",
+              "PM",
+              "VC",
+              "SD",
+              "SR",
+              "SJ",
+              "SE",
+              "CH",
+              "TW",
+              "TJ",
+              "TZ",
+              "TH",
+              "TL",
+              "TG",
+              "TK",
+              "TO",
+              "TT",
+              "TA",
+              "TN",
+              "TR",
+              "TM",
+              "TC",
+              "TV",
+              "UM",
+              "UG",
+              "UA",
+              "AE",
+              "GB",
+              "US",
+              "UY",
+              "UZ",
+              "VU",
+              "VA",
+              "VE",
+              "VN",
+              "WF",
+              "EH",
+              "YE",
+              "ZM",
+              "ZW"
+            ],
+            "configuration": {
+              "contactInfoOptions": [
+                "EMAIL"
+              ],
+              "phoneMarketingDisclosure": null,
+              "addressFormSettings": {
+                "address2": {
+                  "mode": "OPTIONAL",
+                  "__typename": "AddressFormField"
+                },
+                "company": {
+                  "mode": "IGNORED",
+                  "__typename": "AddressFormField"
+                },
+                "firstName": {
+                  "mode": "REQUIRED",
+                  "__typename": "AddressFormField"
+                },
+                "phone": {
+                  "mode": "REQUIRED",
+                  "__typename": "AddressFormField"
+                },
+                "addressAutocompletion": false,
+                "__typename": "AddressFormSettings"
+              },
+              "__typename": "CountryConfiguration"
+            },
+            "__typename": "CountrySpecificConfiguration"
+          }
+        ],
+        "__typename": "ShopConfigurations"
+      },
+      "currencyCode": "USD",
+      "timeZone": "Asia/Shanghai",
+      "enabledFlags": [
+        "a1d1f9a1",
+        "8defa558",
+        "dcaf0f65",
+        "5db64f17",
+        "f43e7f5e",
+        "b5387b81",
+        "d5bdd5d0",
+        "656605ce",
+        "6b6a465a",
+        "b49cea40",
+        "3724d708",
+        "42e4c98b",
+        "6ce13491",
+        "88857a3f",
+        "1cf8fbf5",
+        "1a40e0b0",
+        "28979951",
+        "4791cf77",
+        "fa54e0dc",
+        "2e655c98",
+        "05cf5eaf",
+        "afb9612c",
+        "5d930e59",
+        "a826bf8b",
+        "3fd16760",
+        "5cfb9381",
+        "bb729edf",
+        "7bad33c2",
+        "7754d196",
+        "eb3858a9",
+        "3fe20ff8",
+        "153dbb6c",
+        "16e8a477",
+        "a87c29a8",
+        "ede46d94",
+        "f625442e",
+        "ecd18b69",
+        "edd0d1d4",
+        "4e72ae91",
+        "7e4a7873",
+        "a7f93cc9",
+        "7b6ae3c2",
+        "3bc3e133",
+        "e56e1499",
+        "321ae92e",
+        "365672a9"
+      ],
+      "hideReductionsField": false,
+      "enabledDeliveryMethods": [
+        "SHIPPING"
+      ],
+      "marketDrivenShippingEnabled": false,
+      "shipPickupInOneOrderEnabled": false,
+      "giftCardsEnabled": true,
+      "discountCodesEnabled": true,
+      "contactEmail": "support@epomaker.com",
+      "acceptTipPayments": true,
+      "showTipPayments": true,
+      "postPurchaseExtensionAvailable": false,
+      "postPurchaseDevelopmentModeAvailable": false,
+      "postPurchaseAdditionalTrackingScript": null,
+      "confirmationPageEnabled": false,
+      "customerAccountLocationsUrl": "https://shopify.com/28039315529/account/locations?return_to=https%3A%2F%2Fepomaker.myshopify.com%2Fcheckouts%2Fcn%2FhWNGBSyDpV2xNywUesjHq0e3%2Fen-no%3F_r%3DAQABv-BUKCIDegbU6vd6O-L9WQ87RFUqIm_WH-K7197W",
+      "loginLinkVisible": true,
+      "shopPayEnabled": false,
+      "shopPayRememberMeDualButtonExcluded": false,
+      "hasMultipleLegalEntities": false,
+      "storeVaultEnabled": false,
+      "storeVaultCvvVerificationAtGuestCheckoutEnabled": false,
+      "forceStablecoinSandboxPayments": false,
+      "vaultForPaymentLater": false,
+      "webPixelConfigurations": [
+        {
+          "idTmp": "186220852",
+          "configuration": "{\"tagID\":\"2612803177383\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "565fe5dd5db699c5a32547ff5c1df3c8",
+          "type": "APP",
+          "apiClientId": "3009811",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING",
+            "SALE_OF_DATA"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "233144628",
+          "configuration": "{\"accountID\":\"82f25811-b8d7-463e-980a-687c6e4ebc88\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "d0369370d97f2cca6d5c273406637796",
+          "type": "APP",
+          "apiClientId": "5433881",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING",
+            "SALE_OF_DATA"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "280953140",
+          "configuration": "{\"shopId\":\"20914\",\"env\":\"production\",\"metaData\":\"[]\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "33a696d2f4bf0f977ff9b6b0ab6bb927",
+          "type": "APP",
+          "apiClientId": "2773553",
+          "purposes": [],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "UNRESTRICTED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "361038132",
+          "configuration": "{\"pixel_id\":\"947256036030282\",\"pixel_type\":\"facebook_pixel\",\"metaapp_system_user_token\":\"-\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "OPEN",
+          "scriptVersion": "abff2a8add143ccb04deb20f0ebd74a9",
+          "type": "APP",
+          "apiClientId": "2329312",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING",
+            "SALE_OF_DATA"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": "sha384-ZfnHjUaFJg2Au4Vw5qlPEdmlNZQo8OTqyEaMZ1vb6VAVEc9/se0VrwuRNESF+vwf",
+          "enabledFlags": [
+            "9a3ed68a"
+          ],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "631243060",
+          "configuration": "{\"config\":\"{\\\"google_tag_ids\\\":[\\\"G-20EHT1QDJR\\\",\\\"GT-TBNNNLZR\\\",\\\"AW-10900663026\\\"],\\\"target_country\\\":\\\"US\\\",\\\"gtag_events\\\":[{\\\"type\\\":\\\"search\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"begin_checkout\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"remove_from_cart\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"view_item\\\",\\\"action_label\\\":[\\\"G-20EHT1QDJR\\\",\\\"MC-JPPFY8JLLM\\\"]},{\\\"type\\\":\\\"purchase\\\",\\\"action_label\\\":[\\\"G-20EHT1QDJR\\\",\\\"MC-JPPFY8JLLM\\\",\\\"AW-10900663026\\/t-5CCLP0urwDEPLV680o\\\"]},{\\\"type\\\":\\\"add_shipping_info\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"page_view\\\",\\\"action_label\\\":[\\\"G-20EHT1QDJR\\\",\\\"MC-JPPFY8JLLM\\\"]},{\\\"type\\\":\\\"view_item_list\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"add_payment_info\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"add_to_cart\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"},{\\\"type\\\":\\\"view_cart\\\",\\\"action_label\\\":\\\"G-20EHT1QDJR\\\"}],\\\"enable_monitoring_mode\\\":false}\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "OPEN",
+          "scriptVersion": "a3321ca85cf5aaf6b57585fcd8d67b3a",
+          "type": "APP",
+          "apiClientId": "1780363",
+          "purposes": [],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": "sha384-IfGNXEoHpOkvs4b+rlAt8AcxwCVJB7AUAOspOFKRll1O+hoxUsyfDI1kuIZiCojr",
+          "enabledFlags": [
+            "9a3ed68a"
+          ],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "735215924",
+          "configuration": "{\"pixelCode\":\"CMRFTSJC77U4JRP1J2KG\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "22e92c2ad45662f435e4801458fb78cc",
+          "type": "APP",
+          "apiClientId": "4383523",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING",
+            "SALE_OF_DATA"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "817529140",
+          "configuration": "{\"accountID\": \"1\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "98ee490d331233c2c29d0111546d0eb8",
+          "type": "APP",
+          "apiClientId": "6153831",
+          "purposes": [
+            "ANALYTICS",
+            "SALE_OF_DATA"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "888275252",
+          "configuration": "{\"webPixelName\":\"Judge.me\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "34ad157958823915625854214640f0bf",
+          "type": "APP",
+          "apiClientId": "683015",
+          "purposes": [
+            "ANALYTICS"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "UNRESTRICTED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "1043923252",
+          "configuration": "{\"accountID\":\"epomaker\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "4f82d0323b06a4642fbff9b42c9979eb",
+          "type": "APP",
+          "apiClientId": "12388204545",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "1086030132",
+          "configuration": "{\"mailchimp_store_id\":\"store_n3oyjuwgw4r2tr8shuk8\", \"mailchimp_user_id\":\"123290730\",\"mailchimp_list_id\":\"0d6f039fa8\"}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "e357a49eadeb6216a959d63fa3fb8f55",
+          "type": "APP",
+          "apiClientId": "2585307",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING",
+            "SALE_OF_DATA"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": {
+            "protectedCustomerApprovalScopes": [
+              "read_customer_address",
+              "read_customer_email",
+              "read_customer_name",
+              "read_customer_personal_data",
+              "read_customer_phone"
+            ],
+            "dataSharingControls": [
+              "share_all_events"
+            ],
+            "__typename": "DataSharingAdjustments"
+          },
+          "dataSharingState": "OPTIMIZED",
+          "integrityHash": null,
+          "enabledFlags": [
+            "9a3ed68a"
+          ],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "89784628",
+          "configuration": null,
+          "eventPayloadVersion": "1",
+          "runtimeContext": "LAX",
+          "scriptVersion": "1",
+          "type": "CUSTOM",
+          "apiClientId": null,
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING",
+            "SALE_OF_DATA"
+          ],
+          "name": "Google Conversion ",
+          "capabilities": null,
+          "dataSharingAdjustments": null,
+          "dataSharingState": null,
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "118882612",
+          "configuration": null,
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "LAX",
+          "scriptVersion": "1",
+          "type": "CUSTOM",
+          "apiClientId": null,
+          "purposes": [
+            "MARKETING"
+          ],
+          "name": "Meta pixel (migrated)",
+          "capabilities": null,
+          "dataSharingAdjustments": null,
+          "dataSharingState": null,
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "shopify-app-pixel",
+          "configuration": "{}",
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "STRICT",
+          "scriptVersion": "0480",
+          "type": "APP",
+          "apiClientId": "shopify-pixel",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": null,
+          "dataSharingState": null,
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        },
+        {
+          "idTmp": "shopify-custom-pixel",
+          "configuration": null,
+          "eventPayloadVersion": "v1",
+          "runtimeContext": "LAX",
+          "scriptVersion": "0480",
+          "type": "CUSTOM",
+          "apiClientId": "shopify-pixel",
+          "purposes": [
+            "ANALYTICS",
+            "MARKETING"
+          ],
+          "name": null,
+          "capabilities": null,
+          "dataSharingAdjustments": null,
+          "dataSharingState": null,
+          "integrityHash": null,
+          "enabledFlags": [],
+          "__typename": "WebPixelConfiguration"
+        }
+      ],
+      "webPixelManagerVersion": "5696ca25wf1f4e112pe303b5b1m7dd82084",
+      "webPixelsManagerSriMap": {
+        "legacy": "sha384-oTjUL/22TYEM8xM2bXb2q+UTVzkhMemFf9D/VTuzg4GreG2qJCv8t5SPTnumCISb",
+        "modern": "sha384-BZ0b0ALjWfaBaoejHC+oISE+pm+/i9YlScfaoytx6yQSBeKPa7JSQxnnX2rpSl0f",
+        "__typename": "WebPixelsManagerSriMap"
+      },
+      "trekkieLoadConfiguration": {
+        "assetPath": "s/trekkie.storefront.c3de4351cec0b617fdf79b803eb104cc6c0d8097.min.js",
+        "sriHash": "sha384-nYur4m8Ydr9oujBaEZUkTIIiQxD3HLFMZlC1ED23wNra0DYwsQkkNwycgq+E/4aO",
+        "__typename": "TrekkieLoadConfiguration"
+      },
+      "linkToArriveApp": true,
+      "shopPayRememberMeAutoOptinEnabled": true,
+      "sameBillingAndShippingAddress": true,
+      "requireMatchingShippingAndBilling": false,
+      "prefetchShippingRatesEnabled": true,
+      "captureAtFulfillmentEnabled": false,
+      "checkoutHideZeroValueDiscountLines": false,
+      "developmentShop": false,
+      "previewStore": false,
+      "previewStoreClaimUrl": null,
+      "customerAccountDomain": "shopify.com",
+      "checkoutPublicAccessToken": "MTQwNjM2ZjJlMzE4NjFkOGMxYjU5YTY5MjI0YzI0YmU6\n",
+      "asyncDeliveryPromiseExperienceEnabled": false,
+      "paymentGateways": [
+        {
+          "id": "gid://shopify/PaymentsPartners::Entities::AppGateway/124186132788",
+          "name": "Stripe Card Payments",
+          "__typename": "PaymentGateway"
+        },
+        {
+          "id": "gid://shopify/PaymentsPartners::Entities::AppGateway/124292497716",
+          "name": "paypal",
+          "__typename": "PaymentGateway"
+        }
+      ],
+      "adsPublisherSettingsTypEnabled": false,
+      "draftAdsPublisherSettingsTypEnabled": false,
+      "sandboxUrlAutocomplete": "https://checkout.shopify.com/28039315529/sandboxes/autocomplete?shopHost=epomaker.myshopify.com&hmac=5ef81db7ce6c203b45f07f20eb343ef2b2376d262f238d81d4eb164ffd12329b",
+      "sandboxUrlAnalytics": "https://checkout.shopify.com/28039315529/sandboxes/analytics?shopHost=epomaker.myshopify.com&hmac=efd9d0fc974a1b351d189ea5e9ed96e826b9060b562a6291070f101daa5c4c77",
+      "sandboxAppBridgeCheckoutCore": "https://checkout.shopify.com/28039315529/sandboxes/app-bridge-checkout-core?shopHost=epomaker.myshopify.com&hmac=9deb818c6e21f1244b01933eac9fd9bedd594d6919ef3f2aa7cc1f875695440b",
+      "sandboxCrypto": "https://checkout.shopify.com/28039315529/sandboxes/crypto?shopHost=epomaker.myshopify.com&hmac=4aa32072f772de6669a338030c301b30c35136948617db375ab252ee5cad0cee",
+      "sandboxPaypal": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=PAYPAL_EXPRESS&hmac=84e62593d5cfea1e573d0b0f2ec216346ba01a8a418a81fd1c09177f5eae23a6",
+      "sandboxPayWithPaypal": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=PAY_WITH_PAYPAL&hmac=e668d434bfdd06ab6b72dbe82192db73c1beaef8637c9724b07a79980a1d2913",
+      "sandboxVenmo": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=VENMO&hmac=e08938971d9c4c0d23dc4916206d3c5ccbb2d8b2a74cd9bd1729909dba7d7936",
+      "sandboxGooglePay": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=GOOGLE_PAY&hmac=f58b0e4df1e0864265d45292c030e9e3a4b2c868b4ecdd8f6787ef37e32468f2",
+      "sandboxAmazonPay": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=amazon_pay&hmac=3460bf8aa08833a3a9ce337ab8b7585d94eb50f262ec45701347e2c89b370197",
+      "sandboxBuyWithPrime": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=buy_with_prime&hmac=ee8c8dcbd68192d664475aa4717ab260b80e32cdbaf8edbda36611cd9867d098",
+      "sandboxStripeBank": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=STRIPE_BANK&hmac=8ba16d64774ae0dd592c9adb3cded6d3d10b46d67782c76e9c86114e17bd13ef",
+      "sandboxApplePay": "https://checkout.shopify.com/28039315529/sandboxes/wallets?shopHost=epomaker.myshopify.com&wallet=APPLE_PAY&hmac=392d21b2f65a99bb5d983d32c51b048e2120e4505c8b1cecdd0161ce31ef9745",
+      "brandSettings": null,
+      "__typename": "CheckoutShopConfig"
+    },
+    "checkoutProfile": {
+      "id": "gid://shopify/CheckoutProfile/57311540",
+      "activatedExtensions": [],
+      "__typename": "CheckoutProfile"
+    },
+    "configurationPreviewContext": null,
+    "globalCheckoutUiExtensions": [],
+    "appConfiguration": {
+      "features": {
+        "isExpressCheckoutEnabled": true,
+        "isEmailMarketingEnabled": true,
+        "isSmsMarketingEnabled": true,
+        "isTipsEnabled": true,
+        "__typename": "AppFeatureConfiguration"
+      },
+      "allowedDelegations": [
+        "window.open"
+      ],
+      "isCvvBypassEnabled": false,
+      "orderSummary": {
+        "layoutStyle": "BLOCK",
+        "__typename": "OrderSummaryConfiguration"
+      },
+      "headerText": {
+        "visibility": "HIDDEN",
+        "__typename": "HeaderTextConfiguration"
+      },
+      "shopCash": {
+        "visibility": "VISIBLE",
+        "__typename": "ShopCashConfiguration"
+      },
+      "checkoutAsGuest": {
+        "visibility": "VISIBLE",
+        "__typename": "CheckoutAsGuestConfiguration"
+      },
+      "shopHeader": {
+        "visibility": "VISIBLE",
+        "__typename": "ShopHeaderConfiguration"
+      },
+      "payButton": {
+        "stickyPayButtonEnabledInWeb": false,
+        "stickyPayButtonEnabledInMobile": false,
+        "__typename": "PayButtonConfiguration"
+      },
+      "__typename": "AppConfiguration"
+    },
+    "cardsinkUrl": "https://checkout.pci.shopifyinc.com/sessions",
+    "extensionsAssetsPath": "https://extensions.shopifycdn.com/shopifycloud/checkout-web/assets/",
+    "payNowAction": "NEGOTIATION"
+  },
+  "7e74199c705af18fe6b82e2cb1cb939652ec92dc94b068d9768e3922ed965cdc{\"checkpointData\":null,\"queueToken\":null}": {
+    "session": {
+      "context": {
+        "session": [],
+        "policies": {
+          "fees": [],
+          "payment": [],
+          "buyerIdentity": [],
+          "tax": [],
+          "duty": [],
+          "landedCostDetails": [],
+          "discount": [],
+          "merchandise": [],
+          "tip": [],
+          "delivery": [],
+          "__typename": "PolicyFactSet"
+        },
+        "__typename": "NegotiationContext"
+      },
+      "ucp": {
+        "checkout": {
+          "id": "gid://shopify/Checkout/hWNGBSziEG9fXoSs3DbSfzlL?key=78c177bc00923b08fe5728d2f90b56d9",
+          "__typename": "Checkout"
+        },
+        "__typename": "Ucp"
+      },
+      "sessionType": "CART_API",
+      "sourceId": "hWNGBSziEG9fXoSs3DbSfzlL",
+      "sourceVersion": null,
+      "channelId": "42937581641",
+      "isAbandonedCheckoutSupported": true,
+      "checkoutSessionIdentifier": "7c03270a3cc1b53b358b110e5ce8e78d",
+      "checkoutCardsinkCallerIdentificationSignature": "eyJraWQiOiJ2MSIsImFsZyI6IkhTMjU2In0.eyJjbGllbnRfaWQiOiIyIiwiY2xpZW50X2FjY291bnRfaWQiOiIyODAzOTMxNTUyOSIsInVuaXF1ZV9pZCI6IjdjMDMyNzBhM2NjMWI1M2IzNThiMTEwZTVjZThlNzhkIiwiaWF0IjoxNzg3OTM2OTAxfQ.mxXT5HQu58gSyac5ou155q1ATu0EcOoEpnlQBQthzio",
+      "storefrontAnalyticsStartedOrderEventId": null,
+      "activeCheckoutRolloutTreatments": [],
+      "cartReturnUrl": "https://epomaker.myshopify.com/cart",
+      "headerLogoUrl": "https://epomaker.myshopify.com",
+      "previewScript": null,
+      "checkoutPaymentMethods": [],
+      "negotiate": {
+        "result": {
+          "checkpointData": null,
+          "queueToken": "A6PUw8WaCP-Mn9IAEfdVXUfHjmXxZCF4oyZ6ruL_Rk4x_DFYEAOnFxXPS4pAOaDqELTgPaynwT3eMOEzC63l4uvep5tBYzOieZ4dVKpeE8YKqTrVyTvXH9zkU7CmYOV9Fd7mMmmGbkIayS8=",
+          "buyerProposal": {
+            "buyerIdentity": {
+              "email": null,
+              "phone": null,
+              "rememberMe": false,
+              "customer": {
+                "__typename": "GuestProfile"
+              },
+              "__typename": "FilledBuyerIdentityTerms"
+            },
+            "cartMetafields": [],
+            "merchandiseDiscount": {
+              "__typename": "FilledDiscountTerms",
+              "acceptUnexpectedDiscounts": true,
+              "lines": []
+            },
+            "deliveryDiscount": {
+              "__typename": "FilledDiscountTerms",
+              "acceptUnexpectedDiscounts": true,
+              "lines": []
+            },
+            "delivery": {
+              "__typename": "FilledDeliveryTerms",
+              "supportsSplitDeliveryMethod": false,
+              "intermediateRates": false,
+              "progressiveRatesEstimatedTimeUntilCompletion": 0,
+              "shippingRatesStatusToken": "",
+              "splitShippingToggle": true,
+              "deliveryLines": [
+                {
+                  "destinationAddress": null,
+                  "targetMerchandise": {
+                    "linesV2": [
+                      {
+                        "stableId": "df4b5d62-6a84-4d3b-a9f4-a5d2365666b4",
+                        "quantity": {
+                          "items": {
+                            "value": 1,
+                            "__typename": "IntValueConstraint"
+                          },
+                          "__typename": "ProposalMerchandiseQuantityByItem"
+                        },
+                        "merchandise": {
+                          "__typename": "ProductVariantMerchandise",
+                          "requiresShipping": false
+                        },
+                        "totalAmount": {
+                          "value": {
+                            "amount": "1.0",
+                            "currencyCode": "USD",
+                            "__typename": "Money"
+                          },
+                          "__typename": "MoneyValueConstraint"
+                        },
+                        "parentRelationship": null,
+                        "__typename": "MerchandiseLine"
+                      }
+                    ],
+                    "__typename": "FilledMerchandiseLineTargetCollection"
+                  },
+                  "groupType": "ONE_TIME_PURCHASE",
+                  "deliveryMethodTypes": [
+                    "NONE"
+                  ],
+                  "selectedDeliveryStrategy": {
+                    "handle": "7c03270a3cc1b53b358b110e5ce8e78d-0749a89a340a620513a27c17fe3c9ef5",
+                    "options": null,
+                    "__typename": "DeliveryStrategyReference"
+                  },
+                  "availableDeliveryStrategies": [],
+                  "__typename": "DeliveryLine"
+                }
+              ]
+            },
+            "merchandise": {
+              "taxesIncluded": false,
+              "merchandiseLines": [
+                {
+                  "stableId": "df4b5d62-6a84-4d3b-a9f4-a5d2365666b4",
+                  "merchandise": {
+                    "__typename": "ProductVariantMerchandise",
+                    "id": "gid://shopify/ProductVariantMerchandise/49239675633972",
+                    "digest": "27f868c6556f8018f81cd863a78e2411",
+                    "variantId": "gid://shopify/ProductVariant/49239675633972",
+                    "title": "$1 Reservation Card for EPOMAKER HE60",
+                    "untranslatedTitle": "$1 Reservation Card for EPOMAKER HE60",
+                    "subtitle": "$1 Reservation Card",
+                    "untranslatedSubtitle": "$1 Reservation Card",
+                    "compareAtPrice": null,
+                    "product": {
+                      "id": "gid://shopify/Product/9355442454836",
+                      "vendor": "Epomaker",
+                      "productType": "Reservation Card",
+                      "__typename": "Product",
+                      "disclosures": []
+                    },
+                    "productUrl": "/products/1-reservation-card-for-epomaker-he60",
+                    "image": {
+                      "altText": null,
+                      "url": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6.png?v=1786961050",
+                      "one": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6_64x64.png?v=1786961050",
+                      "two": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6_128x128.png?v=1786961050",
+                      "four": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6_256x256.png?v=1786961050",
+                      "__typename": "Image"
+                    },
+                    "properties": [],
+                    "requiresShipping": false,
+                    "options": [
+                      {
+                        "name": "Model",
+                        "value": "$1 Reservation Card",
+                        "__typename": "ProductVariantOption"
+                      }
+                    ],
+                    "sellingPlan": null,
+                    "giftCard": false
+                  },
+                  "parentRelationship": null,
+                  "quantity": {
+                    "items": {
+                      "value": 1,
+                      "__typename": "IntValueConstraint"
+                    },
+                    "__typename": "ProposalMerchandiseQuantityByItem"
+                  },
+                  "totalAmount": {
+                    "value": {
+                      "amount": "1.0",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "__typename": "MoneyValueConstraint"
+                  },
+                  "recurringTotal": null,
+                  "lineAllocations": [
+                    {
+                      "stableId": "dc9340d4b2fe22cf54a43d7ce978315b",
+                      "quantity": 1,
+                      "totalAmountBeforeReductions": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "totalAmountAfterDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "totalAmountAfterLineDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "checkoutPriceAfterDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "checkoutPriceAfterLineDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "checkoutPriceBeforeReductions": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "unitPrice": null,
+                      "allocations": [],
+                      "__typename": "LineAllocation"
+                    }
+                  ],
+                  "lineComponentsSource": null,
+                  "lineComponents": [],
+                  "legacyFee": false,
+                  "__typename": "MerchandiseLine"
+                }
+              ],
+              "__typename": "FilledMerchandiseTerms"
+            },
+            "runningTotal": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "total": {
+              "__typename": "AnyConstraint"
+            },
+            "checkoutTotalBeforeTaxesAndShipping": null,
+            "checkoutTotalTaxes": null,
+            "checkoutTotal": {
+              "__typename": "AnyConstraint"
+            },
+            "deferredTotal": null,
+            "hasOnlyDeferredShipping": false,
+            "subtotalBeforeTaxesAndShipping": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "legacySubtotalBeforeTaxesShippingAndFees": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "legacyAggregatedMerchandiseTermsAsFees": [],
+            "attribution": {
+              "attributions": [],
+              "__typename": "Attribution"
+            },
+            "saleAttributions": {
+              "attributions": [],
+              "__typename": "SaleAttributions"
+            },
+            "nonNegotiableTerms": null,
+            "isShippingRequired": false,
+            "remote": null,
+            "__typename": "Proposal"
+          },
+          "sellerProposal": {
+            "merchandiseDiscount": {
+              "__typename": "FilledDiscountTerms",
+              "acceptUnexpectedDiscounts": true,
+              "lines": []
+            },
+            "cartMetafields": [],
+            "customFields": [],
+            "deliveryDiscount": {
+              "__typename": "FilledDiscountTerms",
+              "acceptUnexpectedDiscounts": true,
+              "lines": []
+            },
+            "deliveryExpectations": {
+              "__typename": "UnavailableTerms"
+            },
+            "memberships": {
+              "__typename": "FilledMembershipTerms",
+              "memberships": []
+            },
+            "availableRedeemables": {
+              "availableRedeemables": [],
+              "__typename": "AvailableRedeemables"
+            },
+            "shopCashBalance": {
+              "__typename": "UnavailableTerms",
+              "_singleInstance": true
+            },
+            "shopPromotion": {
+              "__typename": "UnavailableTerms",
+              "_singleInstance": true
+            },
+            "shopDiscountOffer": {
+              "__typename": "UnavailableTerms",
+              "_singleInstance": true
+            },
+            "availableDeliveryAddresses": [],
+            "mustSelectProvidedAddress": false,
+            "mustSelectProvidedShippingRate": false,
+            "canUpdateDiscountCodes": true,
+            "canUpdateDeliveryAddress": true,
+            "canUpdateMerchandise": true,
+            "delivery": {
+              "supportsSplitDeliveryMethod": false,
+              "intermediateRates": false,
+              "progressiveRatesEstimatedTimeUntilCompletion": 0,
+              "shippingRatesStatusToken": "",
+              "splitShippingToggle": true,
+              "deliveryLines": [
+                {
+                  "id": "gid://shopify/DeliveryLine/8460e96b1e1a1845bf9cfcd811a977b5",
+                  "availableOn": "ASAP",
+                  "destinationAddress": null,
+                  "targetMerchandise": {
+                    "linesV2": [
+                      {
+                        "stableId": "df4b5d62-6a84-4d3b-a9f4-a5d2365666b4",
+                        "quantity": {
+                          "items": {
+                            "value": 1,
+                            "__typename": "IntValueConstraint"
+                          },
+                          "__typename": "ProposalMerchandiseQuantityByItem"
+                        },
+                        "merchandise": {
+                          "__typename": "ContextualizedProductVariantMerchandise",
+                          "requiresShipping": false,
+                          "sellingPlan": null
+                        },
+                        "totalAmount": {
+                          "value": {
+                            "amount": "1.0",
+                            "currencyCode": "USD",
+                            "__typename": "Money"
+                          },
+                          "__typename": "MoneyValueConstraint"
+                        },
+                        "parentRelationship": null,
+                        "__typename": "MerchandiseLine"
+                      }
+                    ],
+                    "__typename": "FilledMerchandiseLineTargetCollection"
+                  },
+                  "groupType": "ONE_TIME_PURCHASE",
+                  "selectedDeliveryStrategy": {
+                    "handle": "7c03270a3cc1b53b358b110e5ce8e78d-0749a89a340a620513a27c17fe3c9ef5",
+                    "__typename": "CompleteDeliveryStrategy"
+                  },
+                  "deliveryMethodTypes": [
+                    "NONE"
+                  ],
+                  "availableDeliveryStrategies": [
+                    {
+                      "originLocation": {
+                        "id": "gid://shopify/Location/35527688265",
+                        "__typename": "Location"
+                      },
+                      "title": "Shipping",
+                      "handle": "7c03270a3cc1b53b358b110e5ce8e78d-0749a89a340a620513a27c17fe3c9ef5",
+                      "custom": false,
+                      "description": "",
+                      "code": "Shipping",
+                      "acceptsInstructions": false,
+                      "phoneRequired": false,
+                      "methodType": "NONE",
+                      "carrierName": "",
+                      "incoterms": null,
+                      "metafields": [],
+                      "brandedPromise": null,
+                      "deliveryStrategyBreakdown": [
+                        {
+                          "amount": {
+                            "value": {
+                              "amount": "0.0",
+                              "currencyCode": "USD",
+                              "__typename": "Money"
+                            },
+                            "__typename": "MoneyValueConstraint"
+                          },
+                          "discountRecurringCycleLimit": 0,
+                          "excludeFromDeliveryOptionPrice": false,
+                          "flatRateGroupId": null,
+                          "targetMerchandise": {
+                            "linesV2": [
+                              {
+                                "stableId": "df4b5d62-6a84-4d3b-a9f4-a5d2365666b4",
+                                "quantity": {
+                                  "items": {
+                                    "value": 1,
+                                    "__typename": "IntValueConstraint"
+                                  },
+                                  "__typename": "ProposalMerchandiseQuantityByItem"
+                                },
+                                "merchandise": {
+                                  "__typename": "ContextualizedProductVariantMerchandise",
+                                  "requiresShipping": false,
+                                  "sellingPlan": null
+                                },
+                                "totalAmount": {
+                                  "value": {
+                                    "amount": "1.0",
+                                    "currencyCode": "USD",
+                                    "__typename": "Money"
+                                  },
+                                  "__typename": "MoneyValueConstraint"
+                                },
+                                "parentRelationship": null,
+                                "__typename": "MerchandiseLine"
+                              }
+                            ],
+                            "__typename": "FilledMerchandiseLineTargetCollection"
+                          },
+                          "__typename": "DeliveryStrategyBreakdown"
+                        }
+                      ],
+                      "minDeliveryDateTime": null,
+                      "maxDeliveryDateTime": null,
+                      "deliveryPredictionEligible": false,
+                      "amountCombinabilityToken": null,
+                      "deliveryPresentationGroupToken": null,
+                      "deliveryPromiseProviderApiClientId": null,
+                      "deliveryPromisePresentmentTitle": {
+                        "short": "",
+                        "long": "",
+                        "__typename": "DeliveryPromisePresentmentTitle"
+                      },
+                      "displayCheckoutRedesign": false,
+                      "estimatedTimeInTransit": {
+                        "__typename": "AnyConstraint"
+                      },
+                      "amount": {
+                        "value": {
+                          "amount": "0.0",
+                          "currencyCode": "USD",
+                          "__typename": "Money"
+                        },
+                        "__typename": "MoneyValueConstraint"
+                      },
+                      "amountAfterDiscounts": {
+                        "value": {
+                          "amount": "0.0",
+                          "currencyCode": "USD",
+                          "__typename": "Money"
+                        },
+                        "__typename": "MoneyValueConstraint"
+                      },
+                      "pickupLocation": null,
+                      "__typename": "CompleteDeliveryStrategy"
+                    }
+                  ],
+                  "__typename": "DeliveryLine"
+                }
+              ],
+              "deliveryMacros": [],
+              "__typename": "FilledDeliveryTerms"
+            },
+            "deliveryMethods": {
+              "__typename": "UnavailableTerms"
+            },
+            "sellability": {
+              "shipping": [],
+              "local": [],
+              "pickUp": [],
+              "pickupPoint": [],
+              "none": [
+                {
+                  "targetMerchandise": {
+                    "stableId": "df4b5d62-6a84-4d3b-a9f4-a5d2365666b4",
+                    "__typename": "MerchandiseLine"
+                  },
+                  "__typename": "MerchandiseSellability"
+                }
+              ],
+              "__typename": "FilledSellability"
+            },
+            "payment": {
+              "paymentMethodHistory": [],
+              "availablePaymentLines": [
+                {
+                  "placements": [
+                    "PAYMENT_METHOD"
+                  ],
+                  "paymentMethod": {
+                    "__typename": "AnyGiftCardPaymentMethod"
+                  },
+                  "__typename": "AvailablePaymentLine"
+                },
+                {
+                  "placements": [
+                    "PAYMENT_METHOD"
+                  ],
+                  "paymentMethod": {
+                    "paymentMethodIdentifier": "41147e935253bbafeaeaf9651dcb5e4b",
+                    "name": "Stripe Card Payments",
+                    "paymentBrands": [
+                      "VISA",
+                      "MASTERCARD",
+                      "AMEX",
+                      "DISCOVER",
+                      "JCB",
+                      "DINERS_CLUB"
+                    ],
+                    "orderingIndex": 0,
+                    "displayName": null,
+                    "extensibilityDisplayName": "Stripe Card Payments",
+                    "availablePresentmentCurrencies": [
+                      "USD"
+                    ],
+                    "paymentMethodUiExtension": null,
+                    "checkoutHostedFields": null,
+                    "alternative": false,
+                    "supportsNetworkSelection": false,
+                    "supportsVaulting": true,
+                    "installmentPlans": [],
+                    "__typename": "PaymentProvider"
+                  },
+                  "__typename": "AvailablePaymentLine"
+                },
+                {
+                  "placements": [
+                    "ACCELERATED_CHECKOUT"
+                  ],
+                  "paymentMethod": {
+                    "__typename": "GooglePayWalletConfig",
+                    "name": "GOOGLE_PAY",
+                    "allowedAuthMethods": [
+                      "PAN_ONLY",
+                      "CRYPTOGRAM_3DS"
+                    ],
+                    "allowedCardNetworks": [
+                      "VISA",
+                      "MASTERCARD",
+                      "AMEX",
+                      "DISCOVER",
+                      "JCB"
+                    ],
+                    "gateway": "shopify",
+                    "gatewayMerchantId": "28039315529",
+                    "merchantId": "16708973830884969730",
+                    "authJwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJtZXJjaGFudElkIjoiMTY3MDg5NzM4MzA4ODQ5Njk3MzAiLCJtZXJjaGFudE9yaWdpbiI6ImNoZWNrb3V0LnNob3BpZnkuY29tIiwiaWF0IjoxNzg3OTM2OTAyfQ.dEN_KMCA4LW6WHFxEm9Knw94wu7G2d3L14zUeK3o31jjj389RmiCUYfWxy3nZdIaetWrXh91UCYaHpZlMHp2Lw",
+                    "environment": "PRODUCTION",
+                    "paymentMethodIdentifier": "48b3a5d8d0e19bbc2a00f8a6dc111e58",
+                    "orderingIndex": 2
+                  },
+                  "__typename": "AvailablePaymentLine"
+                },
+                {
+                  "placements": [
+                    "PAYMENT_METHOD",
+                    "ACCELERATED_CHECKOUT"
+                  ],
+                  "paymentMethod": {
+                    "__typename": "PaypalWalletConfig",
+                    "name": "PAYPAL_EXPRESS",
+                    "clientId": "AexZEtAxk09Ncgj6FSWFFyGKbxxAZ_LTyJ2DPdJWl1YUlecinmc5AfIaRF2qYjWlusWahlzz6SVkY5Ci",
+                    "gatewayType": "CONNECTED",
+                    "merchantId": "HKVY47VGUEMFG",
+                    "venmoEnabled": false,
+                    "payflow": false,
+                    "paymentIntent": "AUTHORIZE",
+                    "paymentMethodIdentifier": "80be309a3cfdb79f8325c19783cf95db",
+                    "orderingIndex": 3,
+                    "clientToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJjaGVja291dC5zaG9waWZ5LmNvbSIsInN1YiI6IkhLVlk0N1ZHVUVNRkciLCJhdWQiOlsiaHR0cHM6XC9cL2FwaS5wYXlwYWwuY29tIl0sInNjb3BlIjoiIiwiaWF0IjoxNzg3OTM2OTAyLCJleHAiOjE3ODgxMDk3MDIsImp0aSI6IjExZDE1NTA1LWM4ZDUtNGI0NS04NjQyLTdlYzYyM2JkYWZkMSIsIm1lcmNoYW50X2RvbWFpbiI6ImVwb21ha2VyLm15c2hvcGlmeS5jb20iLCJ2ZXIiOiIxLjAiLCJjbGllbnRfaWQiOiJBZXhaRXRBeGswOU5jZ2o2RlNXRkZ5R0tieHhBWl9MVHlKMkRQZEpXbDFZVWxlY2lubWM1QWZJYVJGMnFZaldsdXNXYWhseno2U1ZrWTVDaSJ9.hoA_kK8frzZjaN5MuE2EKy7vSZMNEAij9NLVeHyki_jblYkyNW6jHwM3rmr790r7Fpod6R-_hroOshiqAtr7uQ",
+                    "supportsVaulting": false,
+                    "sandboxTestMode": false
+                  },
+                  "__typename": "AvailablePaymentLine"
+                },
+                {
+                  "placements": [
+                    "PAYMENT_METHOD"
+                  ],
+                  "paymentMethod": {
+                    "__typename": "AnyStripeSharedTokenPaymentMethod"
+                  },
+                  "__typename": "AvailablePaymentLine"
+                }
+              ],
+              "paymentLines": [],
+              "billingAddress": null,
+              "paymentFlexibilityPaymentTermsTemplate": null,
+              "depositConfiguration": null,
+              "isImmediateAmountReducedForRedeemables": false,
+              "__typename": "FilledPaymentTerms"
+            },
+            "poNumber": null,
+            "merchandise": {
+              "taxesIncluded": false,
+              "merchandiseLines": [
+                {
+                  "stableId": "df4b5d62-6a84-4d3b-a9f4-a5d2365666b4",
+                  "merchandise": {
+                    "__typename": "ContextualizedProductVariantMerchandise",
+                    "id": "gid://shopify/ProductVariantMerchandise/49239675633972",
+                    "digest": "27f868c6556f8018f81cd863a78e2411",
+                    "variantId": "gid://shopify/ProductVariant/49239675633972",
+                    "title": "$1 Reservation Card for EPOMAKER HE60",
+                    "untranslatedTitle": "$1 Reservation Card for EPOMAKER HE60",
+                    "subtitle": "$1 Reservation Card",
+                    "untranslatedSubtitle": "$1 Reservation Card",
+                    "sku": "HE60-RC",
+                    "price": {
+                      "amount": "1.0",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "compareAtPrice": null,
+                    "product": {
+                      "id": "gid://shopify/Product/9355442454836",
+                      "vendor": "Epomaker",
+                      "productType": "Reservation Card",
+                      "__typename": "Product",
+                      "disclosures": []
+                    },
+                    "productUrl": "/products/1-reservation-card-for-epomaker-he60",
+                    "image": {
+                      "altText": null,
+                      "url": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6.png?v=1786961050",
+                      "one": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6_64x64.png?v=1786961050",
+                      "two": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6_128x128.png?v=1786961050",
+                      "four": "https://cdn.shopify.com/s/files/1/0280/3931/5529/files/EPOMAKER_HE60_1600-6_256x256.png?v=1786961050",
+                      "__typename": "Image"
+                    },
+                    "properties": [],
+                    "requiresShipping": false,
+                    "options": [
+                      {
+                        "name": "Model",
+                        "value": "$1 Reservation Card",
+                        "__typename": "ProductVariantOption"
+                      }
+                    ],
+                    "sellingPlan": null,
+                    "giftCard": false,
+                    "deferredAmount": {
+                      "amount": "0.0",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    }
+                  },
+                  "quantity": {
+                    "items": {
+                      "value": 1,
+                      "__typename": "IntValueConstraint"
+                    },
+                    "__typename": "ProposalMerchandiseQuantityByItem"
+                  },
+                  "totalAmount": {
+                    "value": {
+                      "amount": "1.0",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "__typename": "MoneyValueConstraint"
+                  },
+                  "recurringTotal": null,
+                  "lineAllocations": [
+                    {
+                      "stableId": "dc9340d4b2fe22cf54a43d7ce978315b",
+                      "quantity": 1,
+                      "totalAmountBeforeReductions": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "totalAmountAfterDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "totalAmountAfterLineDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "checkoutPriceAfterDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "checkoutPriceAfterLineDiscounts": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "checkoutPriceBeforeReductions": {
+                        "amount": "1.0",
+                        "currencyCode": "USD",
+                        "__typename": "Money"
+                      },
+                      "unitPrice": null,
+                      "allocations": [],
+                      "__typename": "LineAllocation"
+                    }
+                  ],
+                  "lineComponentsSource": null,
+                  "lineComponents": [],
+                  "parentRelationship": null,
+                  "legacyFee": false,
+                  "__typename": "MerchandiseLine"
+                }
+              ],
+              "__typename": "FilledMerchandiseTerms"
+            },
+            "note": {
+              "customAttributes": [],
+              "message": "",
+              "__typename": "Note"
+            },
+            "scriptFingerprint": {
+              "signature": null,
+              "signatureUuid": null,
+              "lineItemScriptChanges": [],
+              "paymentScriptChanges": [],
+              "shippingScriptChanges": [],
+              "__typename": "ScriptFingerprint"
+            },
+            "transformerFingerprintV2": null,
+            "buyerIdentity": {
+              "shopUser": null,
+              "customer": {
+                "presentmentCurrency": "USD",
+                "countryCode": "NO",
+                "market": {
+                  "id": "gid://shopify/Market/630882377",
+                  "handle": "international",
+                  "__typename": "Market"
+                },
+                "shippingAddresses": [],
+                "__typename": "GuestProfile"
+              },
+              "purchasingCompany": null,
+              "phone": null,
+              "email": null,
+              "marketingConsent": [],
+              "shopPayOptInPhone": null,
+              "rememberMe": false,
+              "__typename": "FilledBuyerIdentityTerms"
+            },
+            "checkoutCompletionTarget": "ORDER",
+            "recurringTotals": [],
+            "subtotalBeforeTaxesAndShipping": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "legacySubtotalBeforeTaxesShippingAndFees": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "legacyAggregatedMerchandiseTermsAsFees": [],
+            "legacyRepresentProductsAsFees": false,
+            "totalSavings": {
+              "value": {
+                "amount": "0.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "runningTotal": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "total": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "checkoutTotalBeforeTaxesAndShipping": null,
+            "checkoutTotalTaxes": null,
+            "checkoutTotal": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "deferredTotal": null,
+            "hasOnlyDeferredShipping": false,
+            "subtotalBeforeReductions": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "subtotalAfterMerchandiseDiscounts": {
+              "value": {
+                "amount": "1.0",
+                "currencyCode": "USD",
+                "__typename": "Money"
+              },
+              "__typename": "MoneyValueConstraint"
+            },
+            "duty": {
+              "totalDutyAmount": null,
+              "totalTaxAndDutyAmount": {
+                "value": {
+                  "amount": "0.0",
+                  "currencyCode": "USD",
+                  "__typename": "Money"
+                },
+                "__typename": "MoneyValueConstraint"
+              },
+              "totalAdditionalFeesAmount": null,
+              "__typename": "FilledDutyTerms"
+            },
+            "tax": {
+              "taxBreakdown": null,
+              "totalTaxAmount": {
+                "value": {
+                  "amount": "0.0",
+                  "currencyCode": "USD",
+                  "__typename": "Money"
+                },
+                "__typename": "MoneyValueConstraint"
+              },
+              "totalTaxAmountRange": {
+                "lowerBound": {
+                  "amount": "0.0",
+                  "currencyCode": "USD",
+                  "__typename": "Money"
+                },
+                "upperBound": {
+                  "amount": "0.15",
+                  "currencyCode": "USD",
+                  "__typename": "Money"
+                },
+                "__typename": "MoneyIntervalConstraint"
+              },
+              "totalTaxAndDutyAmount": {
+                "value": {
+                  "amount": "0.0",
+                  "currencyCode": "USD",
+                  "__typename": "Money"
+                },
+                "__typename": "MoneyValueConstraint"
+              },
+              "totalAmountIncludedInTarget": null,
+              "__typename": "FilledTaxTerms"
+            },
+            "taxExemptions": {
+              "available": [],
+              "__typename": "FilledTaxExemptionTerms"
+            },
+            "tip": {
+              "tipSuggestions": [
+                {
+                  "__typename": "TipSuggestion",
+                  "percentage": 0.02,
+                  "amount": {
+                    "value": {
+                      "amount": "0.02",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "__typename": "MoneyValueConstraint"
+                  }
+                },
+                {
+                  "__typename": "TipSuggestion",
+                  "percentage": 0.05,
+                  "amount": {
+                    "value": {
+                      "amount": "0.05",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "__typename": "MoneyValueConstraint"
+                  }
+                },
+                {
+                  "__typename": "TipSuggestion",
+                  "percentage": 0.08,
+                  "amount": {
+                    "value": {
+                      "amount": "0.08",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "__typename": "MoneyValueConstraint"
+                  }
+                },
+                {
+                  "__typename": "TipSuggestion",
+                  "percentage": 0,
+                  "amount": {
+                    "value": {
+                      "amount": "0.0",
+                      "currencyCode": "USD",
+                      "__typename": "Money"
+                    },
+                    "__typename": "MoneyValueConstraint"
+                  }
+                }
+              ],
+              "terms": {
+                "tipLines": [],
+                "__typename": "FilledTipTerms"
+              },
+              "__typename": "TipWrapper"
+            },
+            "localizationExtension": {
+              "fields": [],
+              "__typename": "LocalizationExtension"
+            },
+            "landedCostDetails": {
+              "incotermInformation": null,
+              "__typename": "LandedCostDetails"
+            },
+            "dutiesIncluded": false,
+            "nonNegotiableTerms": null,
+            "optionalDuties": {
+              "buyerRefusesDuties": false,
+              "refuseDutiesPermitted": false,
+              "__typename": "OptionalDuties"
+            },
+            "attribution": {
+              "attributions": [],
+              "__typename": "Attribution"
+            },
+            "saleAttributions": {
+              "attributions": [],
+              "__typename": "SaleAttributions"
+            },
+            "managedByMarketsPro": false,
+            "managedMarketsPaymentProcessor": null,
+            "captcha": null,
+            "cartCheckoutValidation": {
+              "__typename": "CartCheckoutValidationTerms"
+            },
+            "alternativePaymentCurrency": null,
+            "lpmDisclosure": null,
+            "isShippingRequired": false,
+            "shopPayEnabled": false,
+            "remote": null,
+            "ucp": null,
+            "__typename": "Proposal"
+          },
+          "__typename": "NegotiationResultAvailable"
+        },
+        "errors": [
+          {
+            "code": "BUYER_IDENTITY_MISSING_CONTACT_METHOD",
+            "localizedMessage": "Missing a valid contact method.",
+            "nonLocalizedMessage": "Missing a valid contact method.",
+            "localizedMessageHtml": "Missing a valid contact method.",
+            "target": "$.buyerIdentity",
+            "__typename": "UnprocessableTermViolation"
+          },
+          {
+            "code": "TAX_NEW_TAX_MUST_BE_ACCEPTED",
+            "localizedMessage": "Taxes associated to your order have changed. Review and try again.",
+            "nonLocalizedMessage": "A new tax line in the seller proposal must be accepted in order to continue.",
+            "localizedMessageHtml": "Taxes associated to your order have changed. Review and try again.",
+            "target": "$",
+            "__typename": "AcceptNewTermViolation"
+          },
+          {
+            "code": "PAYMENTS_UNACCEPTABLE_PAYMENT_AMOUNT",
+            "localizedMessage": "Your order total has changed. Review and try again.",
+            "nonLocalizedMessage": "The sum of proposed payments cannot cover the total amount to be paid.",
+            "localizedMessageHtml": "Your order total has changed. Review and try again.",
+            "target": "$.payment",
+            "__typename": "UnprocessableTermViolation"
+          }
+        ],
+        "__typename": "NegotiationResultPayload"
+      },
+      "__typename": "Session"
+    }
+  }
+}

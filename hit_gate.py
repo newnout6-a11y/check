@@ -162,13 +162,15 @@ class CsHitSession:
                     self.confirms += 1
             except Exception:
                 pass
-        verdict, detail = self._classify(resp)
+        verdict, detail = await self._classify_and_resolve_3ds(resp)
         return {"status": verdict, "detail": detail[:250],
                 "amount_cents": self.amount, "currency": self.currency}
 
-    def _classify(self, resp: dict) -> tuple[str, str]:
-        """Вердикт по ответу payment_pages/confirm: сначала error (402-форма),
-        затем PI-статус из тела (confirm на живой карте даёт 200 + объект сессии)."""
+    async def _classify_and_resolve_3ds(self, resp: dict) -> tuple[str, str]:
+        """Вердикт по ответу payment_pages/confirm с проходом 3DS-ветки:
+        1. Ошибки карточного уровня (402, decline) -> классификация через gate_client
+        2. Успех (complete / paid / succeeded) -> APPROVED@PAID
+        3. requires_action -> извлечение next_action -> 3ds2/authenticate или redirect -> 3DS_FRICTIONLESS / 3DS_CHALLENGE."""
         err = resp.get("error") or {}
         if err:
             code = (str(err.get("code") or "") + " " + str(err.get("decline_code") or "")).strip()
@@ -179,16 +181,71 @@ class CsHitSession:
         pi = resp.get("payment_intent") or {}
         pi_st = str(pi.get("status") or "")
         lpe = pi.get("last_payment_error") or {}
-        if pi_st == "requires_action":
-            na = pi.get("next_action") or {}
-            return "3DS_REQUIRED", (f"type={na.get('type', '?')}" if na else " enrolled, нужен OTP")[:120]
         if pi_st == "succeeded":
             return "APPROVED@PAID", f"PI succeeded ({self.amount}{self.currency})"
         if pi_st == "processing":
             return "PI_PENDING", "PI processing"
         if lpe:
             code = (str(lpe.get("code") or "") + " " + str(lpe.get("decline_code") or "")).strip()
-            return gc.classify_pi_verdict({"error": {**lpe, "message": str(lpe.get("message") or "") + " " + code}}), 
+            return gc.classify_pi_verdict({"error": {**lpe, "message": str(lpe.get("message") or "") + " " + code}})
+        
+        if pi_st == "requires_action":
+            na = pi.get("next_action") or {}
+            na_type = na.get("type") or ""
+            
+            # --- 3DS2 flow (use_stripe_sdk) ---
+            if na_type == "use_stripe_sdk":
+                sdk = na.get("use_stripe_sdk") or {}
+                sdk_type = sdk.get("type") or ""
+                source_id = (sdk.get("three_d_secure_2_source")
+                             or sdk.get("source")
+                             or sdk.get("three_d_secure_2"))
+                stripe_js = sdk.get("stripe_js") or {}
+                
+                # Если уже пришёл challenge от ACS (creq / acs_url) -> 3DS_CHALLENGE
+                if sdk_type == "stripe_3ds2_challenge" or "acs_url" in stripe_js:
+                    return "3DS_CHALLENGE", "3DS2 challenge required (OTP/SMS)"
+                
+                # Если есть source_id для 3ds2/authenticate
+                if source_id and self.s is not None:
+                    auth_res = await gc.stripe_3ds2_authenticate(self.s, self.pk, source_id)
+                    ts = auth_res.get("transStatus") or ""
+                    state = auth_res.get("state") or ""
+                    
+                    if ts == "Y":
+                        # Frictionless проход: опрашиваем payment_pages на финальный статус
+                        try:
+                            r_poll = await self.s.get(
+                                f"https://api.stripe.com/v1/payment_pages/{self.cs}",
+                                params={"key": self.pk},
+                                headers={"Origin": "https://js.stripe.com",
+                                         "Referer": "https://js.stripe.com/",
+                                         "Accept": "application/json"}, timeout=10)
+                            poll_pi = (r_poll.json() or {}).get("payment_intent") or {}
+                            if poll_pi.get("status") in ("succeeded", "processing"):
+                                return "APPROVED@PAID", f"3DS2 frictionless passed ({self.amount}{self.currency})"
+                        except Exception:
+                            pass
+                        return "3DS_FRICTIONLESS", "3DS2 frictionless (transStatus=Y)"
+                    elif ts == "C":
+                        return "3DS_CHALLENGE", "3DS2 challenge (transStatus=C, enrolled)"
+                    elif ts in ("N", "R"):
+                        return "DECLINED", f"3DS2 rejected (transStatus={ts})"
+                    elif ts == "A":
+                        return "3DS_CHALLENGE", "3DS2 proof attempted (transStatus=A)"
+                
+                # Fallback по типу SDK
+                if sdk_type in ("stripe_3ds2_fingerprint", "intent_confirmation_challenge"):
+                    return "3DS_CHALLENGE", f"3DS2 enrolled ({sdk_type})"
+                return "3DS_REQUIRED", f"3DS SDK action (type={sdk_type or na_type})"
+            
+            # --- 3DS1 / Redirect flow (redirect_to_url) ---
+            if na_type == "redirect_to_url":
+                red_url = na.get("redirect_to_url", {}).get("url", "")
+                return "3DS_CHALLENGE", f"3DS redirect challenge: {red_url[:80]}"
+            
+            return "3DS_REQUIRED", f"3DS action required (type={na_type})"
+            
         return gc.classify_pi_verdict(resp)
 
     async def close(self):
