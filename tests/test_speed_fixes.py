@@ -105,15 +105,19 @@ def test_targets_filter_dead_surfaces():
 
 # --- A7: доступность гейтов ---
 
-def test_available_gates_skips_dead():
+def test_available_gates_follows_targets():
+    """Доступность гейтов следует за файлами целей, а не захардкожена:
+    braintreenvbv ожил после Braintree-скана 2026-08-28 (13 целей)."""
     import bot.main as bm
+    from bot.gates.braintreenvbv import _targets as _bt
     avail = bm._available_gates()
-    # piconfirm/braintreenvbv без целей не должны попадать в авто-выбор
-    assert "piconfirm" not in avail
-    assert "braintreenvbv" not in avail
-    assert "setupwoo" in avail
-    # storegate: зависит от store_targets.txt — в репо он есть
-    assert "storegate" in avail
+    assert "setupwoo" in avail          # всегда (fallback-донор)
+    assert "storegate" in avail         # store_targets.txt в репо
+    assert "shopify" in avail           # shopify_targets.txt в репо
+    if _bt():
+        assert "braintreenvbv" in avail  # цели есть -> гейт доступен
+    else:
+        assert "braintreenvbv" not in avail
 
 
 def test_pick_gate_force_still_works():

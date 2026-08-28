@@ -1,0 +1,90 @@
+[
+  {
+    "url": "https://epomaker.myshopify.com",
+    "domain": "epomaker.myshopify.com",
+    "cheapest_cents": 100,
+    "cheapest_title": "$1 Reservation Card for EPOMAKER HE60",
+    "variant_id": 49239675633972,
+    "currency": "USD"
+  },
+  {
+    "url": "https://puravidabracelets.myshopify.com",
+    "domain": "puravidabracelets.myshopify.com",
+    "cheapest_cents": 320,
+    "cheapest_title": "Red Cross Be Mine Mixed Original Bracelet",
+    "variant_id": 40507046232150,
+    "currency": "USD"
+  },
+  {
+    "url": "https://kbdfans.myshopify.com",
+    "domain": "kbdfans.myshopify.com",
+    "cheapest_cents": 380,
+    "cheapest_title": "KBDfans Roller 2.0 Linear Switches",
+    "variant_id": 49092108779659,
+    "currency": "USD"
+  },
+  {
+    "url": "https://the-cajun-girl-pattern-shop.myshopify.com",
+    "domain": "the-cajun-girl-pattern-shop.myshopify.com",
+    "cheapest_cents": 399,
+    "cheapest_title": "Fabric Stash Inventory Spreadsheet",
+    "variant_id": 48042006642942,
+    "currency": "USD"
+  },
+  {
+    "url": "https://chubbies.myshopify.com",
+    "domain": "chubbies.myshopify.com",
+    "cheapest_cents": 600,
+    "cheapest_title": "The Tiger Sharks (All Day Sock)",
+    "variant_id": 41919433605193,
+    "currency": "USD"
+  },
+  {
+    "url": "https://deathwishcoffee.myshopify.com",
+    "domain": "deathwishcoffee.myshopify.com",
+    "cheapest_cents": 500,
+    "cheapest_title": "Midnight Marker LED Arm Band",
+    "variant_id": 42239587811383,
+    "currency": "USD"
+  },
+  {
+    "url": "https://ticklemychi.myshopify.com",
+    "domain": "ticklemychi.myshopify.com",
+    "cheapest_cents": 1490,
+    "cheapest_title": "Chiffon Scarf",
+    "variant_id": 667971,
+    "currency": "USD"
+  },
+  {
+    "url": "https://gymshark.myshopify.com",
+    "domain": "gymshark.myshopify.com",
+    "cheapest_cents": 800,
+    "cheapest_title": "Gymshark Vital Scrunchie - Strength Pink/Marl",
+    "variant_id": 39662501593291,
+    "currency": "USD"
+  },
+  {
+    "url": "https://thequeenbeads.myshopify.com",
+    "domain": "thequeenbeads.myshopify.com",
+    "cheapest_cents": 100,
+    "cheapest_title": "**LIVE CLAIMS**",
+    "variant_id": 44964896079919,
+    "currency": "USD"
+  },
+  {
+    "url": "https://lm-products.myshopify.com",
+    "domain": "lm-products.myshopify.com",
+    "cheapest_cents": 1800,
+    "cheapest_title": "The Classic Cap",
+    "variant_id": 39618568355891,
+    "currency": "USD"
+  },
+  {
+    "url": "https://southwest-laundry-2.myshopify.com",
+    "domain": "southwest-laundry-2.myshopify.com",
+    "cheapest_cents": 100,
+    "cheapest_title": "Nomex Wax-N-Clean Cloth w/Teflon Flap",
+    "variant_id": 42869598453865,
+    "currency": "USD"
+  }
+]

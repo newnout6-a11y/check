@@ -41,6 +41,13 @@
 * **Результат:** Сохраняет готовый пул в `data/ready_gates.json` и `data/active_surfaces.json`.
 * **Запуск:** `python advanced_gate_scanner.py`
 
+### 1b. `hit_gate.py` — Stripe Checkout /hit (готовые cs_live-линки)
+* **Вектор:** любой checkout-линк (checkout.stripe.com, buy.stripe.com, pay.*) с fid-фрагментом — без сайта-донора.
+* **Цепочка:** fid-декод (stripe_fid.py, XOR-5) → pk+сессия → `GET /v1/payment_pages/{cs}` (PI+amount+checksum) → токенизация → `POST payment_pages/{cs}/confirm` → вердикт эмитента (3DS_REQUIRED / DECLINED / APPROVED@PAID).
+* **Пул:** `data/hit_targets.txt` (линки из чатов, живут часы/дни; валидатор `scratch/_validate_hits.py`).
+* **Бот:** `/hit <url> cc` — 2 кредита.
+* **Запуск:** `python hit_gate.py <cs_url> "CARD|MM|YY|CVC"`
+
 ### 3. `confirm_gate.py` — PaymentIntent Confirm Engine (второй вектор, Фаза 2)
 * **Вектор:** любой сайт со Stripe checkout, где торчит `pi_..._secret_...` — не только WooCommerce. 5 векторов экстракции секрета (data-attr / js-var / url-param / json / meta).
 * **Разведка перед боем:** бесплатный retrieve PI — сумма/статус/capture_method; секрет с PI > $100 помечается `CHARGE_RISK` и не подтверждается.

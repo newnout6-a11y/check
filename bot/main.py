@@ -20,6 +20,7 @@ from pyrogram.types import Message
 
 import gate_client as gc
 import setup_gate
+import hit_gate as hit_engine  # Stripe Checkout /hit (cs_live hosted)
 import config as engine_cfg  # корневой config проекта (HIT_VERDICTS таксономии)
 from bot import config, db
 from bot.gates import load_gates
@@ -67,7 +68,8 @@ CREATOR_NICK = os.environ.get("PUSTO_CREATOR_NICK", "Владимир")
 GATE_ALIASES = {
     "au": "setupwoo",
     "st": "storegate",
-    "sh": "storegate",
+    "sh": "shopify",
+    "sp": "shopify",
     "pi": "piconfirm",
     "vbv": "braintreenvbv",
     "b3": "braintreenvbv",
@@ -78,8 +80,10 @@ GATE_ALIASES = {
 GATE_LABELS = {
     "setupwoo": "Stripe Auth",
     "storegate": "Store API",
+    "shopify": "Shopify Checkout",
     "piconfirm": "PI Confirm",
     "braintreenvbv": "Braintree VBV",
+    "hit": "Checkout /hit",
 }
 TIER_LABELS = {"1": "<$1", "5": "$1–5", "20": "$5–20",
                "low": "<$1", "mid": "$1–5", "high": "$5–20"}
@@ -126,6 +130,7 @@ def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
         "⚡ <b>𝑪𝑶𝑴𝑴𝑨𝑵𝑫𝑺</b> ⚡\n\n"
         "💳 <code>/au</code> cc — Stripe $0 Auth (SetupIntent)\n"
         "💳 <code>/st</code> [1|5|20] cc — Store API (цена: &lt;$1 / $1-5 / $5-20)\n"
+        "⚡ <code>/hit</code> url cc — Stripe Checkout (готовый cs_live-линк)\n"
         "🔍 <code>/bin</code> bin — BIN Lookup\n"
         "📁 <code>/mass</code> [гейт] — Mass Check (≤20 карт, .txt или текст)\n\n"
         "🌐 <b>𝑷𝑹𝑶𝑿𝑰𝑬𝑺</b> 🌐\n\n"
@@ -223,13 +228,14 @@ async def run_gate(message: Message, gate_name: str, argline: str):
     meta = GATES.get(gate_name)
     if not meta:
         return await message.reply(f"❌ Гейт {gate_name} не найден")
-    # ценовой тир для storegate: '/st 1|5|20 CC MM YY CVV' — первый
+    # ценовой тир для storegate / shopify: '/st 1|5|20 CC MM YY CVV' — первый
     # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается
     tier = None
     toks = argline.split()
     if toks:
-        from bot.gates.storegate import parse_tier as _parse_tier
-        if _parse_tier(toks[0]) is not None:
+        from bot.gates.storegate import parse_tier as _parse_tier_sg
+        from bot.gates.shopify import parse_tier as _parse_tier_sp
+        if _parse_tier_sg(toks[0]) is not None or _parse_tier_sp(toks[0]) is not None:
             tier = toks[0].lower()
             argline = " ".join(toks[1:])
     # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс
@@ -246,7 +252,7 @@ async def run_gate(message: Message, gate_name: str, argline: str):
     bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
     binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
     try:
-        if tier and gate_name == "storegate":
+        if tier and gate_name in ("storegate", "shopify"):
             res = await meta["fn"](*parts, tier=tier)
         else:
             res = await meta["fn"](*parts)
@@ -294,19 +300,23 @@ async def gate_dispatch(client, message: Message):
 
 # --- мультигейт: порядок выбора для /mass (форс первым аргументом) ---
 
-GATE_PRIORITY = ["setupwoo", "storegate", "piconfirm", "braintreenvbv"]
+GATE_PRIORITY = ["setupwoo", "storegate", "shopify", "piconfirm", "braintreenvbv"]
 
 
 def _available_gates() -> list[str]:
-    """A7: только гейты с реально настроенными целями. piconfirm/braintreenvbv
-    без файлов целей раньше попадали в авто-выбор и сжигали время юзеров на ERROR."""
+    """A7: только гейты с реально настроенными целями."""
     from bot.gates.storegate import _targets as _st_targets
+    from bot.gates.shopify import _targets as _sp_targets
     from bot.gates.piconfirm import _target as _pi_target
     from bot.gates.braintreenvbv import _targets as _bt_targets
     try:
         has_store = bool(_st_targets())
     except Exception:
         has_store = False
+    try:
+        has_shopify = bool(_sp_targets())
+    except Exception:
+        has_shopify = False
     try:
         has_pi = bool(_pi_target())
     except Exception:
@@ -317,6 +327,7 @@ def _available_gates() -> list[str]:
         has_bt = False
     ok = {"setupwoo": True,  # пул с fallback-донором — доступен всегда
           "storegate": has_store,
+          "shopify": has_shopify,
           "piconfirm": has_pi,
           "braintreenvbv": has_bt}
     return [g for g in GATE_PRIORITY if ok.get(g) and g in GATES]
@@ -331,6 +342,69 @@ def _pick_gate(force: str | None) -> str | None:
     return None
 
 
+
+
+
+@app.on_message(filters.command(["hit"]))
+@user_only
+async def cmd_hit(client, message: Message):
+    """Stripe Checkout /hit: /hit <cs_live-url> CC|MM|YY|CVC — проверка по готовому чекаут-линку."""
+    u_id = message.from_user.id
+    db.ensure_user(u_id, message.from_user.username or "")
+    if not db.antispam_ok(u_id):
+        return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
+    raw = (message.text or message.caption or "").split()
+    if len(raw) < 3 or not raw[1].startswith("http") or "cs_" not in raw[1]:
+        return await message.reply("Формат: <code>/hit &lt;cs_live-url&gt; CC|MM|YY|CVC</code> — линк любого Stripe Checkout (checkout.stripe.com, pay.*, buy.stripe.com)", parse_mode=ParseMode.HTML)
+    target_url = raw[1]
+    card_line = " ".join(raw[2:])
+    parts = _card_fields(card_line)
+    if parts is None:
+        return await message.reply("Формат карты: CC MM YY CVV")
+    if not gc.check_luhn("".join(ch for ch in parts[0] if ch.isdigit())):
+        return await message.reply("❌ Неверный номер карты (Luhn fail)")
+    if not db.spend_credit(u_id, "hit"):
+        return await message.reply("❌ Недостаточно кредитов (2/чек)")
+    status_msg = await message.reply(f"💳 Проверка · {gate_label('hit')}...")
+    t0 = asyncio.get_event_loop().time()
+    bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
+    binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
+    gs = hit_engine.CsHitSession(target_url)
+    try:
+        ok, detail = await gs.open()
+        if not ok:
+            db.refund_credit(u_id, "hit")
+            await status_msg.edit_text(f"❌ Линк не открыт: {detail}")
+            return
+        res = await gs.check_card("|".join(parts))
+    except Exception as e:
+        res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:180]}
+    finally:
+        await gs.close()
+    verdict = res.get("status", "ERROR")
+    detail = res.get("detail", "")
+    amount = res.get("amount_cents") or 0
+    currency = res.get("currency") or ""
+    if verdict == "ERROR":
+        db.refund_credit(u_id, "hit")
+    else:
+        price_s = formatter.fmt_price(amount, currency)
+        detail = f"[{price_s}] {detail}" if price_s else detail
+    latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
+    try:
+        binfo = await asyncio.wait_for(binfo_task, timeout=4)
+    except Exception:
+        binfo = {}
+    if verdict in HIT_VERDICTS:
+        db.add_hit(u_id)
+    a_proxy = None
+    a_pool = None
+    if u_id in config.ADMIN_IDS:
+        a_pool = len(gc.load_proxies())
+    await status_msg.edit_text(
+        formatter.format_single(parts[0], binfo, gate_label("hit"), verdict,
+                                detail, latency_ms, proxy=a_proxy, pool_size=a_pool),
+        parse_mode=ParseMode.HTML)
 
 
 

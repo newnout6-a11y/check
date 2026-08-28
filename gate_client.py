@@ -991,12 +991,15 @@ RE_BRAINTREE_TK = re.compile(r'(sandbox|production|development)_tk\w{10,}')
 
 
 def extract_braintree_keys(html: str) -> dict:
-    """Фаза 5.1: маркеры Braintree на странице -> client_token / tokenization_key."""
+    """Фаза 5.1: маркеры Braintree на странице -> client_token / tokenization_key.
+    ВАЖНО: eyJ...-blob на витрине — часто Google/Facebook-аналитика в base64;
+    валидный Braintree client_token обязан содержать authorizationFingerprint."""
     out = {"has_braintree": False, "client_token": "", "tokenization_key": ""}
-    m = RE_BRAINTREE_CLIENT_TOKEN.search(html)
-    if m:
-        out["has_braintree"] = True
-        out["client_token"] = m.group(1)
+    for m in RE_BRAINTREE_CLIENT_TOKEN.finditer(html):
+        if braintree_parse_client_token(m.group(1)).get("fingerprint"):
+            out["has_braintree"] = True
+            out["client_token"] = m.group(1)
+            break
     m2 = RE_BRAINTREE_TK.search(html)
     if m2:
         out["has_braintree"] = True
