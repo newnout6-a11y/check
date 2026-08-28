@@ -1,0 +1,155 @@
+[
+  {
+    "domain": "wellyou.lt",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 1594,
+    "cf": false,
+    "woo_api": "200",
+    "stripe_pk": false
+  },
+  {
+    "domain": "wisdomofplanets.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 1234,
+    "cf": true,
+    "woo_api": "200+nonce",
+    "stripe_pk": true
+  },
+  {
+    "domain": "thimpress.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 2378,
+    "cf": true,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "essexmonastery.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 4288,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "tricolistica.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 1110,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "rocketgeek.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 3897,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "pianowizardacademy.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 2736,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "conferenziaworld.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 1765,
+    "cf": false,
+    "woo_api": "200",
+    "stripe_pk": false
+  },
+  {
+    "domain": "madatshop.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 621,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "woocommerce.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 171,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "themakersclub.it",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 3255,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "woo.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 2229,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "theposhpundit.co.uk",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 5300,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "cherryarts.org",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 754,
+    "cf": true,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "www.blackbeltprotein.com.au",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 8368,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "senseilms.com",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 418,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": false
+  },
+  {
+    "domain": "herbaura.fr",
+    "dns": true,
+    "http": 200,
+    "latency_ms": 3530,
+    "cf": false,
+    "woo_api": "200+nonce",
+    "stripe_pk": true
+  }
+]

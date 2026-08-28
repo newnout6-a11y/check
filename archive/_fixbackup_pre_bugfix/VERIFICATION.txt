@@ -1,0 +1,50 @@
+# VERIFICATION — багфикс-сессия pusto (11 багов + 1 бонус)
+
+Окружение: Python 3.14.3, Windows 11. Прогон: `python scratch/_test_gate_client.py` + скрипт пост-фикс верификации.
+
+## Компиляция
+py_compile 19 модулей: ALL OK (до и после правок).
+
+## Проектные юнит-тесты (scratch/_test_gate_client.py)
+Все зелёные после правок: probe_cards 50/50 Luhn, verdicts, mask_pan, proxy pool,
+geo pools (18 стран), cookies, telemetry, tokenize, attribution, ctoken,
+score/rotation, domains_store roundtrip (872 домена), extract_client_secrets,
+detect_secret_mints, classify_pi_verdict 12 mappings, pi_secret_alive,
+taxonomy 23 verdicts (было 21 — добавлены 3DS_REDIRECT/UNKNOWN), braintree.
+
+## Пост-фикс верификация по багам (12/12 FIXED)
+
+BUG-1 confirm_gate charge_risk:
+  charge_risk=True -> ERROR "CHARGE_RISK: PI 999999 USD > cap 10000c — confirm blocked"
+  charge_risk=False -> guard пропущен, поток уходит в сеть (ожидаемо падает без сессии)
+
+BUG-2 scanner livemode:
+  live-decline(livemode:true) = CHECKED (раньше: None — донор терялся)
+  testmode(livemode:false)   = None (корректный отсев)
+  ответ без livemode         = CHECKED
+
+BUG-3 run_gate: проверка формата (символ 530) раньше spend_credit (728)
+
+BUG-4 piconfirm: путь резолвится в <root>\data\pi_target.txt (было <root>\bot\data\...)
+
+BUG-5 store_api_confirm: _take_nonce(r_add)=True, r_uc+_take_nonce(r_uc)=True,
+  мутации шлют nonlocal_nonce[0]
+
+BUG-6 redeem_key: ключ 0/0 дважды даёт "Пустой ключ", NOT used; good55: +10 кр,
+  повтор = "Неверный или уже активированный"
+
+BUG-7 geo: 'gb'->GB/London, 'nl'->NL/Damstraat, 'XX'->US
+
+BUG-8 maybe_pool: alive==0 -> return None, None
+
+BUG-9 таксономия: 23 вердикта, icon(3DS_REDIRECT)=↪️, icon(UNKNOWN)=❔
+
+BUG-10 setupwoo: dead_gs = pop + await dead_gs.close()
+
+BUG-11 store_gate: antipublic -> gc._ANTIPUBLIC_A2.get(c_name, "")
+
+BONUS gen_probe_card: диапазон лет 2027-2030 = now.year+1..+4 (было: хардкод 2026)
+
+## Откат
+_fixbackup_pre_bugfix/ содержит 10 исходных файлов + ROLLBACK.ps1.
+Альтернатива: git (репозиторий в корне проекта).

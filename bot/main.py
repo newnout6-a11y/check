@@ -7,6 +7,7 @@ import asyncio
 import html
 import json
 import os
+import re
 import secrets as _secrets
 import sys
 from pathlib import Path
@@ -73,13 +74,40 @@ GATE_ALIASES = {
 }
 
 
+# Человеческие имена гейтов/тиров для вывода (вместо storegate$1)
+GATE_LABELS = {
+    "setupwoo": "Stripe Auth",
+    "storegate": "Store API",
+    "piconfirm": "PI Confirm",
+    "braintreenvbv": "Braintree VBV",
+}
+TIER_LABELS = {"1": "<$1", "5": "$1–5", "20": "$5–20",
+               "low": "<$1", "mid": "$1–5", "high": "$5–20"}
+
+
+def gate_label(gate_name: str, tier: str | None = None) -> str:
+    base = GATE_LABELS.get(gate_name, gate_name)
+    if tier:
+        return f"{base} ({TIER_LABELS.get(tier, tier)})"
+    return base
+
+
+def _card_fields(text: str) -> list[str] | None:
+    """CC|MM|YY|CVV / CC MM YY CVV / 4-блочный PAN + MM YY CVV -> [cc, mm, yy, cvv].
+    Раньше '4111 1111 1111 1111 09 25 123' парсился как cc=4111 mm=1111 — мусор."""
+    parts = text.replace("|", " ").replace(":", " ").replace("/", " ").split()
+    if len(parts) == 7 and all(re.fullmatch(r"\d{4}", p) for p in parts[:4]):
+        parts = ["".join(parts[:4])] + parts[4:]
+    return parts if len(parts) == 4 else None
+
+
 def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
     is_dev = db.is_developer(u)
     is_prem = db.is_premium(u)
     if is_dev:
         tier_str = "Developer (Unlimited)"
         tier_icon = "👑"
-        limit_str = "Без лимитов"
+        limit_str = "∞"
     elif is_prem:
         tier_str = "Premium"
         tier_icon = "💎"
@@ -97,14 +125,9 @@ def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
         "🎟 <b>Redeem</b> : <code>/redeem &lt;key&gt;</code>\n\n"
         "⚡ <b>𝑪𝑶𝑴𝑴𝑨𝑵𝑫𝑺</b> ⚡\n\n"
         "💳 <code>/au</code> cc — Stripe $0 Auth (SetupIntent)\n"
-        "💳 <code>/st</code> cc — Store API (покупка ≤ $2)\n"
-        "💳 <code>/vbv</code> cc — Braintree VBV Lookup ($0)\n"
-        "💳 <code>/b3</code> cc — Braintree (алиас /vbv)\n"
-        "💳 <code>/sh</code> cc — Store API (алиас /st)\n"
-        "💳 <code>/pi</code> cc — PaymentIntent Confirm\n"
+        "💳 <code>/st</code> [1|5|20] cc — Store API (цена: &lt;$1 / $1-5 / $5-20)\n"
         "🔍 <code>/bin</code> bin — BIN Lookup\n"
-        "📁 <code>/chk</code> — авто-выбор гейта\n"
-        "📁 <code>/mass</code> — Mass Check (≤20 карт, .txt или текст)\n\n"
+        "📁 <code>/mass</code> [гейт] — Mass Check (≤20 карт, .txt или текст)\n\n"
         "🌐 <b>𝑷𝑹𝑶𝑿𝑰𝑬𝑺</b> 🌐\n\n"
         "📡 <code>/addproxy</code> — Add proxies (text/file)\n"
         "📡 <code>/proxy</code> — Check &amp; clean proxies\n"
@@ -200,23 +223,38 @@ async def run_gate(message: Message, gate_name: str, argline: str):
     meta = GATES.get(gate_name)
     if not meta:
         return await message.reply(f"❌ Гейт {gate_name} не найден")
+    # ценовой тир для storegate: '/st 1|5|20 CC MM YY CVV' — первый
+    # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается
+    tier = None
+    toks = argline.split()
+    if toks:
+        from bot.gates.storegate import parse_tier as _parse_tier
+        if _parse_tier(toks[0]) is not None:
+            tier = toks[0].lower()
+            argline = " ".join(toks[1:])
     # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс
-    parts = argline.replace("|", " ").split()
-    if len(parts) != 4:
+    parts = _card_fields(argline)
+    if parts is None:
         return await message.reply(f"Формат: /{gate_name} CC MM YY CVV")
     if not gc.check_luhn("".join(ch for ch in parts[0] if ch.isdigit())):
         return await message.reply("❌ Неверный номер карты (Luhn fail)")
     cost = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
     if not db.spend_credit(u_id, gate_name):
         return await message.reply(f"❌ Недостаточно кредитов ({cost}/чек). Используйте /redeem для пополнения")
-    status_msg = await message.reply(f"[{gate_name}] Проверка...")
+    status_msg = await message.reply(f"💳 Проверка · {gate_label(gate_name, tier)}...")
     t0 = asyncio.get_event_loop().time()
     bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
     binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
     try:
-        verdict, detail = await meta["fn"](*parts)
+        if tier and gate_name == "storegate":
+            res = await meta["fn"](*parts, tier=tier)
+        else:
+            res = await meta["fn"](*parts)
+        verdict, detail = res[0], res[1]
+        gate_extra = res[2] if len(res) > 2 else {}
     except Exception as e:
         verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
+        gate_extra = {}
     if verdict == "ERROR":
         db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
     latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
@@ -226,11 +264,15 @@ async def run_gate(message: Message, gate_name: str, argline: str):
         binfo = {}
     if verdict in HIT_VERDICTS:
         db.add_hit(u_id)
+    # админ-блок: прокси этого запроса + живой пул (динамически, на каждый чек)
+    a_proxy = a_pool = None
+    if u_id in config.ADMIN_IDS:
+        a_proxy = gate_extra.get("proxy")
+        a_pool = len(gc.load_proxies())
     await status_msg.edit_text(
-        formatter.format_single(parts[0], binfo, gate_name, verdict,
-                                detail, latency_ms),
+        formatter.format_single(parts[0], binfo, gate_label(gate_name, tier), verdict,
+                                detail, latency_ms, proxy=a_proxy, pool_size=a_pool),
         parse_mode=ParseMode.HTML)
-
 
 ALL_GATE_CMDS = list(GATES.keys()) + list(GATE_ALIASES.keys())
 
@@ -250,76 +292,46 @@ async def gate_dispatch(client, message: Message):
         await run_gate(message, gate_name, argline)
 
 
-# --- 5.2 мультигейт: авто-выбор лучшей поверхности + форс через /chk ---
+# --- мультигейт: порядок выбора для /mass (форс первым аргументом) ---
 
 GATE_PRIORITY = ["setupwoo", "storegate", "piconfirm", "braintreenvbv"]
+
+
+def _available_gates() -> list[str]:
+    """A7: только гейты с реально настроенными целями. piconfirm/braintreenvbv
+    без файлов целей раньше попадали в авто-выбор и сжигали время юзеров на ERROR."""
+    from bot.gates.storegate import _targets as _st_targets
+    from bot.gates.piconfirm import _target as _pi_target
+    from bot.gates.braintreenvbv import _targets as _bt_targets
+    try:
+        has_store = bool(_st_targets())
+    except Exception:
+        has_store = False
+    try:
+        has_pi = bool(_pi_target())
+    except Exception:
+        has_pi = False
+    try:
+        has_bt = bool(_bt_targets())
+    except Exception:
+        has_bt = False
+    ok = {"setupwoo": True,  # пул с fallback-донором — доступен всегда
+          "storegate": has_store,
+          "piconfirm": has_pi,
+          "braintreenvbv": has_bt}
+    return [g for g in GATE_PRIORITY if ok.get(g) and g in GATES]
 
 
 def _pick_gate(force: str | None) -> str | None:
     """Приоритет: живой SetupIntent-донор -> Store API -> PI secret -> VBV."""
     if force:
         return force if force in GATES else None
-    for g in GATE_PRIORITY:
-        if g in GATES:
-            return g
+    for g in _available_gates():
+        return g
     return None
 
 
-async def _auto_check(message: Message, argline: str):
-    u_id = message.from_user.id
-    db.ensure_user(u_id, message.from_user.username or "")
-    if not db.antispam_ok(u_id):
-        return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
-    parts = argline.replace("|", " ").split()
-    force = None
-    if parts and GATE_ALIASES.get(parts[0], parts[0]) in GATES:
-        force = GATE_ALIASES.get(parts[0], parts[0])
-        parts.pop(0)
-    if len(parts) != 4:
-        return await message.reply("Формат: /chk [гейт] CC MM YY CVV")
-    if not gc.check_luhn("".join(ch for ch in parts[0] if ch.isdigit())):
-        return await message.reply("❌ Неверный номер карты (Luhn fail)")
-    gate_name = _pick_gate(force)
-    if not gate_name:
-        return await message.reply("Нет доступных активных гейтов")
-    meta = GATES[gate_name]
-    cost = (meta["cost"] if meta["cost"] is not None
-            else config.GATE_COST.get(gate_name, 1))
-    if not db.spend_credit(u_id, gate_name):
-        return await message.reply(f"❌ Недостаточно кредитов ({cost}/чек)")
-    status_msg = await message.reply(f"[/chk → {gate_name}] Проверка...")
-    t0 = asyncio.get_event_loop().time()
-    bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
-    binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
-    try:
-        verdict, detail = await meta["fn"](*parts)
-    except Exception as e:
-        verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
-    if verdict == "ERROR":
-        db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
-    latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
-    try:
-        binfo = await asyncio.wait_for(binfo_task, timeout=4)
-    except Exception:
-        binfo = {}
-    if verdict in HIT_VERDICTS:
-        db.add_hit(u_id)
-    await status_msg.edit_text(
-        formatter.format_single(parts[0], binfo,
-                                f"/chk → {gate_name}", verdict,
-                                detail, latency_ms),
-        parse_mode=ParseMode.HTML)
 
-
-@app.on_message(filters.command(["chk"]))
-@user_only
-async def cmd_chk(client, message: Message):
-    if (message.reply_to_message and message.reply_to_message.document) or message.document:
-        return await cmd_mass(client, message)
-    raw_tail = " ".join((message.text or "").split()[1:])
-    if "\n" in raw_tail:
-        return await cmd_mass(client, message)
-    await _auto_check(message, raw_tail)
 
 
 @app.on_message(filters.command(["mass"]))
@@ -357,12 +369,28 @@ async def cmd_mass(client, message: Message):
             "• Или ответом на .txt файл: <code>/mass [гейт]</code>\n"
             "(Максимум 20 карт за раз)", parse_mode=ParseMode.HTML)
 
-    raw_lines = [ln.strip() for ln in cards_text.replace(",", "\n").splitlines() if ln.strip()]
+    # запятые: между картами ИЛИ между полями одной карты — раньше глобальный
+    # replace(",", "\n") рвал "4111,1111,1111,1111,09,25,123" на мусорные строки
+    raw_lines = []
+    for ln in cards_text.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        if "," in ln:
+            chunks = [c.strip() for c in ln.split(",")]
+            if len(chunks) >= 4 and all(re.fullmatch(r"[\d ]+", c) for c in chunks if c):
+                # все чанки числовые — это одна карта с запятыми между полями
+                raw_lines.append(" ".join(c for c in chunks if c))
+            else:
+                raw_lines.extend(c for c in chunks if c)  # карты через запятую
+        else:
+            raw_lines.append(ln)
+
     valid_cards = []
     for ln in raw_lines:
-        c_parts = ln.replace("|", " ").replace(":", " ").replace("/", " ").split()
-        if len(c_parts) >= 4:
-            valid_cards.append(c_parts[:4])
+        fields = _card_fields(ln)
+        if fields is not None:
+            valid_cards.append(fields)
 
     if not valid_cards:
         return await message.reply("❌ Не найдено карт в подходящем формате (ожидается CC MM YY CVV).")
@@ -385,36 +413,48 @@ async def cmd_mass(client, message: Message):
 
     status_msg = await message.reply(f"🚀 Запуск массовой проверки ({len(valid_cards)} карт) через <b>{gate_name}</b>...", parse_mode=ParseMode.HTML)
 
+    # A5 (ИССЛЕДОВАНИЕ-СКОРОСТЬ.md): параллельный прогон вместо поочерёдного
+    # с sleep 1.5с — semaphore(5) держит вежливый темп к донору (Stripe ~20
+    # concurrent), 20 карт идут ~4 волнами вместо 20×latency
+    mass_sem = asyncio.Semaphore(5)
+    stop_evt = asyncio.Event()  # кредиты кончились — хвост не запускаем
+
+    async def _check_one(card_parts: list[str]) -> dict | None:
+        if stop_evt.is_set():
+            return None
+        async with mass_sem:
+            if stop_evt.is_set():
+                return None
+            if not db.spend_credit(u_id, gate_name):
+                stop_evt.set()
+                return {"card": " ".join(card_parts), "status": "ERROR",
+                        "detail": "Недостаточно кредитов"}
+            try:
+                verdict, detail = await meta["fn"](*card_parts)
+            except Exception as e:
+                verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:100]
+            if verdict == "ERROR":
+                db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
+            return {"card": formatter.fmt_pan(card_parts[0]),
+                    "status": verdict, "detail": str(detail)[:60],
+                    "_hit": verdict in HIT_VERDICTS}
+
+    raw_results = await asyncio.gather(*[_check_one(cp) for cp in valid_cards])
     mass_results = []
     approved_count = 0
-
-    for idx, card_parts in enumerate(valid_cards, 1):
-        if not db.spend_credit(u_id, gate_name):
-            mass_results.append({"card": " ".join(card_parts),
-                                 "status": "ERROR",
-                                 "detail": "Недостаточно кредитов"})
-            break
-        try:
-            verdict, detail = await meta["fn"](*card_parts)
-        except Exception as e:
-            verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:100]
-        if verdict == "ERROR":
-            db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
-
-        is_hit = verdict in HIT_VERDICTS
-        if is_hit:
+    for r in raw_results:
+        if r is None:
+            continue
+        if r.pop("_hit", False):
             db.add_hit(u_id)
             approved_count += 1
+        mass_results.append(r)
 
-        pan_masked = formatter.fmt_pan(card_parts[0])
-        mass_results.append({"card": pan_masked, "status": verdict,
-                             "detail": detail[:60]})
-
-        if len(valid_cards) > 1 and idx < len(valid_cards):
-            await asyncio.sleep(1.5)
-
+    pool_line = ""
+    if u_id in config.ADMIN_IDS:
+        pool_line = f" | 📡 Пул: {len(gc.load_proxies())}"
     summary = (f"🏁 <b>Массовая проверка завершена ({len(mass_results)}/{len(valid_cards)})</b>\n"
-               f"Гейт: <code>{gate_name}</code> | Одобрено: <b>{approved_count}</b>\n\n"
+               f"Гейт: <code>{gate_name}</code> | Одобрено: <b>{approved_count}</b>{pool_line}\n\n"
                + formatter.format_mass(mass_results, header=False))
     # TG-лимит 4096 — режем на части по строкам
     chunk, chunks = [], []
@@ -498,7 +538,7 @@ async def cmd_gates(client, message: Message):
         for g in ready[:10]:
             dom = g.get("domain") or g.get("base_url")
             st = g.get("status", "READY")
-            sr = int(float(g.get("success_rate", 0.5)) * 100)
+            sr = int(float(g.get("success_rate") or 0.5) * 100)
             lat = g.get("latency_avg_ms")
             lat_s = f"{lat}мс" if lat is not None else "?"
             lines.append(f"  [{st}] <code>{dom}</code> ({sr}% SR | {lat_s})")

@@ -8,6 +8,7 @@
 import argparse
 import asyncio
 import random
+import re
 import sys
 from pathlib import Path
 
@@ -15,10 +16,11 @@ from curl_cffi.requests import AsyncSession
 
 import config
 import gate_client as gc
+from setup_gate import bin_lookup  # A1: единая кэшированная реализация (дубль убран)
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
-MAX_PRICE_CENTS = 200  # $2 / £2 / €2 ... самый дешёвый товар дороже — отказ
+MAX_PRICE_CENTS = 2000  # $20 крышка: под $2 работали только 2 сайта из 44 (прогон 2026-08-27)
 
 
 def bin_summary(binfo: dict) -> str:
@@ -32,34 +34,9 @@ def bin_summary(binfo: dict) -> str:
     return f"{scheme}/{ftype}/{country} {bank}"
 
 
-async def bin_lookup(bin_num: str) -> dict:
-    async with AsyncSession(impersonate="chrome131", verify=False) as s:
-        for url, headers, pick in (
-            (f"https://lookup.binlist.net/{bin_num}", {"Accept-Version": "3"}, "binlist"),
-            (f"https://data.handyapi.com/bin/{bin_num}", {}, "handyapi"),
-            (f"https://bins.antipublic.cc/bins/{bin_num}", {}, "antipublic"),
-        ):
-            try:
-                r = await s.get(url, headers=headers, timeout=6)
-                if r.status_code == 200:
-                    d = r.json()
-                    if pick == "antipublic":
-                        c_name = str(d.get("country_name", "")).lower()
-                        d = {"scheme": d.get("brand"), "type": d.get("type"),
-                             "bank": {"name": d.get("bank")},
-                             "country": {"alpha2": gc._ANTIPUBLIC_A2.get(c_name, ""),
-                                         "name": d.get("country_name")},
-                             "level": d.get("level")}
-                    d["_src"] = pick
-                    return d
-            except Exception:
-                continue
-    return {}
-
-
 async def check_target(root: str, card_raw: str, proxy: str | None,
                        max_price_cents: int) -> dict:
-    prefix = card_raw.split("|")[0][:6]
+    prefix = gc.extract_pan(card_raw)[:6]  # BIN из PAN — любой разделитель
     binfo = await bin_lookup(prefix)
     country = gc.bin_alpha2(binfo) or "US"
 
@@ -93,8 +70,14 @@ async def main():
     for c in args.cards:
         pp = Path(c)
         if pp.exists():
-            cards += [ln.strip() for ln in pp.read_text(encoding="utf-8").splitlines()
-                      if "|" in ln]
+            # любой разделитель (| : / пробел) — фильтруем по числу полей,
+            # не только по '|', иначе ':'- и пробельные карты молча терялись
+            for ln in pp.read_text(encoding="utf-8").splitlines():
+                ln = ln.strip()
+                if not ln or ln.startswith("#"):
+                    continue
+                if len(re.split(r"[|:/\s]+", ln)) >= 4:
+                    cards.append(ln)
         else:
             cards.append(c)
 

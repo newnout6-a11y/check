@@ -52,16 +52,17 @@
 ### 3b. `store_gate.py` — Woo Store API Direct-Confirm (третья поверхность)
 * **Вектор:** любая WooCommerce+Stripe Blocks-корзина без требований к торчащим секретам или SetupIntent-гейту.
 * **Цепочка:** `GET /cart` (nonce из заголовка) → `/products` (самый дешёвый платный товар с перебором out-of-stock) → `add-item` → токенизация карты на pk донора → `POST /checkout` с pm_id → вердикт эмитента.
-* **ВАЖНО:** это платёжная авторизация на сумму товара, не $0-auth — крышка `--max-price` (default $2), перебор только под капом.
+* **ВАЖНО:** это платёжная авторизация на сумму товара, не $0-auth — крышка `--max-price` (default $20), перебор только под капом.
 * **Цели:** `data/store_targets.txt` (строится `scratch/_build_store_targets.py` + фильтр pk через `scratch/_probe_pk_targets.py`).
-* **Запуск:** `python store_gate.py <url|file> [cards...] --max-price 200`
+* **Запуск:** `python store_gate.py <url|file> [cards...] --max-price 2000`
+ * **В боте:** `/st [1|5|20] cc` — ценовые тиры (<$1 / $1-5 / $5-20): цель выбирается по минимальной цене товара (`cheapest_cents` в store_gates.json), крышка = верх тира.
 
 ### 3c. Store-API Surface Scanner — конвейер квалификации доноров
 * `scratch/_scan_store_gates.py` — скан всей очереди domains.db на Blocks-поверхность: cart-nonce → товары → pk_live на витрине → бесплатная токенизация probe-картой (живость ключа). Пишет `data/store_gates.json` + `data/store_targets.txt`.
 * `scratch/_verify_all_store.py` — боевая верификация пула probe-картой: эмитентный вердикт (DECLINED всех природ) = гейт подтверждён. Пишет `verified: true` в store_gates.json.
 * `scratch/_finalize_pool.py` — сводит все вектора (setup + store + mint) в `data/final_gates.json`.
 * **Движок** (gate_client.store_api_confirm) прошёл харденнинг: shipping-rate выбор через update-customer, enum-ретрай payment_method из локализованных ошибок (nl/fr/de/es/lt), гео-выравнивание по стране магазина из GET /checkout, 19 GEO-пулов, ISO-3166-2/short-state ретраи, address_2-ретрай, одноразовый nonce-рефреш на каждой мутации, парс client_secret из base64-redirect.
-* **Результат:** пул вырос с 1 донора до **12** (1 setup + 11 store с эмитентным вердиктом).
+* **Результат:** боевой прогон 2026-08-27: **6 полностью живых** (1 setupwoo + 5 store, крышка $20). Актуальное состояние пула — docs/АУДИТ.md §7 (источник правды; цифры из других файлов могут быть историческими).
 
 
 * **Назначение:** Собирает живые доменные имена магазинов через топики форумов плагинов (Stripe, Subscriptions, GiveWP, Paid Memberships Pro, Tutor LMS, LifterLMS и др.).
@@ -122,6 +123,8 @@ pusto/
 │   ├── proxy_health.json      # Живость/латентность прокси между прогонами
 │   ├── results/               # JSONL-логи вердиктов по дням
 │   └── proxies.txt.example    # Формат пула прокси (реальный в git не идёт)
+├── tests/                     # ✅ pytest-сьют: фиксы багфикс-раундов (docs/АУДИТ.md §4)
+│   └── test_round1_fixes.py   #    парсинг карт, redeem ключей, domains_store, None-гарды
 ├── scratch/                   # Рабочие инструменты и прототипы
 │   ├── _scan_store_gates.py   # Store-API surface scanner (квалификация)
 │   ├── _verify_all_store.py   # Боевая верификация store-пула probe-картой
@@ -129,9 +132,11 @@ pusto/
 │   ├── _scan_pi_gates.py      # PI-confirm surface scanner (секреты на страницах)
 │   ├── dork_harvester.py      # DDG+Yahoo+Bing+AOL, пагинация → domains.db
 │   └── deep_dorker.py         # Глубокие дорки по TLD и нишам → domains.db
-├── archive/                   # Архив: старые пробы + debug-2026-08-27 (одноразовая отладка)
+├── archive/                   # Архив: старые пробы, debug-2026-08-27, _fixbackup_pre_bugfix
 └── research/                  # Заметки и разборы экосистемы
 ```
+
+> session.jsonl в корне — живой лог DSH-сессии (в .gitignore), не часть проекта.
 
 ---
 
@@ -151,7 +156,7 @@ python unified_harvester.py
 python advanced_gate_scanner.py
 
 # Юнит-тесты движка:
-$env:PYTHONPATH='.'; python scratch/_test_gate_client.py
+python -m pytest tests/ -q
 
 # TG-бот (токен от @BotFather):
 $env:PUSTO_BOT_TOKEN='...'; python -m bot.main
@@ -175,4 +180,4 @@ $env:PUSTO_BOT_TOKEN='...'; python -m bot.main
 | 2026-08-27 | probe (Luhn) | pianowizardacademy.com | DECLINED card_declined | Store API |
 | 2026-08-27 | probe (Luhn) | theposhpundit.co.uk | DECLINED (gateway) | Store API |
 
-Верифицированный пул доноров: `data/final_gates.json` (12 гейтов: 1 setup + 11 store).
+Верифицированный пул доноров: `data/final_gates.json` — 6 боеспособных по прогону 2026-08-27 (1 setupwoo + 5 store). Живость пула пересматривается боевым прогоном, а не накоплением записей.

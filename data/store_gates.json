@@ -72,7 +72,10 @@
     "verify_status": "DECLINED",
     "verify_detail": "Pay by Card is not available for this order—please choose a different payment method",
     "phantom": false,
-    "phantom_probe": "DECLINED: Pay by Card is not available for this order—please choose a different payment method"
+    "phantom_probe": "DECLINED: Pay by Card is not available for this order—please choose a different payment method",
+    "dead_surface": false,
+    "battle_check": "2026-08-27",
+    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "expattaxonline.com",
@@ -192,7 +195,9 @@
     "verify_status": "DECLINED",
     "verify_detail": "There was an error processing the payment: The card was declined.",
     "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined."
+    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
+    "dead_surface": false,
+    "battle_check": "2026-08-27"
   },
   {
     "domain": "senseilms.com",
@@ -237,7 +242,9 @@
     "verify_status": "DECLINED",
     "verify_detail": "There was an error processing the payment: The card was declined.",
     "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined."
+    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
+    "dead_surface": false,
+    "battle_check": "2026-08-27"
   },
   {
     "domain": "uktyretechnicians.co.uk",
@@ -399,14 +406,17 @@
     "pk_live": "pk_live_51ETDmyFuiXB5oUVxaIafkGPnwuNcBxr1pXVhvLJ4BrWuiqfG6SldjatOGLQhuqXnDmgqwRA7tDoSFlbY4wFji7KR0079TvtxNs",
     "gate_type": "woo_store_api",
     "store_nonce": true,
-    "cheapest_cents": 2200,
+    "cheapest_cents": 600,
     "updated_at": 1787833656,
     "status": "STORE_LIVE",
     "verified": false,
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this order—please ch",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 508: :"
+    "phantom_probe": "ERROR: checkout HTTP 508: :",
+    "dead_surface": false,
+    "battle_check": "2026-08-27",
+    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "brick-library.com",
@@ -511,7 +521,10 @@
     "verify_status": "DECLINED",
     "verify_detail": "There was an error processing the payment: The card number is incorrect.",
     "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card number is incorrect."
+    "phantom_probe": "DECLINED: There was an error processing the payment: The card number is incorrect.",
+    "dead_surface": true,
+    "dead_reason": "battle_check_2026-08-27",
+    "dead_detail": "checkout blocked: please verify that you are human"
   },
   {
     "domain": "showthemes.com",
@@ -541,7 +554,10 @@
     "verify_status": "DECLINED",
     "verify_detail": "Credit / Debit Card is not available for this order—please choose a different payment method",
     "phantom": false,
-    "phantom_probe": "DECLINED: Credit / Debit Card is not available for this order—please choose a different payment meth"
+    "phantom_probe": "DECLINED: Credit / Debit Card is not available for this order—please choose a different payment meth",
+    "dead_surface": true,
+    "dead_reason": "battle_check_2026-08-27",
+    "dead_detail": "card payment method disabled by shop"
   },
   {
     "domain": "weinistgeil.de",
@@ -571,7 +587,10 @@
     "verify_status": "APPROVED@PAID",
     "verify_detail": "order paid 78572",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "dead_surface": true,
+    "dead_reason": "battle_check_2026-08-27",
+    "dead_detail": "pk_live not found on storefront"
   },
   {
     "domain": "woothemes.com",
@@ -661,7 +680,10 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Multibanco ist für diese Bestellung nicht verfügbar",
     "phantom": false,
-    "phantom_probe": "ERROR: Timeout: Failed to perform, curl: (28) Operation timed out after 10003 milliseconds with 0"
+    "phantom_probe": "ERROR: Timeout: Failed to perform, curl: (28) Operation timed out after 10003 milliseconds with 0",
+    "dead_surface": false,
+    "battle_check": "2026-08-27",
+    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "projectivities.com",
@@ -706,7 +728,10 @@
     "verify_status": "DECLINED",
     "verify_detail": "Si è verificato un errore durante l&#039;elaborazione del pagamento: Il numero della carta non è corretto.",
     "phantom": false,
-    "phantom_probe": "DECLINED: Si è verificato un errore durante l&#039;elaborazione del pagamento: La carta è stata rifi"
+    "phantom_probe": "DECLINED: Si è verificato un errore durante l&#039;elaborazione del pagamento: La carta è stata rifi",
+    "dead_surface": false,
+    "battle_check": "2026-08-27",
+    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "tricolistica.com",
@@ -721,7 +746,10 @@
     "verify_status": "DECLINED",
     "verify_detail": "Se ha producido un error al procesar el pago: La tarjeta ha sido rechazada.",
     "phantom": false,
-    "phantom_probe": "DECLINED: Se ha producido un error al procesar el pago: La tarjeta ha sido rechazada."
+    "phantom_probe": "DECLINED: Se ha producido un error al procesar el pago: La tarjeta ha sido rechazada.",
+    "dead_surface": false,
+    "battle_check": "2026-08-27",
+    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "education.resilience.org",

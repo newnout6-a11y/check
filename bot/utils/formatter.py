@@ -162,6 +162,40 @@ def extract_pan(card_raw: str) -> str:
     return digits
 
 
+# Символы валют для человеческого вывода цены (10c USD -> $0.10)
+CUR_SYMBOLS = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CNY": "¥",
+               "AUD": "A$", "NZD": "NZ$", "CAD": "C$", "SGD": "S$"}
+
+
+def fmt_price(cents, currency: str = "") -> str:
+    """Центы+код валюты -> '$0.10' / '€3.99' / '20.00 CHF'."""
+    try:
+        cents = int(cents or 0)
+    except (TypeError, ValueError):
+        return ""
+    if not cents:
+        return ""
+    cur = (currency or "").upper()
+    amount = f"{cents / 100:.2f}".rstrip("0").rstrip(".") if cents % 100 else f"{cents // 100}"
+    if not cents % 100:
+        amount = str(cents // 100)
+    else:
+        amount = f"{cents / 100:.2f}"
+    sym = CUR_SYMBOLS.get(cur)
+    if sym:
+        return f"{sym}{amount}"
+    return f"{amount} {cur}".strip()
+
+
+def fmt_latency(ms) -> str:
+    """Миллисекунды -> '843мс' или '12.8с'."""
+    try:
+        ms = int(ms)
+    except (TypeError, ValueError):
+        return ""
+    return f"{ms / 1000:.1f}с" if ms >= 1000 else f"{ms}мс"
+
+
 def fmt_pan(card_raw: str) -> str:
     """Маскирует номер карты: 4937241006643332 -> 4937 24** **** 3332"""
     digits = extract_pan(card_raw)
@@ -169,6 +203,8 @@ def fmt_pan(card_raw: str) -> str:
         # мусорный ввод не показываем как есть — глухая маска
         return "•••• •••• •••• ••••" if digits else "—"
     return f"{digits[:4]} {digits[4:6]}** **** {digits[-4:]}"
+
+
 
 
 def fmt_bin(binfo: dict) -> str:
@@ -185,17 +221,32 @@ def fmt_bin(binfo: dict) -> str:
 
 
 def format_single(card_raw: str, binfo: dict, gate_name: str,
-                  status: str, detail: str, latency_ms: int | None = None) -> str:
+                  status: str, detail: str, latency_ms: int | None = None,
+                  proxy: str | None = None, pool_size: int | None = None) -> str:
     line = "─" * 25
-    lat = f"\n⏱ Задержка: {latency_ms}мс" if latency_ms else ""
     # detail приходит из внешних ответов (Stripe/Woo/банки) — экранируем от HTML-поломки
     detail_ru = html.escape(translate_detail(detail), quote=False)
+    # префикс цены «[10c USD]» -> «($0.10)» в хвосте строки вердикта
+    price = ""
+    m = re.match(r"^(\[(\d+)c\s*([A-Za-z]{0,3})\]\s*)(.*)$", detail_ru, re.S)
+    if m:
+        price = fmt_price(m.group(2), m.group(3))
+        detail_ru = m.group(4)
+    price_s = f" ({price})" if price else ""
+    lat = f"\n⏱ {fmt_latency(latency_ms)}" if latency_ms else ""
+    # админ-блок: прокси запроса и живой пул (передаются только для админа)
+    admin = ""
+    if proxy is not None or pool_size is not None:
+        proxy_s = proxy if proxy else "direct"
+        admin = f"\n🛡 Прокси: {proxy_s}"
+        if pool_size is not None:
+            admin += f"\n📡 Пул: {pool_size}"
     return (f"{line}\n"
-            f"💳 Карта: {fmt_pan(card_raw)}\n"
-            f"📦 БИН: {fmt_bin(binfo)}\n"
-            f"🏪 Гейт: {gate_name}\n"
-            f"{config.icon(status)} Статус: {status}\n"
-            f"📝 Описание: {detail_ru[:180]}{lat}\n"
+            f"💳 {fmt_pan(card_raw)}\n"
+            f"📦 {fmt_bin(binfo)}\n"
+            f"🏪 {gate_name}\n"
+            f"{config.icon(status)} {status}\n"
+            f"📝 {detail_ru[:180]}{price_s}{lat}{admin}\n"
             f"{line}")
 
 

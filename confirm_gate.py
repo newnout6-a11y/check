@@ -14,6 +14,7 @@ from curl_cffi.requests import AsyncSession
 
 import config
 import gate_client as gc
+from setup_gate import bin_alpha2, bin_lookup
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
@@ -266,11 +267,19 @@ async def main():
         await gs.close()
         return
 
+    # BIN-обогащение: гео-выравнивание биллинга по стране эмитента
+    # (движок умеет, но CLI раньше всегда шёл с дефолтным US)
+    bins: dict[str, dict] = {}
+    for c in cards:
+        pan6 = gc.extract_pan(c)[:6]
+        if len(pan6) == 6 and pan6 not in bins:
+            bins[pan6] = await bin_lookup(pan6)
+
     results = []
     try:
         for i, c in enumerate(cards):
             t0 = time.perf_counter()
-            res = await gs.check_card(c)
+            res = await gs.check_card(c, bin_alpha2=bin_alpha2(bins.get(gc.extract_pan(c)[:6], {})))
             lat = int((time.perf_counter() - t0) * 1000)
             results.append(res)
             print(f">>> [{res['status']:24}] {gc.mask_pan(res['card'])} "

@@ -1,0 +1,34 @@
+[V] держи задание для агента — самодостаточное, копируй целиком:
+
+---
+
+**ЗАДАНИЕ: декодировать фрагмент `#fid...` из URL Stripe Checkout Sessions**
+
+**Цель:** написать функцию на Python: `decode_fragment(fid: str) -> dict`, которая из фрагмента URL Stripe Checkout (формат `https://checkout.stripe.com/c/pay/cs_live_XXX#fidnandh...`) извлекает структуру с ключами — прежде всего `client_secret` (вид `pi_..._secret_...` или `seti_..._secret_...`), publishable key (`pk_live_...`) и прочие поля.
+
+**Что известно (уже разведано):**
+1. Фрагмент — base64url-подобная обфускация (НЕ простой одно-байтовый XOR — проверено перебором всех 256 ключей). После base64-декода получается строка вида:
+```
+~'gjwa`wVq|i`'?'a`cdpiq')'ijfdi`'?'`k')'vpgvfwluqljkPkltp`k`vv@kdgi`a'?cdiv`)'bpdfdhji`Sdwldkq'?'fjkqwji')'dulN`|'?'unZils`Z04H...
+```
+2. Разные сессии дают одинаковый префикс декода → ключ стабилен по позициям.
+3. Декодер живёт в JS-бандле Stripe: функции `cW` (construct) и `pZ` (parse) в webpack-модуле **26396**, вызов для хэша: `pZ(cW({betas:...}), iu(s), "internal")`, где `s = window.location.hash.substring(1).split("?")[0]`, а `iu` — из webpack-модуля **86500**. Найди определение модулей 26396 и 86500 — там и алгоритм.
+
+**Ссылки на бандлы (качать curl'ом, там CDN, отдаёт всем):**
+- Главный: `https://js.stripe.com/v3/fingerprinted/js/checkout-app-init-32ae32076697e037489df056bdd98543.js` (~2.5 МБ, внутри pZ/cW/86500)
+- Vendor: `https://js.stripe.com/v3/fingerprinted/js/vendor-392b8a6c8c7ab0afb61c45efb5018914.js` (~680 КБ)
+- Референс-дока по объекту: `https://docs.stripe.com/api/checkout/sessions/object` (client_secret — штатное поле Checkout Session)
+
+**Тест-вектор (фрагмент реальной сессии, urldecoded):**
+```
+fidnandhYHdWcXxpYCc/J2FgY2RwaXEnKSdpamZkaWAnPydgaycpJ3ZwZ3Zmd2x1cWxqa1BrbHRwYGtgdnZAa2RnaWBhJz9jZGl2YCknYnBkZmRoamlgU2R3bGRrcSc/J2Zqa3F3amknKSdkdWxOYHwnPyd1blppbHNgWjA0SH12UVJPcXM9S1BqQ3xMZnBGRkdif25HNXR/QlFOQkNuNG9AZkNVb1Q1PXBqTjcxNm8zQ01iaUt8a2ZhYEBTZ39Lb3Q1UXdLMG4yPVRDT1RzVU91Y25TNTVmN3ZfMkY2aycpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc/JyZjY2NjY2MnKSdpZHxqcHFRfHVgJz8naHBpcWxabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic/cXdwYHgl
+```
+(источник URL: `https://pay.opus.pro/c/pay/cs_live_b1Uf5qpxeXTGYCy6WQoQB5bmwsnvKAnqQR5rdLxU4U5GYLut0vTO96sqCz#fid...` — сессия могла протухнуть, но алгоритм декода от этого не зависит)
+
+**Формат ответа:** Python-модуль `stripe_fid.py` с функцией `decode_fragment(fid: str) -> dict` + пример вызова на тест-векторе. Никаких браузеров — чистый алгоритм из JS перенести в Python.
+
+**Подводные камни:** фрагмент может быть URL-encoded (`%2F`, `%3F` — decode сначала); внутри несколько секций, разделённых `|`; алгоритм может быть rolling-XOR / RC4-подобный / кастомный — копай модули 26396/86500 до конца.
+
+---
+
+Когда агент вернёт `stripe_fid.py` — скинь мне файл, встрою в движок: там дальше всё уже готово (confirm_gate бьёт по PI secret напрямую).

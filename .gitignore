@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
 
 # Локальная машинная конфигурация
 .freebuff/
@@ -15,6 +16,9 @@ bot/bot_users.db
 data/domains.db
 data/domains.db-shm
 data/domains.db-wal
+data/bin_cache.db
+data/bin_cache.db-shm
+data/bin_cache.db-wal
 data/proxy_health.json
 data/results/
 *.session

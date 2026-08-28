@@ -16,7 +16,9 @@
     "success_rate": 0.7047,
     "fail_count": 0,
     "last_success_ts": 1787849737,
-    "vector": "setup_intent"
+    "vector": "setup_intent",
+    "last_live_check": "2026-08-27",
+    "last_live_verdict": "LIVE"
   },
   {
     "domain": "essexmonastery.com",
@@ -27,62 +29,9 @@
     "verify_status": "DECLINED",
     "cheapest_cents": 399,
     "updated_at": 1787832203,
-    "status": "READY"
-  },
-  {
-    "domain": "rocketgeek.com",
-    "base_url": "https://rocketgeek.com",
-    "pk_live": "pk_live_5153BeCDTX57OKyr3c3ek7Jih2B1eDlPr2KBHGrQOKCxOflJG5Z98BwUtq0siI28cPm61QO3v5bPuQoIykddn7Gw800ihOJNT4B",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "DECLINED",
-    "cheapest_cents": 100,
-    "updated_at": 1787832239,
-    "status": "READY"
-  },
-  {
-    "domain": "thimpress.com",
-    "base_url": "https://thimpress.com",
-    "pk_live": "pk_live_51M7a07DEwAoDfstZypH5dyYiVi7sKepmenWKcBYqCYsU8LfuMJARQFjMtlMMUWRG1f89z07vjcZLzM6GvLog90x600IAR2sCEn",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "DECLINED",
-    "cheapest_cents": 10,
-    "updated_at": 1787832262,
-    "status": "READY"
-  },
-  {
-    "domain": "pianowizardacademy.com",
-    "base_url": "https://pianowizardacademy.com",
-    "pk_live": "pk_live_51CRuYWIRnXQPkN7cXF8kggYBokJ9LvD4EI4wk6UY4Mk33Mliluc8C16nR3QE99Ib9KTzUR3QpCAOF7T5y8YulDdV00lZWdHsKC",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "DECLINED",
-    "cheapest_cents": 4995,
-    "updated_at": 1787833743,
-    "status": "READY"
-  },
-  {
-    "domain": "theposhpundit.co.uk",
-    "base_url": "https://theposhpundit.co.uk",
-    "pk_live": "pk_live_51M2j4SJhgkrWqux6eFxVSU3p9sl110u6WKCMsYnoxO14ILbR9rP2UuVrnlh2ZacUGN2iQxbKyoSZ2rrvMweyT2cD009mS8tB5g",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "DECLINED",
-    "cheapest_cents": 2000,
-    "updated_at": 1787833786,
-    "status": "READY"
-  },
-  {
-    "domain": "wellyou.lt",
-    "base_url": "https://wellyou.lt",
-    "pk_live": "pk_live_51OWM1yFkDf0Fc87T3srbtvDJBsbXClIMK6BHDkTg5H6Q2v6UZQBHKAO0QNMXIx9BkTXdqy3r2h0zIrDNrZNOasmA00E6RnV95z",
-    "gate_type": "woo_store_api",
-    "vector": "store_confirm",
-    "verify_status": "APPROVED@PAID",
-    "cheapest_cents": 2240,
-    "updated_at": 1787833793,
-    "status": "READY"
+    "status": "READY",
+    "last_live_check": "2026-08-27",
+    "last_live_verdict": "LIVE"
   },
   {
     "domain": "themakersclub.it",
@@ -93,7 +42,9 @@
     "verify_status": "DECLINED",
     "cheapest_cents": 1800,
     "updated_at": 1787839147,
-    "status": "READY"
+    "status": "READY",
+    "last_live_check": "2026-08-27",
+    "last_live_verdict": "LIVE"
   },
   {
     "domain": "tricolistica.com",
@@ -104,6 +55,24 @@
     "verify_status": "DECLINED",
     "cheapest_cents": 500,
     "updated_at": 1787839148,
-    "status": "READY"
+    "status": "READY",
+    "last_live_check": "2026-08-27",
+    "last_live_verdict": "LIVE"
+  },
+  {
+    "domain": "atriumcoffeeroasters.com",
+    "status": "READY",
+    "vector": "store_confirm",
+    "cheapest_cents": 600,
+    "last_live_check": "2026-08-27",
+    "last_live_verdict": "LIVE"
+  },
+  {
+    "domain": "petalane.ch",
+    "status": "READY",
+    "vector": "store_confirm",
+    "cheapest_cents": 2000,
+    "last_live_check": "2026-08-27",
+    "last_live_verdict": "LIVE"
   }
 ]

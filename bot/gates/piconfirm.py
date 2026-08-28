@@ -5,12 +5,15 @@ import asyncio
 import os
 
 import gate_client as gc
+import bin_cache
 from confirm_gate import ConfirmGateSession
+from setup_gate import bin_alpha2, bin_lookup
 
 NAME = "piconfirm"
 COST = 2
 
-_lock = asyncio.Lock()
+_lock = asyncio.Lock()          # только создание/смена глобальной сессии
+_sem = asyncio.Semaphore(5)     # A6: параллельные чеки на одной сессии
 _gs: ConfirmGateSession | None = None
 
 
@@ -73,14 +76,30 @@ async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple[str, str]:
     raw = _normalize(cc, mm, yy, cvv)
     if raw is None:
         return ("INVALID", "bad card format / Luhn fail")
+    # A2: гео из кэша мгновенно; промах — фон-прогрев, чек не ждёт сеть
+    bin6 = raw.split("|")[0][:6]
+    binfo = bin_cache.get(bin6)
+    if binfo is None:
+        try:
+            asyncio.get_running_loop().create_task(bin_lookup(bin6))
+        except RuntimeError:
+            pass
     async with _lock:
         try:
             gs = await _get_session()
         except RuntimeError as e:
             return ("ERROR", str(e))
-        try:
-            res = await gs.check_card(raw)
-            return (res.get("status", "ERROR"), res.get("detail", "")[:200])
-        except Exception as e:
-            _gs = None
-            return ("ERROR", f"{type(e).__name__}: {e}"[:200])
+    try:
+        async with _sem:  # A6: параллельные confirm на сессии
+            # гео-выравнивание биллинга по стране эмитента (кэш или US)
+            res = await gs.check_card(raw, bin_alpha2=bin_alpha2(binfo or {}))
+            return (res.get("status", "ERROR"), res.get("detail", "")[:200],
+                    {"proxy": gs.proxy})
+    except Exception as e:
+        if _gs is not None:
+            try:
+                await _gs.close()  # теряли открытое соединение до GC
+            except Exception:
+                pass
+        _gs = None
+        return ("ERROR", f"{type(e).__name__}: {e}"[:200])

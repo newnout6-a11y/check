@@ -11,7 +11,7 @@ from curl_cffi.requests import AsyncSession
 NAME = "braintreenvbv"
 COST = 1
 
-_lock = asyncio.Lock()
+_sem = asyncio.Semaphore(5)  # A6: сессия своя на вызов — сериализация не нужна
 
 
 def _targets() -> list[str]:
@@ -50,7 +50,7 @@ async def gate(cc, mm, yy, cvv) -> tuple[str, str]:
     targets = _targets()
     if not targets:
         return ("ERROR", "no braintree targets (env PUSTO_BT_TARGETS)")
-    async with _lock:
+    async with _sem:
         for target in targets:
             try:
                 async with AsyncSession(impersonate="chrome131", verify=False) as s:

