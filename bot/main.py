@@ -68,8 +68,8 @@ CREATOR_NICK = os.environ.get("PUSTO_CREATOR_NICK", "Владимир")
 GATE_ALIASES = {
     "au": "setupwoo",
     "st": "storegate",
-    "sh": "shopify",
-    "sp": "shopify",
+    "sh": "storegate",   # исторический алиас /sh = Store API (агент переопределил — возвращено)
+    "sp": "shopify",     # Shopify Checkout
     "pi": "piconfirm",
     "vbv": "braintreenvbv",
     "b3": "braintreenvbv",
@@ -130,6 +130,7 @@ def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
         "⚡ <b>𝑪𝑶𝑴𝑴𝑨𝑵𝑫𝑺</b> ⚡\n\n"
         "💳 <code>/au</code> cc — Stripe $0 Auth (SetupIntent)\n"
         "💳 <code>/st</code> [1|5|20] cc — Store API (цена: &lt;$1 / $1-5 / $5-20)\n"
+        "💳 <code>/sp</code> [1|5|20] cc — Shopify Checkout (цена: &lt;$1 / $1-5 / $5-20)\n"
         "⚡ <code>/hit</code> url cc — Stripe Checkout (готовый cs_live-линк)\n"
         "🔍 <code>/bin</code> bin — BIN Lookup\n"
         "📁 <code>/mass</code> [гейт] — Mass Check (≤20 карт, .txt или текст)\n\n"
