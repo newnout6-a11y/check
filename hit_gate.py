@@ -65,12 +65,21 @@ class CsHitSession:
             self.currency = str(pi.get("currency") or "").upper()
             self.checksum = str(data.get("init_checksum") or "")
             status = pi.get("status")
-            if not self.secret:
-                await s.close()
-                return False, f"client_secret недоступен (сессия {data.get('status')}/{status})"
-            if status != "requires_payment_method":
+            if status and status != "requires_payment_method":
                 await s.close()
                 return False, f"PI status={status} — сессия не переиспользуется"
+            if not self.secret and status:
+                await s.close()
+                return False, f"client_secret недоступен (сессия {data.get('status')}/{status})"
+            if not status:
+                # подписочные сессии: PI создаётся только при confirm,
+                # сумма известна из total_summary.due (скидки учтены)
+                due = ((data.get("total_summary") or {}).get("due"))
+                if not due:
+                    await s.close()
+                    return False, "PI скрыт и сумма неизвестна (нестандартная сессия)"
+                self.amount = int(due)
+                self.currency = str(data.get("currency") or "").upper() or "USD"
             if self.amount > self.max_amount:
                 await s.close()
                 return False, f"CHARGE_RISK: {self.amount}{self.currency} > {self.max_amount}c"
