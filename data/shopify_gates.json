@@ -1,67 +1,25 @@
 [
   {
+    "url": "https://adam-hawley-store.myshopify.com",
+    "domain": "adam-hawley-store.myshopify.com",
+    "cheapest_cents": 95,
+    "cheapest_title": "Anytime At All",
+    "variant_id": 44070574883109,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
     "url": "https://epomaker.myshopify.com",
     "domain": "epomaker.myshopify.com",
     "cheapest_cents": 100,
     "cheapest_title": "$1 Reservation Card for EPOMAKER HE60",
     "variant_id": 49239675633972,
-    "currency": "USD"
-  },
-  {
-    "url": "https://puravidabracelets.myshopify.com",
-    "domain": "puravidabracelets.myshopify.com",
-    "cheapest_cents": 320,
-    "cheapest_title": "Red Cross Be Mine Mixed Original Bracelet",
-    "variant_id": 40507046232150,
-    "currency": "USD"
-  },
-  {
-    "url": "https://kbdfans.myshopify.com",
-    "domain": "kbdfans.myshopify.com",
-    "cheapest_cents": 380,
-    "cheapest_title": "KBDfans Roller 2.0 Linear Switches",
-    "variant_id": 49092108779659,
-    "currency": "USD"
-  },
-  {
-    "url": "https://the-cajun-girl-pattern-shop.myshopify.com",
-    "domain": "the-cajun-girl-pattern-shop.myshopify.com",
-    "cheapest_cents": 399,
-    "cheapest_title": "Fabric Stash Inventory Spreadsheet",
-    "variant_id": 48042006642942,
-    "currency": "USD"
-  },
-  {
-    "url": "https://chubbies.myshopify.com",
-    "domain": "chubbies.myshopify.com",
-    "cheapest_cents": 600,
-    "cheapest_title": "The Tiger Sharks (All Day Sock)",
-    "variant_id": 41919433605193,
-    "currency": "USD"
-  },
-  {
-    "url": "https://deathwishcoffee.myshopify.com",
-    "domain": "deathwishcoffee.myshopify.com",
-    "cheapest_cents": 500,
-    "cheapest_title": "Midnight Marker LED Arm Band",
-    "variant_id": 42239587811383,
-    "currency": "USD"
-  },
-  {
-    "url": "https://ticklemychi.myshopify.com",
-    "domain": "ticklemychi.myshopify.com",
-    "cheapest_cents": 1490,
-    "cheapest_title": "Chiffon Scarf",
-    "variant_id": 667971,
-    "currency": "USD"
-  },
-  {
-    "url": "https://gymshark.myshopify.com",
-    "domain": "gymshark.myshopify.com",
-    "cheapest_cents": 800,
-    "cheapest_title": "Gymshark Vital Scrunchie - Strength Pink/Marl",
-    "variant_id": 39662501593291,
-    "currency": "USD"
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
   },
   {
     "url": "https://thequeenbeads.myshopify.com",
@@ -69,15 +27,10 @@
     "cheapest_cents": 100,
     "cheapest_title": "**LIVE CLAIMS**",
     "variant_id": 44964896079919,
-    "currency": "USD"
-  },
-  {
-    "url": "https://lm-products.myshopify.com",
-    "domain": "lm-products.myshopify.com",
-    "cheapest_cents": 1800,
-    "cheapest_title": "The Classic Cap",
-    "variant_id": 39618568355891,
-    "currency": "USD"
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
   },
   {
     "url": "https://southwest-laundry-2.myshopify.com",
@@ -85,6 +38,207 @@
     "cheapest_cents": 100,
     "cheapest_title": "Nomex Wax-N-Clean Cloth w/Teflon Flap",
     "variant_id": 42869598453865,
-    "currency": "USD"
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "UNKNOWN"
+  },
+  {
+    "url": "https://digital-products-app-demo.myshopify.com",
+    "domain": "digital-products-app-demo.myshopify.com",
+    "cheapest_cents": 100,
+    "cheapest_title": "Voucher Code",
+    "variant_id": 37999443148967,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://dumqtw-ip.myshopify.com",
+    "domain": "dumqtw-ip.myshopify.com",
+    "cheapest_cents": 100,
+    "cheapest_title": "GAMING BOOK",
+    "variant_id": 43864038801467,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://puravidabracelets.myshopify.com",
+    "domain": "puravidabracelets.myshopify.com",
+    "cheapest_cents": 320,
+    "cheapest_title": "Red Cross Be Mine Mixed Original Bracelet",
+    "variant_id": 40507046232150,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://kbdfans.myshopify.com",
+    "domain": "kbdfans.myshopify.com",
+    "cheapest_cents": 380,
+    "cheapest_title": "KBDfans Roller 2.0 Linear Switches",
+    "variant_id": 49092108779659,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://the-cajun-girl-pattern-shop.myshopify.com",
+    "domain": "the-cajun-girl-pattern-shop.myshopify.com",
+    "cheapest_cents": 399,
+    "cheapest_title": "Fabric Stash Inventory Spreadsheet",
+    "variant_id": 48042006642942,
+    "currency": "USD",
+    "verified": false,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DEAD"
+  },
+  {
+    "url": "https://stevemadden.myshopify.com",
+    "domain": "stevemadden.myshopify.com",
+    "cheapest_cents": 499,
+    "cheapest_title": "3 PACK FOLLY VELVET BOW RIB CREW SOCKS CHERRY",
+    "variant_id": 41350651183237,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://hismile.myshopify.com",
+    "domain": "hismile.myshopify.com",
+    "cheapest_cents": 499,
+    "cheapest_title": "Tooth Wipes - Hot Deal",
+    "variant_id": 43994599391297,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://staples-canada.myshopify.com",
+    "domain": "staples-canada.myshopify.com",
+    "cheapest_cents": 499,
+    "cheapest_title": "Nerds - Gummy Clusters limonade a la cerise - Jaune/Rose",
+    "variant_id": 40734275633281,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://deathwishcoffee.myshopify.com",
+    "domain": "deathwishcoffee.myshopify.com",
+    "cheapest_cents": 500,
+    "cheapest_title": "Midnight Marker LED Arm Band",
+    "variant_id": 42239587811383,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://chubbies.myshopify.com",
+    "domain": "chubbies.myshopify.com",
+    "cheapest_cents": 600,
+    "cheapest_title": "The Tiger Sharks (All Day Sock)",
+    "variant_id": 41919433605193,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://gymshark.myshopify.com",
+    "domain": "gymshark.myshopify.com",
+    "cheapest_cents": 800,
+    "cheapest_title": "Gymshark Vital Scrunchie - Strength Pink/Marl",
+    "variant_id": 39662501593291,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://ticklemychi.myshopify.com",
+    "domain": "ticklemychi.myshopify.com",
+    "cheapest_cents": 1490,
+    "cheapest_title": "Chiffon Scarf",
+    "variant_id": 667971,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://bombas.myshopify.com",
+    "domain": "bombas.myshopify.com",
+    "cheapest_cents": 1600,
+    "cheapest_title": "Women's Solids Ankle Socks",
+    "variant_id": 47918461976930,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://lm-products.myshopify.com",
+    "domain": "lm-products.myshopify.com",
+    "cheapest_cents": 1800,
+    "cheapest_title": "The Classic Cap",
+    "variant_id": 39618568355891,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://raycon.myshopify.com",
+    "domain": "raycon.myshopify.com",
+    "cheapest_cents": 1800,
+    "cheapest_title": "Raycon Flex Cable SP",
+    "variant_id": 41970074353687,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://casper.myshopify.com",
+    "domain": "casper.myshopify.com",
+    "cheapest_cents": 1900,
+    "cheapest_title": "Shopify T-Shirt",
+    "variant_id": 1229861,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://mvmt.myshopify.com",
+    "domain": "mvmt.myshopify.com",
+    "cheapest_cents": 4800,
+    "cheapest_title": "MVMT Denim",
+    "variant_id": 99100,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://ugmonk.myshopify.com",
+    "domain": "ugmonk.myshopify.com",
+    "cheapest_cents": 5000,
+    "cheapest_title": "Test tshirt",
+    "variant_id": 16197432,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-08-29",
+    "last_live_verdict": "DECLINED"
   }
 ]

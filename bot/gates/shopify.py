@@ -49,7 +49,9 @@ def _cheapest_map() -> dict[str, int]:
 
 
 def _dead_domains() -> set[str]:
-    """Return dead/blocked domains from data/shopify_gates.json."""
+    """Return dead/blocked domains from data/shopify_gates.json.
+    verified=False — боевая смерть по probe-верификации (нет записей без флага
+    после полного прогона пула; отсутствие флага = не проверялся, не отсекается)."""
     p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_gates.json")
     try:
         with open(p, encoding="utf-8") as f:
@@ -58,6 +60,7 @@ def _dead_domains() -> set[str]:
             g.get("domain")
             for g in gates
             if g.get("dead_surface") or g.get("phantom") or g.get("blocked")
+            or g.get("verified") is False
         } - {None}
     except Exception:
         return set()

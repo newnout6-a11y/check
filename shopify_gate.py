@@ -106,7 +106,9 @@ async def get_shopify_cheapest_product(
     s: AsyncSession, root: str, max_price_cents: int = MAX_PRICE_CENTS
 ) -> dict | None:
     """Fetch product catalog via /products.json and find cheapest available variant <= max_price_cents."""
-    url = f"{root.rstrip('/')}/products.json?limit=50"
+    # limit=250: у крупных каталогов (stevemadden) дешёвые позиции за первой
+    # полусотней — finder с limit=100 их видел, движок с 50 терял
+    url = f"{root.rstrip('/')}/products.json?limit=250"
     try:
         r = await s.get(url, timeout=10)
         if r.status_code != 200:
