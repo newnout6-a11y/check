@@ -7,6 +7,11 @@ __pycache__/
 # Локальная машинная конфигурация
 .freebuff/
 .agents/
+.postman/
+postman/
+
+# Живые тест-карты (расходник, не код)
+scratch/_cards_test.txt
 
 # Секреты: живой пул прокси с кредами
 data/proxies.txt
