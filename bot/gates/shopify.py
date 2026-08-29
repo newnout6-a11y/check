@@ -67,12 +67,18 @@ def _dead_domains() -> set[str]:
 
 
 def _unchecked_domains() -> set[str]:
-    """Витринные кандидаты без боевой верификации (needs_live_check)."""
+    """Витринные кандидаты без боевой верификации (needs_live_check).
+
+    Флаг — запрос на проверку, а не приговор: магазин, уже прошедший боевой
+    прогон (verified=True), остаётся в ротации. Раньше needs_live_check отсекал
+    всё подряд, и 20 верифицированных магазинов (tavily-sweep, раунд 6.3)
+    выпадали из пула: 63 живых → 43 в ротации."""
     p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_gates.json")
     try:
         with open(p, encoding="utf-8") as f:
             gates = json.load(f)
-        return {g.get("domain") for g in gates if g.get("needs_live_check")} - {None}
+        return {g.get("domain") for g in gates
+                if g.get("needs_live_check") and not g.get("verified")} - {None}
     except Exception:
         return set()
 

@@ -23,8 +23,14 @@ async def main():
             st = r.get('status', 'ERROR')
         except Exception as e:
             st = 'ERROR: ' + type(e).__name__
-        alive = st not in ('ERROR',)
+        # st из except приходит как 'ERROR: Timeout' — сравнение с 'ERROR' давало
+        # ложное «жив» на каждом исключении. Жив = всё, что не начинается на ERROR.
+        alive = not str(st).startswith('ERROR')
         g['verified'] = alive
+        if alive:
+            # проверка пройдена — запрос на проверку снимается, иначе магазин
+            # остаётся в _unchecked_domains() и выпадает из ротации бота
+            g.pop('needs_live_check', None)
         g['last_live_check'] = '2026-08-29'
         g['last_live_verdict'] = st if alive else 'DEAD'
         mark = '[+]' if alive else '[x]'

@@ -128,6 +128,7 @@ def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
         f"📊 <b>Limit</b> : {limit_str}\n"
         "🎟 <b>Redeem</b> : <code>/redeem &lt;key&gt;</code>\n\n"
         "⚡ <b>𝑪𝑶𝑴𝑴𝑨𝑵𝑫𝑺</b> ⚡\n\n"
+        "💳 <code>/chk</code> cc — авто-выбор поверхности\n"
         "💳 <code>/au</code> cc — Stripe $0 Auth (SetupIntent)\n"
         "💳 <code>/st</code> [1|5|20] cc — Store API (цена: &lt;$1 / $1-5 / $5-20)\n"
         "💳 <code>/sp</code> [1|5|20] cc — Shopify Checkout (цена: &lt;$1 / $1-5 / $5-20)\n"
@@ -230,13 +231,17 @@ async def run_gate(message: Message, gate_name: str, argline: str):
     if not meta:
         return await message.reply(f"❌ Гейт {gate_name} не найден")
     # ценовой тир для storegate / shopify: '/st 1|5|20 CC MM YY CVV' — первый
-    # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается
+    # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается.
+    # Тир разбирается таблицей ЦЕЛЕВОГО гейта: границы у storegate и shopify
+    # расходятся (100c попадало и в тир 1, и в тир 5), валидация чужой таблицей
+    # пропускала токен, который целевой гейт потом трактовал иначе.
     tier = None
     toks = argline.split()
-    if toks:
+    if toks and gate_name in ("storegate", "shopify"):
         from bot.gates.storegate import parse_tier as _parse_tier_sg
         from bot.gates.shopify import parse_tier as _parse_tier_sp
-        if _parse_tier_sg(toks[0]) is not None or _parse_tier_sp(toks[0]) is not None:
+        parser = _parse_tier_sp if gate_name == "shopify" else _parse_tier_sg
+        if parser(toks[0]) is not None:
             tier = toks[0].lower()
             argline = " ".join(toks[1:])
     # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс
@@ -281,7 +286,7 @@ async def run_gate(message: Message, gate_name: str, argline: str):
                                 detail, latency_ms, proxy=a_proxy, pool_size=a_pool),
         parse_mode=ParseMode.HTML)
 
-ALL_GATE_CMDS = list(GATES.keys()) + list(GATE_ALIASES.keys())
+ALL_GATE_CMDS = list(GATES.keys()) + list(GATE_ALIASES.keys()) + ["chk"]
 
 
 @app.on_message(filters.command(ALL_GATE_CMDS or ["none"]))
@@ -294,6 +299,14 @@ async def gate_dispatch(client, message: Message):
         return
     cmd = parts[0].lstrip("/").split("@")[0].lower()
     gate_name = GATE_ALIASES.get(cmd, cmd)
+    if cmd == "chk" and "chk" not in GATES:
+        # /chk — не гейт, а авто-выбор лучшей доступной поверхности по
+        # GATE_PRIORITY (только гейты с реально настроенными целями).
+        # Без этой команды _pick_gate/_available_gates достижимы были только
+        # из /mass, хотя АУДИТ и меню на неё ссылаются.
+        gate_name = _pick_gate(None)
+        if not gate_name:
+            return await message.reply("Нет доступных гейтов: ни одна поверхность не настроена.")
     if gate_name in GATES:
         argline = " ".join(parts[1:])
         await run_gate(message, gate_name, argline)

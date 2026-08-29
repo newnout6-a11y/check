@@ -2,6 +2,7 @@
 # Sprint 4 gate #2: PaymentIntent confirm через confirm_gate.ConfirmGateSession.
 # Цель берётся из PUSTO_PI_TARGET (env) или первой строки data/pi_target.txt.
 import asyncio
+import json
 import os
 
 import gate_client as gc
@@ -18,6 +19,11 @@ _gs: ConfirmGateSession | None = None
 
 
 def _target() -> str:
+    """Цель PI-вектора: env → data/pi_target.txt → первая запись data/pi_gates.json.
+
+    pi_target.txt не существует — его никто не создаёт, сканер пишет
+    pi_gates.json. Из-за этого гейт всегда возвращал 'PI target not configured'
+    уже после списания кредита (кредит возвращался, но чек был пустой)."""
     t = os.environ.get("PUSTO_PI_TARGET", "")
     if not t:
         p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "pi_target.txt")
@@ -27,6 +33,20 @@ def _target() -> str:
                     if line.strip():
                         t = line.strip()
                         break
+    if not t:
+        p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "pi_gates.json")
+        if os.path.exists(p):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    gates = json.load(f)
+                for g in gates or []:
+                    cand = (g.get("url") or g.get("target") or g.get("domain") or ""
+                            if isinstance(g, dict) else str(g))
+                    if cand:
+                        t = cand
+                        break
+            except Exception:
+                pass
     return t.rstrip("/")
 
 

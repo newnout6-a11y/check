@@ -24,7 +24,11 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "bot_users.db")
 
 # Экономика (SkyBots-паттерн): стартовые кредиты + цена чека по гейтам
 START_CREDITS = int(os.environ.get("PUSTO_START_CREDITS", "5"))
-GATE_COST = {"setupwoo": 1, "piconfirm": 2, "hit": 2}
+# Полная таблица: гейты объявляют свой COST, но централизованный дефолт должен
+# покрывать все зарегистрированные поверхности, иначе /gates и run_gate молча
+# берут 1 кредит за гейт, который стоит 2.
+GATE_COST = {"setupwoo": 1, "piconfirm": 2, "hit": 2,
+             "storegate": 2, "shopify": 2, "braintreenvbv": 1}
 
 ANTISPAM_MIN_INTERVAL = 3.0   # сек между командами одного юзера
 

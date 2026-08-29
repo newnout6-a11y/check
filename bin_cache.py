@@ -19,9 +19,41 @@ CREATE TABLE IF NOT EXISTS bins (
 """
 
 
+_INITIALIZED_PATH = None
+
+
+def _ensure(force: bool = False):
+    """Схема создаётся лениво, при первом обращении к кэшу.
+
+    init_db() раньше вызывался только из тестов — в боте и CLI таблица bins не
+    существовала, get/put глушили исключения, и весь кэш (фикс A1 раунда
+    скорости) молча не работал: data/bin_cache.db оставался нулевым файлом,
+    каждый новый BIN уходил в сеть на 1.5-18с и чекался с US-гео.
+
+    Запоминается путь, а не флаг: тесты подменяют DB_PATH на tmp_path и ждут
+    свежую схему на каждый вызов init_db()."""
+    global _INITIALIZED_PATH
+    if not force and _INITIALIZED_PATH == DB_PATH:
+        return
+    try:
+        d = os.path.dirname(DB_PATH)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        try:
+            conn.executescript(_SCHEMA)
+            conn.commit()
+        finally:
+            conn.close()
+        _INITIALIZED_PATH = DB_PATH
+    except Exception:
+        pass  # кэш — ускоритель, не критический путь
+
+
 @contextlib.contextmanager
 def _db():
     """Соединение с гарантией close (контекст sqlite3 коммитит, но не закрывает)."""
+    _ensure()
     conn = sqlite3.connect(DB_PATH, timeout=10)
     try:
         with conn:
@@ -31,9 +63,8 @@ def _db():
 
 
 def init_db():
-    os.makedirs("data", exist_ok=True)
-    with _db() as c:
-        c.executescript(_SCHEMA)
+    """Явная инициализация (тесты, CLI). Повторный вызов безопасен."""
+    _ensure(force=True)
 
 
 def get(bin6: str) -> dict | None:

@@ -56,7 +56,7 @@ async def main():
     ap.add_argument("cards", nargs="*", help="CC|MM|YY|CVC или файл")
     ap.add_argument("--proxy", default=None)
     ap.add_argument("--max-price", type=int, default=MAX_PRICE_CENTS,
-                    help="крышка суммы товара в центах (default 200)")
+                    help=f"крышка суммы товара в центах (default {MAX_PRICE_CENTS} = $20)")
     args = ap.parse_args()
 
     if args.target.startswith("http"):
