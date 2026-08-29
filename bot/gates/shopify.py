@@ -66,6 +66,17 @@ def _dead_domains() -> set[str]:
         return set()
 
 
+def _unchecked_domains() -> set[str]:
+    """Витринные кандидаты без боевой верификации (needs_live_check)."""
+    p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_gates.json")
+    try:
+        with open(p, encoding="utf-8") as f:
+            gates = json.load(f)
+        return {g.get("domain") for g in gates if g.get("needs_live_check")} - {None}
+    except Exception:
+        return set()
+
+
 def _targets(tier: tuple[int, int] | None = None) -> list[str]:
     """Load Shopify targets from env or data/shopify_targets.txt, filtering by tier and health."""
     t = os.environ.get("PUSTO_SHOPIFY_TARGETS", "")
@@ -83,6 +94,15 @@ def _targets(tier: tuple[int, int] | None = None) -> list[str]:
         targets = [
             t2 for t2 in targets
             if t2.replace("https://", "").replace("http://", "").rstrip("/") not in dead
+        ]
+
+    # needs_live_check: витринные кандидаты (tavily-sweep) без боевой верификации —
+    # в ротацию не пускаем, пока _verify_shopify_pool.py не прогонит probe-карту
+    unchecked = _unchecked_domains()
+    if unchecked:
+        targets = [
+            t2 for t2 in targets
+            if t2.replace("https://", "").replace("http://", "").rstrip("/") not in unchecked
         ]
 
     if tier is not None:

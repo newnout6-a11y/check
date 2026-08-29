@@ -1,5 +1,35 @@
 [
   {
+    "url": "https://daydesigner.myshopify.com",
+    "domain": "daydesigner.myshopify.com",
+    "cheapest_cents": 0,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://simply-country-ranch.myshopify.com",
+    "domain": "simply-country-ranch.myshopify.com",
+    "cheapest_cents": 0,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://artisaire.myshopify.com",
+    "domain": "artisaire.myshopify.com",
+    "cheapest_cents": 57,
+    "cheapest_title": "Dolce Vita Reply Envelopes",
+    "variant_id": 45178141900956,
+    "currency": "USD"
+  },
+  {
     "url": "https://adam-hawley-store.myshopify.com",
     "domain": "adam-hawley-store.myshopify.com",
     "cheapest_cents": 95,
@@ -9,6 +39,14 @@
     "verified": true,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://moonjuice.com",
+    "domain": "moonjuice.com",
+    "cheapest_cents": 98,
+    "cheapest_title": "Shipping Protection by Route",
+    "variant_id": 39800764498003,
+    "currency": "USD"
   },
   {
     "url": "https://epomaker.myshopify.com",
@@ -66,6 +104,88 @@
     "last_live_verdict": "DECLINED"
   },
   {
+    "url": "https://thesoapfactory-727.myshopify.com",
+    "domain": "thesoapfactory-727.myshopify.com",
+    "cheapest_cents": 175,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://terrebleu.myshopify.com",
+    "domain": "terrebleu.myshopify.com",
+    "cheapest_cents": 195,
+    "cheapest_title": "Grace Sticker",
+    "variant_id": 44705130840087,
+    "currency": "USD"
+  },
+  {
+    "url": "https://midsummafestival.myshopify.com",
+    "domain": "midsummafestival.myshopify.com",
+    "cheapest_cents": 200,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://nwnshop.myshopify.com",
+    "domain": "nwnshop.myshopify.com",
+    "cheapest_cents": 250,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://nativecos.com",
+    "domain": "nativecos.com",
+    "cheapest_cents": 280,
+    "cheapest_title": "Sensitive Mini Facial Cleanser - Last Chance",
+    "variant_id": 47271440154798,
+    "currency": "USD"
+  },
+  {
+    "url": "https://thepapergardengals.myshopify.com",
+    "domain": "thepapergardengals.myshopify.com",
+    "cheapest_cents": 300,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://treadlightly.myshopify.com",
+    "domain": "treadlightly.myshopify.com",
+    "cheapest_cents": 300,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://cocopup-london.myshopify.com",
+    "domain": "cocopup-london.myshopify.com",
+    "cheapest_cents": 300,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
     "url": "https://puravidabracelets.myshopify.com",
     "domain": "puravidabracelets.myshopify.com",
     "cheapest_cents": 320,
@@ -75,6 +195,17 @@
     "verified": true,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://the-original-deer-mullet-shop.myshopify.com",
+    "domain": "the-original-deer-mullet-shop.myshopify.com",
+    "cheapest_cents": 325,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
   },
   {
     "url": "https://kbdfans.myshopify.com",
@@ -88,6 +219,17 @@
     "last_live_verdict": "DECLINED"
   },
   {
+    "url": "https://simplestories.myshopify.com",
+    "domain": "simplestories.myshopify.com",
+    "cheapest_cents": 395,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
     "url": "https://the-cajun-girl-pattern-shop.myshopify.com",
     "domain": "the-cajun-girl-pattern-shop.myshopify.com",
     "cheapest_cents": 399,
@@ -97,6 +239,63 @@
     "verified": false,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DEAD"
+  },
+  {
+    "url": "https://littleflowersoap.myshopify.com",
+    "domain": "littleflowersoap.myshopify.com",
+    "cheapest_cents": 399,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://meowmeowtweet.myshopify.com",
+    "domain": "meowmeowtweet.myshopify.com",
+    "cheapest_cents": 400,
+    "cheapest_title": "Skin Cream",
+    "variant_id": 32320863895619,
+    "currency": "USD"
+  },
+  {
+    "url": "https://midwest-fragrance-company.myshopify.com",
+    "domain": "midwest-fragrance-company.myshopify.com",
+    "cheapest_cents": 419,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://stopkillerrobots.myshopify.com",
+    "domain": "stopkillerrobots.myshopify.com",
+    "cheapest_cents": 450,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://cuyana.com",
+    "domain": "cuyana.com",
+    "cheapest_cents": 495,
+    "cheapest_title": "Cotton Envelope",
+    "variant_id": 44392036041019,
+    "currency": "USD"
+  },
+  {
+    "url": "https://koss.com",
+    "domain": "koss.com",
+    "cheapest_cents": 495,
+    "cheapest_title": "ESP/95X Ear Cushions",
+    "variant_id": 52249709838567,
+    "currency": "USD"
   },
   {
     "url": "https://stevemadden.myshopify.com",
@@ -132,6 +331,17 @@
     "last_live_verdict": "DECLINED"
   },
   {
+    "url": "https://hstbmerch.myshopify.com",
+    "domain": "hstbmerch.myshopify.com",
+    "cheapest_cents": 499,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
     "url": "https://deathwishcoffee.myshopify.com",
     "domain": "deathwishcoffee.myshopify.com",
     "cheapest_cents": 500,
@@ -141,6 +351,33 @@
     "verified": true,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://archer-and-olive.myshopify.com",
+    "domain": "archer-and-olive.myshopify.com",
+    "cheapest_cents": 500,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://dedcool.com",
+    "domain": "dedcool.com",
+    "cheapest_cents": 595,
+    "cheapest_title": "Individual Samples",
+    "variant_id": 46594221867237,
+    "currency": "USD"
+  },
+  {
+    "url": "https://lunchskins.myshopify.com",
+    "domain": "lunchskins.myshopify.com",
+    "cheapest_cents": 599,
+    "cheapest_title": "Compostable Cling Wrap",
+    "variant_id": 42178797633602,
+    "currency": "USD"
   },
   {
     "url": "https://chubbies.myshopify.com",
@@ -154,6 +391,25 @@
     "last_live_verdict": "DECLINED"
   },
   {
+    "url": "https://functionofbeauty.com",
+    "domain": "functionofbeauty.com",
+    "cheapest_cents": 600,
+    "cheapest_title": "Mini Comb",
+    "variant_id": 46910691115320,
+    "currency": "USD"
+  },
+  {
+    "url": "https://miscellany-overhaul.myshopify.com",
+    "domain": "miscellany-overhaul.myshopify.com",
+    "cheapest_cents": 700,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
     "url": "https://gymshark.myshopify.com",
     "domain": "gymshark.myshopify.com",
     "cheapest_cents": 800,
@@ -163,6 +419,82 @@
     "verified": true,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://simplyyouscc.myshopify.com",
+    "domain": "simplyyouscc.myshopify.com",
+    "cheapest_cents": 900,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://bloomdailyplanners.myshopify.com",
+    "domain": "bloomdailyplanners.myshopify.com",
+    "cheapest_cents": 995,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://knomo.com",
+    "domain": "knomo.com",
+    "cheapest_cents": 1000,
+    "cheapest_title": "KNOMO E-GIFT CARD",
+    "variant_id": 9642777444467,
+    "currency": "USD"
+  },
+  {
+    "url": "https://schoolhouse.com",
+    "domain": "schoolhouse.com",
+    "cheapest_cents": 1000,
+    "cheapest_title": "Linnea Rug",
+    "variant_id": 49415626457240,
+    "currency": "USD"
+  },
+  {
+    "url": "https://chqsoap-2.myshopify.com",
+    "domain": "chqsoap-2.myshopify.com",
+    "cheapest_cents": 1000,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://skigirl.myshopify.com",
+    "domain": "skigirl.myshopify.com",
+    "cheapest_cents": 1200,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://drinkolipop.com",
+    "domain": "drinkolipop.com",
+    "cheapest_cents": 1279,
+    "cheapest_title": "Orange Cream",
+    "variant_id": 62840531517599,
+    "currency": "USD"
+  },
+  {
+    "url": "https://troubadour.myshopify.com",
+    "domain": "troubadour.myshopify.com",
+    "cheapest_cents": 1470,
+    "cheapest_title": "Full Leather MagSafe Wallet for iPhone",
+    "variant_id": 47633491591400,
+    "currency": "USD"
   },
   {
     "url": "https://ticklemychi.myshopify.com",
@@ -176,6 +508,17 @@
     "last_live_verdict": "DECLINED"
   },
   {
+    "url": "https://buckle-down-inc.myshopify.com",
+    "domain": "buckle-down-inc.myshopify.com",
+    "cheapest_cents": 1495,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
     "url": "https://bombas.myshopify.com",
     "domain": "bombas.myshopify.com",
     "cheapest_cents": 1600,
@@ -185,6 +528,33 @@
     "verified": true,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://tatcha.com",
+    "domain": "tatcha.com",
+    "cheapest_cents": 1600,
+    "cheapest_title": "Aburatorigami",
+    "variant_id": 52085660942645,
+    "currency": "USD"
+  },
+  {
+    "url": "https://drinktrade.com",
+    "domain": "drinktrade.com",
+    "cheapest_cents": 1699,
+    "cheapest_title": "The crowd faves",
+    "variant_id": 47524019339583,
+    "currency": "USD"
+  },
+  {
+    "url": "https://dogbandanaco.myshopify.com",
+    "domain": "dogbandanaco.myshopify.com",
+    "cheapest_cents": 1699,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
   },
   {
     "url": "https://lm-products.myshopify.com",
@@ -220,6 +590,60 @@
     "last_live_verdict": "DECLINED"
   },
   {
+    "url": "https://naturalannie-essentials.myshopify.com",
+    "domain": "naturalannie-essentials.myshopify.com",
+    "cheapest_cents": 2000,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://bollandbranch.com",
+    "domain": "bollandbranch.com",
+    "cheapest_cents": 2100,
+    "cheapest_title": "L'AVANT Collective Wool Dryer Balls",
+    "variant_id": 44014162542651,
+    "currency": "USD"
+  },
+  {
+    "url": "https://manitobah.myshopify.com",
+    "domain": "manitobah.myshopify.com",
+    "cheapest_cents": 3000,
+    "cheapest_title": "Morningstar Keychain",
+    "variant_id": 43104275464263,
+    "currency": "USD"
+  },
+  {
+    "url": "https://charlie-hustle-2.myshopify.com",
+    "domain": "charlie-hustle-2.myshopify.com",
+    "cheapest_cents": 3800,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://pangaia.com",
+    "domain": "pangaia.com",
+    "cheapest_cents": 3900,
+    "cheapest_title": "Womens Cropped T-Shirt—Off-White",
+    "variant_id": 57150834246019,
+    "currency": "USD"
+  },
+  {
+    "url": "https://aimeleondore.com",
+    "domain": "aimeleondore.com",
+    "cheapest_cents": 4000,
+    "cheapest_title": "Striped  Crest  Sock",
+    "variant_id": 42007555604577,
+    "currency": "USD"
+  },
+  {
     "url": "https://mvmt.myshopify.com",
     "domain": "mvmt.myshopify.com",
     "cheapest_cents": 4800,
@@ -240,5 +664,59 @@
     "verified": true,
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://kith.com",
+    "domain": "kith.com",
+    "cheapest_cents": 7100,
+    "cheapest_title": "Kith Script Wrinkle Nylon Bay Low Pinch Crown Snapback - Cinnabar",
+    "variant_id": 45143769153664,
+    "currency": "USD"
+  },
+  {
+    "url": "https://velasca.myshopify.com",
+    "domain": "velasca.myshopify.com",
+    "cheapest_cents": 7200,
+    "cheapest_title": "Acquaviva",
+    "variant_id": 53318254657869,
+    "currency": "USD"
+  },
+  {
+    "url": "https://math-giraffe-shop.myshopify.com",
+    "domain": "math-giraffe-shop.myshopify.com",
+    "cheapest_cents": 8000,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
+  },
+  {
+    "url": "https://camillebrinch.myshopify.com",
+    "domain": "camillebrinch.myshopify.com",
+    "cheapest_cents": 14900,
+    "cheapest_title": "Shiny Dots Bead",
+    "variant_id": 55806408851836,
+    "currency": "USD"
+  },
+  {
+    "url": "https://sophiebillebrahe.com",
+    "domain": "sophiebillebrahe.com",
+    "cheapest_cents": 70000,
+    "cheapest_title": "Velvet Noir Nuit",
+    "variant_id": 53635377398106,
+    "currency": "USD"
+  },
+  {
+    "url": "https://brooklyn-candle-studio.myshopify.com",
+    "domain": "brooklyn-candle-studio.myshopify.com",
+    "cheapest_cents": 64800000,
+    "cheapest_title": null,
+    "variant_id": null,
+    "currency": "USD",
+    "verified": false,
+    "needs_live_check": true,
+    "source": "tavily-sweep-2026-08-29"
   }
 ]
