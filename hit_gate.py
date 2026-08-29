@@ -134,7 +134,6 @@ class CsHitSession:
             body["init_checksum"] = self.checksum
         # подписочные сессии пересчитывают инвойс между open и confirm —
         # при checkout_amount_mismatch перечитываем сумму и повторяем один раз
-        body["expected_amount"] = str(self.amount)
         try:
             r = await self.s.post(f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm",
                                   data=body,

@@ -439,6 +439,27 @@ async def cmd_hit(client, message: Message):
     await status_msg.edit_text(chunks[0], parse_mode=ParseMode.HTML)
     for extra in chunks[1:]:
         await message.reply(extra, parse_mode=ParseMode.HTML)
+
+
+@app.on_message(filters.command(["mass"]))
+@user_only
+async def cmd_mass(client, message: Message):
+    u_id = message.from_user.id
+    db.ensure_user(u_id, message.from_user.username or "")
+    if not db.antispam_ok(u_id):
+        return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
+
+    cards_text = ""
+    gate_forced = None
+
+    parts = (message.text or "").split()
+    if len(parts) > 1 and GATE_ALIASES.get(parts[1], parts[1]) in GATES:
+        gate_forced = GATE_ALIASES.get(parts[1], parts[1])
+        raw_tail = " ".join(parts[2:])
+    else:
+        raw_tail = " ".join(parts[1:])
+
+    # Check if document / reply
     if message.reply_to_message and message.reply_to_message.document:
         doc = await message.reply_to_message.download(in_memory=True)
         cards_text = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
@@ -692,11 +713,9 @@ async def addcredits(client, message: Message):
     p = (message.text or "").split()
     if len(p) != 3 or not p[1].lstrip("-").isdigit() or not p[2].lstrip("-").isdigit():
         return await message.reply("Формат: /addcredits UID N")
-    with db.connect() as c:
-        cur = c.execute("UPDATE users SET credits = MAX(0, credits + ?) WHERE user_id=?",
-                        (int(p[2]), int(p[1])))
-        if not cur.rowcount:
-            return await message.reply(f"UID {p[1]} не найден")
+    # db.admin_add_credits: соединение гарантированно закрывается (_db())
+    if not db.admin_add_credits(int(p[1]), int(p[2])):
+        return await message.reply(f"UID {p[1]} не найден")
     await message.reply(f"Готово: UID {p[1]} кредиты {int(p[2]):+d}")
 
 
@@ -704,17 +723,13 @@ async def addcredits(client, message: Message):
 @admin_only
 @user_only
 async def addpremium(client, message: Message):
-    import time as _t
     p = (message.text or "").split()
     if len(p) != 3 or not p[2].isdigit():
         return await message.reply("Формат: /addpremium UID ДНИ")
     uid, days = int(p[1]), int(p[2])
-    base = max(int(db.get_user(uid).get("premium_until") or 0), int(_t.time()))
-    with db.connect() as c:
-        cur = c.execute("UPDATE users SET premium_until=? WHERE user_id=?",
-                        (base + days * 86400, uid))
-        if not cur.rowcount:
-            return await message.reply(f"UID {uid} не найден")
+    # db.admin_add_premium: соединение гарантированно закрывается (_db())
+    if not db.admin_add_premium(uid, days):
+        return await message.reply(f"UID {uid} не найден")
     await message.reply(f"Готово: UID {uid} премиум +{days} дн.")
 
 

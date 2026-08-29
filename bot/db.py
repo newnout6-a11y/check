@@ -81,12 +81,29 @@ def spend_credit(user_id: int, gate: str) -> bool:
         return True
     cost = 0 if is_premium(get_user(user_id)) else config.GATE_COST.get(gate, 1)
     with _db() as c:
-        row = c.execute("SELECT credits FROM users WHERE user_id=?", (user_id,)).fetchone()
-        if not row or row["credits"] < cost:
-            return False
-        c.execute("UPDATE users SET credits = credits - ?, total_checks = total_checks + 1 "
-                  "WHERE user_id=?", (cost, user_id))
-        return True
+        # атомарный списывающий UPDATE: SELECT→UPDATE в разных неявных
+        # транзакциях терял обновление при параллельных /mass (lost update)
+        cur = c.execute(
+            "UPDATE users SET credits = credits - ?, total_checks = total_checks + 1 "
+            "WHERE user_id=? AND credits >= ?", (cost, user_id, cost))
+        return cur.rowcount > 0
+
+
+def admin_add_credits(uid: int, delta: int) -> bool:
+    """Атомарное изменение баланса админ-командой; False = юзера нет."""
+    with _db() as c:
+        cur = c.execute("UPDATE users SET credits = MAX(0, credits + ?) WHERE user_id=?",
+                        (delta, uid))
+        return cur.rowcount > 0
+
+
+def admin_add_premium(uid: int, days: int) -> bool:
+    """Продление премиума от текущего max(premium_until, now); False = юзера нет."""
+    base = max(int(get_user(uid).get("premium_until") or 0), int(time.time()))
+    with _db() as c:
+        cur = c.execute("UPDATE users SET premium_until=? WHERE user_id=?",
+                        (base + days * 86400, uid))
+        return cur.rowcount > 0
 
 
 def refund_credit(user_id: int, gate: str) -> bool:
