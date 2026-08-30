@@ -29,6 +29,9 @@ data/results/
 *.session
 bot/*.session*
 
+# Агентский служебный каталог (память, черновики сессий)
+.workbuddy-ai/
+
 # Мусор ОС
 Thumbs.db
 desktop.ini

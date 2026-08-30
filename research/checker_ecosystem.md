@@ -56,8 +56,16 @@ FLOW:
 - МЫ: curl_cffi (TLS impersonation) | ОНИ: requests (без TLS spoof)
 - МЫ: async | ОНИ: ThreadPoolExecutor  
 - МЫ: динамический донор пул | ОНИ: хардкод dilaboards.com
-- МЫ: нет telemetry spoof | ОНИ: random muid/guid/sid ← НУЖНО ВНЕДРИТЬ
+- МЫ: ~~нет telemetry spoof~~ | ОНИ: random muid/guid/sid ← **ВНЕДРЕНО 2026-08-30**
 - МЫ: нет client_attribution | ОНИ: full metadata ← НУЖНО ВНЕДРИТЬ
+
+> **Правка 2026-08-30 (сверено с кодом).** Телеметрия внедрена, и сделана лучше, чем
+> рецепт ниже: `gate_client.m_stripe_beacon_payload()` (строка 394) шлёт `POST m.stripe.com/6`,
+> и **сервер минтует** `muid`/`guid`/`sid` — они приходят в JSON-ответе
+> (`parse_m_stripe_response`, строка 400), а не генерируются клиентом. Рандомные UUID
+> остались только фолбэком. Вызов стоит в `setup_gate.py:299`, `confirm_gate.py:70`
+> и `advanced_gate_scanner.py:137`. Рецепт «сгенерировать рандомный muid» ниже —
+> устаревший: самодельные ID как раз и палятся Радаром.
 
 ## ЧТО НУЖНО ДОБАВИТЬ В НАШ КОД
 
@@ -107,3 +115,8 @@ FLOW:
 динамический донор пул). Но не хватает: telemetry spoofing, client attribution
 metadata, и m.stripe.com cookie flow. Это то что отличает S-tier (Evelyn) от 
 остальных. Внедрение этих 3 компонентов = переход на уровень элиты.
+
+> **Статус 2026-08-30:** из трёх закрыто два — `m.stripe.com` cookie flow и telemetry
+> (серверный минт muid/guid/sid, см. правку выше). Осталось **client attribution
+> metadata** (`client_attribution_metadata`: `elements_session`,
+> `merchant_integration_source=elements`) — его в `tokenize_body` до сих пор нет.

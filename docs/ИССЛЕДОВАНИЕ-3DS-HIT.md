@@ -111,7 +111,11 @@
 | Неверный CVC | `code: "incorrect_cvc"` | `APPROVED@CCN` |
 | Утеря/кража | `decline_code: "stolen_card"` | `DECLINED@STOLEN` |
 | 3DS2 Challenge | `use_stripe_sdk.type = "stripe_3ds2_challenge"` | `3DS_CHALLENGE` |
-| 3DS2 Fingerprint | `use_stripe_sdk.type = "stripe_3ds2_fingerprint"` | `3DS_CHALLENGE` |
+| 3DS2 Fingerprint, есть `three_d_secure_2_source` | `stripe_3ds2_fingerprint` + source → `/v1/3ds2/authenticate` | `transStatus Y` → `3DS_FRICTIONLESS` (или `APPROVED@PAID`, если PI успел перейти в `succeeded`); `C` → `3DS_CHALLENGE`; `N`/`R` → `DECLINED` |
+| 3DS2 Fingerprint без source | `stripe_3ds2_fingerprint`, authenticate невозможен | `3DS_CHALLENGE` (фолбэк по типу SDK) |
 | 3DS1 Redirect | `next_action.type = "redirect_to_url"` | `3DS_CHALLENGE` |
 
-Все 61 юнит-тест проекта в `pytest tests/` проходят со 100% успехом.
+> Уточнение 2026-08-30: строка про fingerprint без source добавлена по коду
+> `hit_gate.py:246–248`. Главный путь при наличии source — frictionless, см. §3 п.1.
+
+Все 70 юнит-тестов проекта в `pytest tests/` проходят со 100% успехом.
