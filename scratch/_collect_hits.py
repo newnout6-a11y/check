@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# Сбор всех cs_live-URL из chati/ -> data/hit_targets.txt
+# Сбор всех cs_live-URL из research/chat-corpus/ -> data/hit_targets.txt
 import os, re, sys
 from urllib.parse import unquote
 sys.stdout.reconfigure(encoding='utf-8')
 
-CH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'chati')
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'hit_targets.txt')
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CH = os.path.join(ROOT, 'research', 'chat-corpus')
+OUT = os.path.join(ROOT, 'data', 'hit_targets.txt')
 
 # URL с фрагментом fid... (фрагмент критичен: без него сессию не открыть)
 URL_RE = re.compile(r'https://[a-zA-Z0-9.-]+/c/pay/(cs_live_[A-Za-z0-9]+)(#[A-Za-z0-9%_.\-/=]+)')

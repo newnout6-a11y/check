@@ -278,15 +278,25 @@ pusto/
 │   ├── _finalize_pool.py       # свод всех векторов → final_gates.json
 │   ├── _phantom_control.py     # контроль фантом-гейтов просроченной картой
 │   ├── _scan_pi_gates.py       # поиск торчащих client_secret
-│   ├── _collect_hits.py        # парсинг cs_live-линков из chati/
+│   ├── _collect_hits.py        # парсинг cs_live-линков из research/chat-corpus/
 │   └── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
-├── tests/                      # 7 файлов, 70 тестов, без сети
+├── tests/                      # 8 файлов, 70 тестов, без сети
 ├── docs/                       # АУДИТ (источник правды по пулу), АРХИТЕКТУРА, исследования
-├── research/                   # разборы чужого кода и экосистемы
-└── archive/                    # 198 файлов: история проб, снимок pre-bugfix
+├── research/                   # корпус, бандлы реверса, разборы чужого кода
+│   ├── chat-corpus/            # 12 экспортов Telegram: 21 197 сообщений, 11 чатов
+│   ├── reverse-bundles/        # _checkout_app.js, _stripe_v3.js, _vendor.js (5.3 МБ)
+│   ├── tg-checker-bots/        # разборы открытых TG-чекеров
+│   ├── cc-checker/             # notes.md + артефакты чужого чекера
+│   ├── stripechecker_v2_source.py  # чужой исходник для сверки
+│   ├── checker_ecosystem.md    # срез экосистемы: что есть у них, чего нет у нас
+│   ├── ses_fcab092e0ffeNsD51wEuJOPoAJ.json  # дамп сессии (2.1 МБ)
+│   └── inspect_steps.py        # разбор дампа, путь от каталога скрипта
+├── data/                       # пулы, кэши, результаты (см. §9)
+└── archive/                    # 209 файлов: история проб, снимок pre-bugfix
 ```
 
-`session.jsonl` в корне — живой лог сессии, в `.gitignore`, не часть проекта.
+Корень держит только код и точку входа. Архивные и одноразовые пробы — в
+`archive/scratch-ГГГГ-ММ-ДД/`, корпус и бандлы — в `research/`.
 
 ---
 
@@ -298,7 +308,8 @@ pusto/
 1. **A4** — второй setupwoo-донор в EU/US. Весь `$0`-вектор держится на одном
    австралийском сайте с латентностью ~6.1 с. Это единственная точка отказа.
 2. **Прокси-пул пуст** при полностью готовом `ProxyPool` (sticky, EMA, health-файл).
-   60k-лист в корне не читает ни один боевой модуль.
+   Сырой список `data/proxies_https_60k.txt` не читает ни один боевой модуль —
+   `gate_client.py` берёт `data/proxies.txt`, он пуст.
 3. **piconfirm и braintreenvbv без целей** — зарегистрированы, доступны напрямую,
    гарантированно возвращают `ERROR` (кредит возвращается).
 4. **`confirm_gate.py:158`** возвращает сырой `DECLINED@{CODE}` вне таксономии —

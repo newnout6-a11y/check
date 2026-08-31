@@ -1,6 +1,6 @@
 # language: Python 3.12+, file: hit_gate.py, target: Windows 11, deps: curl_cffi
 # Stripe Checkout /hit — проверка карты по ГОТОВОМУ cs_live-линку (hosted checkout).
-# Вектор из разведки chati/ (docs/ИССЛЕДОВАНИЕ-НОВЫЕ-ПОВЕРХНОСТИ.md §В1):
+# Вектор из разведки research/chat-corpus/ (docs/ИССЛЕДОВАНИЕ-НОВЫЕ-ПОВЕРХНОСТИ.md §В1):
 #   cs_live-URL -> fid-фрагмент (XOR5+base64+JSON, stripe_fid.py) -> pk + session
 #   -> GET /v1/payment_pages/{cs} (PI+amount+init_checksum)
 #   -> POST /v1/payment_methods (токенизация)

@@ -22497,3 +22497,46 @@ zan ты тут
 Текст:
 когда можно взять плюс
 ──────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ССЫЛКА:
+https://checkout.stripe.com/c/pay/cs_live_a1AHVSgol0fyxtzyVjfT2UlNj4Qphc9HQdG5ZRQeS9eZI2gPb9SynAzGTp#fidnandhYHdWcXxpYCc%2FJ3dqcGthJyknaWpmZGlgJz8nd3AnKSd2cGd2ZndsdXFsamtQa2x0cGBrYHZ2QGtkZ2lgYSc%2FY2RpdmApJ2JwZGZkaGppYFNkd2xka3EnPydmamtxd2ppJyknZHVsTmB8Jz8ndW5aaWxzYFowNFV8SHZVQ21xTkx9QmpUZnRGTm5yf0owc0pIakh1dEpUPWNPYzRuaGFNUHxXPGMxZmFfUXZkTUNvPWp2YENBd19EXFNyfUszQ2pUbWcycDZKaHV3dGM3ZjU1fUdGaX9tPEYnKSdjd2poVmB3c2B3Jz9xd3BgKSdnZGZuYndqcGthRmppancnPycmY2NjY2NjJyknaWR8anBxUXx1YCc%2FJ3Zsa2JpYFpscWBoJyknYGtkZ2lgVWlkZmBtamlhYHd2Jz9xd3BgeCUl
+
+запасная ссылка :
+https://checkout.stripe.com/c/pay/cs_live_a1ZKZUcKN5q7KD4LM2ajBJwqlt5F0wvhbb8AAcPQSdXn2F9KU7Fgkrr4lP#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdpamZkaWAnPyd3cCcpJ3ZwZ3Zmd2x1cWxqa1BrbHRwYGtgdnZAa2RnaWBhJz9xd3BgKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWmlsc2BaMDRLVmE0ZE40VFxnbUJiQXV1dEYxRjM1RENEc3U8YVJEMUNuSXZcPUp8bzN1fE4zcjFfR01tTX9QbWdENVA2STxAZFY9cndNR2pzS2tUUlNkQzdEbzxHbEM1NVVSdXJSfXx1JyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl
+
+
+
+
+
+Прогнать пачку на живом чекауте: запустить авто-прогон первых N карт по чекауту Stripe
+пачка находится : C:\Users\Redmi\Downloads\3ds\TUT_KARTI
+
+и получить настоящий хит. с отчётом какая карта прошла и что просиходила. нужн полная телеметрия всего. как что вылезало и тд. 
+
+
+
+
+
+Теперь нужно 
+1) Один успешных хит 
+2) поймать если вылезет форма 3дс , и смотреть что происходит досканально. 
