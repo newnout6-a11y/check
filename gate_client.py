@@ -823,6 +823,28 @@ def classify_verdict(err_msg: str) -> str:
     return "DECLINED"
 
 
+# Статусы SetupIntent — это НЕ тексты ошибок, classify_verdict их не покроет.
+# Сырой str(st).upper() давал CANCELED / PROCESSING / REQUIRES_PAYMENT_METHOD
+# вне config.VERDICTS: нет иконки, не попадает в хиты и, главное, != "ERROR",
+# из-за чего credit-refund в боте не срабатывал.
+_SETUP_INTENT_STATUS_MAP = {
+    "succeeded": "APPROVED",
+    "requires_action": "3DS_REQUIRED",
+    "processing": "PI_PENDING",
+    "canceled": "DECLINED",
+    "requires_payment_method": "DECLINED",   # карта отвергнута на attach
+    "requires_confirmation": "RETRY",
+    "requires_capture": "APPROVED@HOLD",
+}
+
+
+def classify_setup_intent_status(status: str) -> str:
+    """Статус SetupIntent из WP-ответа → таксономия config.VERDICTS.
+    Неизвестный статус → UNKNOWN, но НИКОГДА не сырая строка наружу."""
+    st = (status or "").strip().lower()
+    return _SETUP_INTENT_STATUS_MAP.get(st, "UNKNOWN")
+
+
 def is_nonce_rejection(conf_resp: dict) -> bool:
     """WP отвечает data:'-1'/0 или 'nonce' в сообщении, когда ajax-nonce протух."""
     data = conf_resp.get("data")

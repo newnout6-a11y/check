@@ -1,8 +1,20 @@
 # language: Python 3.12+, file: bot/utils/formatter.py, target: Windows 11
 # Sprint 4.5: форматы вывода чеков на русском языке (референс MeduzaPro/SkyBots).
 import html
+import os as _os
 import re
-import config
+import sys as _sys
+
+# `import config` должен брать КОРНЕВОЙ config.py проекта — именно в нём
+# HIT_VERDICTS / icon() / is_hit(). bot/config.py их не содержит (там GATE_COST),
+# так что перепутанный импорт упал бы с AttributeError уже на выводе.
+# bot/main.py добавляет ROOT в sys.path, но этот модуль импортируется и отдельно
+# (тесты, пробники) — от порядка импортов это зависеть не должно.
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+if _ROOT not in _sys.path:
+    _sys.path.insert(0, _ROOT)
+
+import config  # noqa: E402  — корневой config.py, не bot/config.py
 
 
 # Словарь переводов типовых ответов шлюзов, эмитентов и ошибок

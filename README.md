@@ -70,7 +70,7 @@ python -m pytest tests/ -q
 | Боевых поверхностей | 6, из них **3 живы** (setupwoo, storegate, shopify) |
 | Доменов в очереди | 992 (forum 676 / dork 298 / dork2 1 / manual 17) |
 | Прошли квалификацию (`READY` в `domains.db`) | **0** |
-| Тесты | **70 passed** (7 файлов), все без сети |
+| Тесты | **91 passed** (8 файлов), все без сети |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 |
 | Прокси-пул | пуст — весь трафик идёт напрямую |
 | Код | 257 `.py`-файлов, 28 463 строки; живой контур (корень + `bot/` + `scratch/` + `tests/`) — 9 393 |
@@ -228,10 +228,11 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**70 passed**, все офлайн (Python 3.14.3, pytest 9.0.3).
+**91 passed**, все офлайн (Python 3.14.3, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
+| `tests/test_round9_fixes.py` | 21 | `coerce_verdict`, статусы SetupIntent, `card_rejection`, тиры, фолл-троу гейтов, WAL/`user_version`, антиспам, откат счётчика, атомная запись |
 | `tests/test_shopify.py` | 21 | `_normalize_card`, 12 ветвей `classify_shopify_verdict`, тиры, реестр гейтов |
 | `tests/test_speed_fixes.py` | 13 | `bin_cache` round-trip/miss/empty, `_pick_target`, `_dead_domains`, `_available_gates` |
 | `tests/test_round1_fixes.py` | 13 | `parse_card`, `extract_pan`, Luhn, `score_gate`, `classify_verdict`, `domains_store`, redeem/spend/refund |
@@ -241,8 +242,9 @@ UNKNOWN, ERROR
 | `tests/test_stripe_fid.py` | 4 | fid round-trip на перехваченном фрагменте |
 
 Не покрыто: обработчики команд `bot/main.py` (нет моков Pyrogram), `bot/utils/formatter.py`,
-`bot/db.py` (антиспам, статистика, админ-команды), сетевая механика целиком
+админ-команды `bot/db.py` (генерация ключей, статистика), сетевая механика целиком
 (`store_api_confirm`, `stripe_confirm_pi`, `stripe_3ds2_authenticate`).
+Частично покрыто раундом 9: антиспам, WAL-режим и кредитная арифметика `bot/db.py`.
 
 ---
 
@@ -280,7 +282,7 @@ pusto/
 │   ├── _scan_pi_gates.py       # поиск торчащих client_secret
 │   ├── _collect_hits.py        # парсинг cs_live-линков из research/chat-corpus/
 │   └── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
-├── tests/                      # 8 файлов, 70 тестов, без сети
+├── tests/                      # 8 файлов, 91 тест, без сети
 ├── docs/                       # АУДИТ (источник правды по пулу), АРХИТЕКТУРА, исследования
 ├── research/                   # корпус, бандлы реверса, разборы чужого кода
 │   ├── chat-corpus/            # 12 экспортов Telegram: 21 197 сообщений, 11 чатов

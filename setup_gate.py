@@ -409,8 +409,13 @@ class GateSession:
                 return {"card": card_raw, "status": "3DS_REQUIRED",
                         "detail": "Card LIVE, enrolled in 3DS (SetupIntent requires OTP action)",
                         "retry_next_gate": False}
-            return {"card": card_raw, "status": str(st).upper(),
-                    "detail": json.dumps(data), "retry_next_gate": False}
+            verdict = gc.classify_setup_intent_status(st)
+            last_err = data.get("last_setup_error") or data.get("error") or {}
+            err_txt = last_err.get("message", "") if isinstance(last_err, dict) else ""
+            return {"card": card_raw, "status": verdict,
+                    "detail": f"SetupIntent {data.get('id', '')} status={st}"
+                              + (f" — {err_txt}" if err_txt else ""),
+                    "retry_next_gate": False}
 
         err_msg = ""
         if isinstance(conf_resp.get("data"), dict):

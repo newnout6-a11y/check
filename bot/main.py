@@ -11,6 +11,7 @@ import os
 import re
 import secrets as _secrets
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -96,14 +97,45 @@ GATE_LABELS = {
     "braintreenvbv": "Braintree VBV",
     "hit": "Checkout /hit",
 }
+# Фолбэк подписей для гейтов без своей таблицы тиров. Для storegate/shopify
+# подпись считается из их PRICE_TIERS — см. tier_label().
 TIER_LABELS = {"1": "<$1", "5": "$1–5", "20": "$5–20",
                "low": "<$1", "mid": "$1–5", "high": "$5–20"}
+
+
+def _cents_str(cents: int) -> str:
+    return "$" + f"{cents / 100:.2f}".rstrip("0").rstrip(".")
+
+
+def tier_label(gate_name: str, tier: str) -> str:
+    """Подпись тира ИЗ ТАБЛИЦЫ САМОГО ГЕЙТА, а не из общей строки.
+
+    TIER_LABELS врал для Shopify по всем трём тирам, а не только по low:
+    его low — это ≤$2, а не <$1; mid — $2.01–6, а не $1–5; high — $6.01–20.
+    Границы у двух гейтов расходятся осознанно, поэтому источник один —
+    PRICE_TIERS целевого гейта.
+    """
+    fallback = TIER_LABELS.get(str(tier), str(tier))
+    try:
+        if gate_name == "shopify":
+            from bot.gates import shopify as mod
+        elif gate_name == "storegate":
+            from bot.gates import storegate as mod
+        else:
+            return fallback
+        bounds = mod.PRICE_TIERS.get(str(tier).strip().lower())
+    except Exception:
+        return fallback
+    if not bounds:
+        return fallback
+    lo, hi = bounds
+    return f"{_cents_str(lo)}–{_cents_str(hi)}"
 
 
 def gate_label(gate_name: str, tier: str | None = None) -> str:
     base = GATE_LABELS.get(gate_name, gate_name)
     if tier:
-        return f"{base} ({TIER_LABELS.get(tier, tier)})"
+        return f"{base} ({tier_label(gate_name, tier)})"
     return base
 
 
@@ -178,6 +210,51 @@ def parse_cards(text: str, limit: int = 20, dedupe: bool = True) -> list[list[st
     return out[:limit]
 
 
+def card_rejection(parts: list[str]) -> str | None:
+    """Семантическая валидация карты ДО списания кредита. None = карта годна.
+
+    parse_cards ловит только форму (число цифр), поэтому '4111... 13 30 123'
+    проходил разбор, умирал в _normalize гейта и возвращался как INVALID —
+    а refund срабатывает исключительно на ERROR. Итог: пользователь платил
+    полный кредит за отказ по валидации, который движок даже не начал.
+    """
+    pan = "".join(ch for ch in parts[0] if ch.isdigit())
+    if not 13 <= len(pan) <= 19:
+        return f"❌ Неверная длина номера ({len(pan)} цифр)"
+    if not gc.check_luhn(pan):
+        return "❌ Неверный номер карты (Luhn fail)"
+    try:
+        mm = int(parts[1])
+    except (ValueError, IndexError, TypeError):
+        return "❌ Неверный месяц"
+    if not 1 <= mm <= 12:
+        return f"❌ Месяц {mm} вне диапазона 01-12"
+    yy_raw = str(parts[2]).strip()
+    try:
+        yy = int(yy_raw)
+    except (ValueError, IndexError, TypeError):
+        return "❌ Неверный год"
+    yy = yy if len(yy_raw) >= 4 else 2000 + yy
+    now = time.localtime()
+    if (yy, mm) < (now.tm_year, now.tm_mon):
+        return f"❌ Карта истекла ({mm:02d}/{yy})"
+    cvv = "".join(ch for ch in parts[3] if ch.isdigit())
+    if len(cvv) not in (3, 4):
+        return "❌ Неверный CVV"
+    return None
+
+
+def _safe_pan(raw: str) -> str:
+    """Маскирование PAN, которое не может уронить обработчик. /mass и /hit
+    собирают отчёт по десяткам карт — одна кривая строка не должна класть батч,
+    поэтому fmt_pan обёрнут, а не вызывается напрямую."""
+    try:
+        return formatter.fmt_pan(raw)
+    except Exception:
+        digits = "".join(ch for ch in str(raw) if ch.isdigit())
+        return f"{digits[:6]}…{digits[-4:]}" if len(digits) >= 10 else (digits or "?")
+
+
 def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
     is_dev = db.is_developer(u)
     is_prem = db.is_premium(u)
@@ -243,6 +320,19 @@ async def cmd_key(client, message: Message):
     if len(parts) != 2:
         return await message.reply("Формат: <code>/redeem КЛЮЧ</code> или <code>/key КЛЮЧ</code>", parse_mode=ParseMode.HTML)
     await message.reply(db.redeem_key(message.from_user.id, parts[1]))
+
+
+def _atomic_write_lines(path: str, lines: list[str]) -> None:
+    """Запись через temp + os.replace. Без этого обрыв на середине записи
+    оставлял data/proxies.txt наполовину перетёртым, и пул поднимался битым —
+    а это единственный носитель прокси, который читает боевой контур."""
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    tmp = f"{path}.tmp.{os.getpid()}"
+    with open(tmp, "w", encoding="utf-8") as f:
+        for line in lines:
+            f.write(str(line).rstrip("\r\n") + "\n")
+    os.replace(tmp, path)
 
 
 @app.on_message(filters.command(["proxy"]))
@@ -333,22 +423,29 @@ async def cmd_addproxy(client, message: Message):
     if not lines:
         return await message.reply("Формат: <code>/addproxy host:port</code> (или ответом на .txt файл)", parse_mode=ParseMode.HTML)
 
-    os.makedirs("data", exist_ok=True)
     p_path = os.path.join("data", "proxies.txt")
-    with open(p_path, "a", encoding="utf-8") as f:
-        for l in lines:
-            f.write(l + "\n")
-    total = len(gc.load_proxies())
-    await message.reply(f"✅ Добавлено <b>{len(lines)}</b> прокси. Всего в пуле: <b>{total}</b> шт.", parse_mode=ParseMode.HTML)
+    existing: list[str] = []
+    if os.path.exists(p_path):
+        try:
+            with open(p_path, encoding="utf-8") as f:
+                existing = [x.strip() for x in f if x.strip()]
+        except Exception:
+            existing = []
+    # dict.fromkeys сохраняет порядок и режет дубли: /addproxy один и тот же
+    # список дважды раздувал пул, а ротация 1/lat потом взвешивала копии
+    merged = list(dict.fromkeys(existing + lines))
+    _atomic_write_lines(p_path, merged)
+    added = len(merged) - len(existing)
+    await message.reply(f"✅ Добавлено <b>{added}</b> прокси (дубли отсечены). "
+                        f"Всего в пуле: <b>{len(merged)}</b> шт.", parse_mode=ParseMode.HTML)
 
 
 @app.on_message(filters.command(["clearproxy"]))
 @admin_only
+@user_only
 async def cmd_clearproxy(client, message: Message):
     p_path = os.path.join("data", "proxies.txt")
-    if os.path.exists(p_path):
-        with open(p_path, "w", encoding="utf-8") as f:
-            f.write("")
+    _atomic_write_lines(p_path, [])
     await message.reply("🧹 Прокси-пул очищен.", parse_mode=ParseMode.HTML)
 
 
@@ -371,52 +468,74 @@ async def run_gate(message: Message, gate_name: str, argline: str,
     db.ensure_user(u_id, message.from_user.username or "")
     if not db.antispam_ok(u_id):
         return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
-    meta = GATES.get(gate_name)
-    if not meta:
-        return await message.reply(f"❌ Гейт {gate_name} не найден")
-    # ценовой тир для storegate / shopify: '/st 1|5|20 CC MM YY CVV' — первый
-    # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается.
-    # Тир может прийти и в имени команды (/st1) — тогда он уже задан, а дубль
-    # в аргументах ('/st1 1 4111...') просто срезается, а не ломает разбор.
-    parser = _tier_parser(gate_name)
-    toks = argline.split()
-    if toks and parser is not None and parser(toks[0]) is not None:
-        if tier is None:
-            tier = toks[0].lower()
-        argline = " ".join(toks[1:])
-    # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс.
-    # Тот же parse_cards, что в /hit и /mass: запятые в '/chk 4111...,12,30,123'
-    # раньше ломались, потому что _card_fields их не ел.
-    cards = parse_cards(argline, limit=1)
-    parts = cards[0] if cards else None
-    if parts is None:
-        return await message.reply(f"Формат: /{gate_name} CC MM YY CVV")
-    if not gc.check_luhn("".join(ch for ch in parts[0] if ch.isdigit())):
-        return await message.reply("❌ Неверный номер карты (Luhn fail)")
-    cost = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
-    if not db.spend_credit(u_id, gate_name):
-        return await message.reply(f"❌ Недостаточно кредитов ({cost}/чек). Используйте /redeem для пополнения")
-    status_msg = await message.reply(f"💳 Проверка · {gate_label(gate_name, tier)}...")
-    t0 = asyncio.get_event_loop().time()
-    bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
-    binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
-    try:
-        if tier and gate_name in ("storegate", "shopify"):
-            res = await meta["fn"](*parts, tier=tier)
+    # GATE_PRIORITY должен что-то значить: если гейт упал (ERROR = сбой движка,
+    # кредит возвращён), чек уходит следующему живому. Раньше /chk умирал на
+    # первом гейте приоритета и до остальных просто не доходил.
+    tried: set[str] = set()
+    status_msg = None
+    while True:
+        meta = GATES.get(gate_name)
+        if not meta:
+            return await message.reply(f"❌ Гейт {gate_name} не найден")
+        tried.add(gate_name)
+        # ценовой тир для storegate / shopify: '/st 1|5|20 CC MM YY CVV' — первый
+        # короткий токен из PRICE_TIERS, карта начинается с 13-19 цифр — не спутается.
+        # Тир может прийти и в имени команды (/st1) — тогда он уже задан, а дубль
+        # в аргументах ('/st1 1 4111...') просто срезается, а не ломает разбор.
+        parser = _tier_parser(gate_name)
+        toks = argline.split()
+        if toks and parser is not None and parser(toks[0]) is not None:
+            if tier is None:
+                tier = toks[0].lower()
+            argline = " ".join(toks[1:])
+        # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс.
+        # Тот же parse_cards, что в /hit и /mass: запятые в '/chk 4111...,12,30,123'
+        # раньше ломались, потому что _card_fields их не ел.
+        cards = parse_cards(argline, limit=1)
+        parts = cards[0] if cards else None
+        if parts is None:
+            return await message.reply(f"Формат: /{gate_name} CC MM YY CVV")
+        bad = card_rejection(parts)
+        if bad:
+            return await message.reply(bad)
+        cost = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
+        if not db.spend_credit(u_id, gate_name):
+            return await message.reply(f"❌ Недостаточно кредитов ({cost}/чек). Используйте /redeem для пополнения")
+        label = gate_label(gate_name, tier)
+        if status_msg is None:
+            status_msg = await message.reply(f"💳 Проверка · {label}...")
         else:
-            res = await meta["fn"](*parts)
-        verdict, detail = res[0], res[1]
-        gate_extra = res[2] if len(res) > 2 else {}
-    except Exception as e:
-        verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
-        gate_extra = {}
-    if verdict == "ERROR":
-        db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
-    latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
-    try:
-        binfo = await asyncio.wait_for(binfo_task, timeout=4)
-    except Exception:
-        binfo = {}
+            await status_msg.edit_text(f"💳 Проверка · {label}...")
+        t0 = asyncio.get_event_loop().time()
+        bin6 = "".join(ch for ch in parts[0] if ch.isdigit())[:6]
+        binfo_task = asyncio.ensure_future(setup_gate.bin_lookup(bin6))
+        try:
+            if tier and gate_name in ("storegate", "shopify"):
+                res = await meta["fn"](*parts, tier=tier)
+            else:
+                res = await meta["fn"](*parts)
+            verdict, detail = engine_cfg.coerce_verdict(res[0]), res[1]
+            gate_extra = res[2] if len(res) > 2 else {}
+        except Exception as e:
+            verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
+            gate_extra = {}
+        if verdict == "ERROR":
+            db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
+        latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
+        try:
+            binfo = await asyncio.wait_for(binfo_task, timeout=4)
+        except Exception:
+            binfo = {}
+        if verdict != "ERROR":
+            break
+        nxt = _pick_gate(None, exclude=tried)
+        if not nxt:
+            break
+        await status_msg.edit_text(
+            f"⚠️ {label} недоступен ({str(detail)[:100]}) — пробую {GATE_LABELS.get(nxt, nxt)}…")
+        gate_name = nxt
+        if nxt not in ("storegate", "shopify"):
+            tier = None  # тир — таблица целевого гейта; у setupwoo её нет
     if verdict in HIT_VERDICTS:
         db.add_hit(u_id)
     # админ-блок: прокси этого запроса + живой пул (динамически, на каждый чек)
@@ -462,7 +581,15 @@ async def gate_dispatch(client, message: Message):
         return await message.reply("Нет доступных гейтов: ни одна поверхность не настроена.")
     if gate_name in GATES:
         argline = " ".join(parts[1:])
-        await run_gate(message, gate_name, argline, tier=tier)
+        return await run_gate(message, gate_name, argline, tier=tier)
+    # Команда попала в фильтр, но гейт не зарегистрирован: модуль упал на
+    # импорте и реестр его молча выбросил. Без этой ветки /au, /st, /sp
+    # отвечали ТИШИНОЙ — причину было не понять.
+    await message.reply(
+        f"❌ Гейт <code>{html.escape(str(gate_name))}</code> недоступен — модуль не "
+        f"загружен (см. лог старта). Живые: "
+        f"<code>{html.escape(', '.join(GATES) or '—')}</code>",
+        parse_mode=ParseMode.HTML)
 
 
 # --- мультигейт: порядок выбора для /mass (форс первым аргументом) ---
@@ -471,41 +598,44 @@ GATE_PRIORITY = ["setupwoo", "storegate", "shopify", "piconfirm", "braintreenvbv
 
 
 def _available_gates() -> list[str]:
-    """A7: только гейты с реально настроенными целями."""
+    """A7: только гейты с реально настроенными целями.
+
+    setupwoo проверяется как все остальные: load_ready_gates() читает
+    data/ready_gates.json и подставляет fallback-донора, если пул пуст, — так что
+    на практике он доступен всегда. Но раньше здесь стоял голый `True`, из-за
+    которого приоритет из пяти гейтов заканчивался на первом, а поломку пула
+    было невозможно увидеть извне.
+    """
     from bot.gates.storegate import _targets as _st_targets
     from bot.gates.shopify import _targets as _sp_targets
     from bot.gates.piconfirm import _target as _pi_target
     from bot.gates.braintreenvbv import _targets as _bt_targets
-    try:
-        has_store = bool(_st_targets())
-    except Exception:
-        has_store = False
-    try:
-        has_shopify = bool(_sp_targets())
-    except Exception:
-        has_shopify = False
-    try:
-        has_pi = bool(_pi_target())
-    except Exception:
-        has_pi = False
-    try:
-        has_bt = bool(_bt_targets())
-    except Exception:
-        has_bt = False
-    ok = {"setupwoo": True,  # пул с fallback-донором — доступен всегда
-          "storegate": has_store,
-          "shopify": has_shopify,
-          "piconfirm": has_pi,
-          "braintreenvbv": has_bt}
+
+    def _probe(fn) -> bool:
+        try:
+            return bool(fn())
+        except Exception:
+            return False
+
+    ok = {"setupwoo": _probe(setup_gate.load_ready_gates),
+          "storegate": _probe(_st_targets),
+          "shopify": _probe(_sp_targets),
+          "piconfirm": _probe(_pi_target),
+          "braintreenvbv": _probe(_bt_targets)}
     return [g for g in GATE_PRIORITY if ok.get(g) and g in GATES]
 
 
-def _pick_gate(force: str | None) -> str | None:
-    """Приоритет: живой SetupIntent-донор -> Store API -> PI secret -> VBV."""
+def _pick_gate(force: str | None, exclude: set[str] | None = None) -> str | None:
+    """Приоритет: живой SetupIntent-донор -> Store API -> Shopify -> PI -> VBV.
+
+    exclude — уже опробованные гейты: run_gate передаёт их при фолл-троу после
+    вердикта ERROR, чтобы не бить в тот же мёртвый гейт по второму кругу.
+    """
     if force:
         return force if force in GATES else None
     for g in _available_gates():
-        return g
+        if not exclude or g not in exclude:
+            return g
     return None
 
 
@@ -536,43 +666,70 @@ async def cmd_hit(client, message: Message):
     cards = parse_cards(card_lines, limit=10)
     if not cards:
         return await message.reply("Карта не распознана: CC MM YY CVV")
+    meta_cost = config.GATE_COST.get("hit", 2)  # раньше стоял голый 2 и молча
+                                                # расходился с GATE_COST при правке цен
+    results: list[dict] = []
+    # Валидация ДО прогона — как в /chk и /mass: кривая карта не сжигает кредит
+    good_cards: list[list[str]] = []
     for f in cards:
-        if not gc.check_luhn("".join(ch for ch in f[0] if ch.isdigit())):
-            return await message.reply("❌ Неверный номер карты (Luhn fail)")
-    meta_cost = 2
+        bad = card_rejection(f)
+        if bad:
+            results.append({"card": _safe_pan(f[0]), "status": "INVALID",
+                            "detail": bad.lstrip("❌ ").strip()[:60]})
+        else:
+            good_cards.append(f)
+    if not good_cards:
+        return await message.reply("❌ Ни одной валидной карты.")
+
     u = db.get_user(u_id)
     is_prem = db.is_premium(u)
-    if not is_prem and u.get("credits", 0) < len(cards) * meta_cost:
-        return await message.reply(f"❌ Недостаточно кредитов: {len(cards)} карт × 2 = {len(cards) * meta_cost}")
-    status_msg = await message.reply(f"⚡ /hit · {len(cards)} карт · бью по линку со свежими сессиями...")
-    results = []
+    if not is_prem and u.get("credits", 0) < len(good_cards) * meta_cost:
+        return await message.reply(
+            f"❌ Недостаточно кредитов: {len(good_cards)} карт × {meta_cost} = {len(good_cards) * meta_cost}")
+    status_msg = await message.reply(f"⚡ /hit · {len(good_cards)} карт · бью по линку со свежими сессиями...")
     link_dead = None
-    for idx, f in enumerate(cards, 1):
+    for idx, f in enumerate(good_cards, 1):
         if link_dead:
-            results.append({"card": formatter.fmt_pan(f[0]), "status": "ERROR",
+            results.append({"card": _safe_pan(f[0]), "status": "ERROR",
                             "detail": f"линк умер: {link_dead[:60]}"})
             continue
-        if not db.spend_credit(u_id, "hit"):
-            results.append({"card": formatter.fmt_pan(f[0]), "status": "ERROR",
+        try:
+            got = db.spend_credit(u_id, "hit")
+        except Exception as e:
+            results.append({"card": _safe_pan(f[0]), "status": "ERROR",
+                            "detail": f"billing: {type(e).__name__}"[:60]})
+            continue
+        if not got:
+            results.append({"card": _safe_pan(f[0]), "status": "ERROR",
                             "detail": "Недостаточно кредитов"})
             link_dead = "кредиты закончились"
             continue
-        gs = hit_engine.CsHitSession(target_url)  # СВЕЖАЯ сессия на каждую карту
+        gs = None
         try:
+            # СВЕЖАЯ сессия на каждую карту. Конструктор ВНУТРИ try: раньше он
+            # стоял снаружи, и исключение в нём оставляло gs неопределённым для
+            # finally (NameError) при уже списанном кредите и без возврата.
+            gs = hit_engine.CsHitSession(target_url)
             ok, detail = await gs.open()
             if not ok:
                 db.refund_credit(u_id, "hit")
                 link_dead = detail[:80]
-                results.append({"card": formatter.fmt_pan(f[0]), "status": "ERROR",
+                results.append({"card": _safe_pan(f[0]), "status": "ERROR",
                                 "detail": f"линк: {detail[:80]}"})
-                await gs.close()
                 continue
             res = await gs.check_card("|".join(f))
         except Exception as e:
+            # возврат делает общий блок ниже — здесь только verdict, иначе
+            # кредит возвращался дважды
             res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
         finally:
-            await gs.close()
-        verdict = res.get("status", "ERROR")
+            # закрытие ровно один раз: раньше было и в теле ветки, и в finally
+            if gs is not None:
+                try:
+                    await gs.close()
+                except Exception:
+                    pass
+        verdict = engine_cfg.coerce_verdict(res.get("status", "ERROR"))
         detail = str(res.get("detail", ""))
         amount = res.get("amount_cents") or 0
         currency = res.get("currency") or ""
@@ -583,9 +740,9 @@ async def cmd_hit(client, message: Message):
             detail = f"[{price_s}] {detail}" if price_s else detail
             if verdict in HIT_VERDICTS:
                 db.add_hit(u_id)
-        results.append({"card": formatter.fmt_pan(f[0]), "status": verdict,
+        results.append({"card": _safe_pan(f[0]), "status": verdict,
                         "detail": detail[:60]})
-        if idx < len(cards):
+        if idx < len(good_cards):
             await asyncio.sleep(1.2)
     pool_line = f" | 📡 Пул: {len(gc.load_proxies())}" if u_id in config.ADMIN_IDS else ""
     summary = (f"⚡ <b>/hit · {len(results)}/{len(cards)} карт</b>{pool_line}\n"
@@ -657,6 +814,23 @@ async def cmd_mass(client, message: Message):
         await message.reply(f"⚠️ Лимит 20 карт за прогон — взяты первые 20 из {len(valid_cards)}.")
     valid_cards = valid_cards[:20]
 
+    # Семантическая валидация ДО прогона: кривая карта не сжигает кредит, не
+    # занимает слот семафора и не уходит к донору — она сразу ложится в отчёт
+    # как INVALID. Раньше она доходила до _normalize гейта и стоила полный чек.
+    rejected: list[dict] = []
+    good_cards: list[list[str]] = []
+    for _cp in valid_cards:
+        bad = card_rejection(_cp)
+        if bad:
+            rejected.append({"card": _safe_pan(_cp[0]), "status": "INVALID",
+                             "detail": bad.lstrip("❌ ").strip()[:60], "_hit": False})
+        else:
+            good_cards.append(_cp)
+
+    if not good_cards:
+        reasons = "; ".join(dict.fromkeys(r["detail"] for r in rejected))[:300]
+        return await message.reply(f"❌ Ни одной валидной карты. Причины: {reasons}")
+
     gate_name = _pick_gate(gate_forced)
     if not gate_name:
         return await message.reply("Нет загруженных гейтов")
@@ -685,10 +859,18 @@ async def cmd_mass(client, message: Message):
         async with mass_sem:
             if stop_evt.is_set():
                 return None
-            if not db.spend_credit(u_id, gate_name):
+            # spend_credit жил СНАРУЖИ try: один sqlite 'database is locked'
+            # клал весь /mass, а уже запущенные задачи продолжали жечь кредиты
+            # сиротами — пользователь видел только «Запуск...»
+            try:
+                got = db.spend_credit(u_id, gate_name)
+            except Exception as e:
+                return {"card": _safe_pan(card_parts[0]), "status": "ERROR",
+                        "detail": f"billing: {type(e).__name__}"[:60], "_hit": False}
+            if not got:
                 stop_evt.set()
-                return {"card": " ".join(card_parts), "status": "ERROR",
-                        "detail": "Недостаточно кредитов"}
+                return {"card": _safe_pan(card_parts[0]), "status": "ERROR",
+                        "detail": "Недостаточно кредитов", "_hit": False}
             try:
                 if tier_forced and gate_name in ("storegate", "shopify"):
                     res = await meta["fn"](*card_parts, tier=tier_forced)
@@ -696,20 +878,30 @@ async def cmd_mass(client, message: Message):
                     res = await meta["fn"](*card_parts)
                 # гейт волен вернуть 2 или 3 элемента — как в run_gate, а не
                 # хрупким распаковыванием в две переменные
-                verdict, detail = res[0], res[1]
+                verdict, detail = engine_cfg.coerce_verdict(res[0]), res[1]
             except Exception as e:
                 verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:100]
             if verdict == "ERROR":
-                db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
-            return {"card": formatter.fmt_pan(card_parts[0]),
+                try:
+                    db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
+                except Exception:
+                    pass  # неудавшийся возврат не должен ронять отчёт
+            return {"card": _safe_pan(card_parts[0]),
                     "status": verdict, "detail": str(detail)[:60],
                     "_hit": verdict in HIT_VERDICTS}
 
-    raw_results = await asyncio.gather(*[_check_one(cp) for cp in valid_cards])
-    mass_results = []
+    # return_exceptions=True обязателен: без него исключение вне try одной карты
+    # отменяет весь gather, а отработавшие задачи не возвращают кредиты
+    raw_results = await asyncio.gather(*[_check_one(cp) for cp in good_cards],
+                                       return_exceptions=True)
+    mass_results = list(rejected)
     approved_count = 0
     for r in raw_results:
         if r is None:
+            continue
+        if isinstance(r, BaseException):
+            mass_results.append({"card": "?", "status": "ERROR",
+                                 "detail": f"{type(r).__name__}: {r}"[:60]})
             continue
         if r.pop("_hit", False):
             db.add_hit(u_id)
@@ -782,6 +974,12 @@ async def cmd_gates(client, message: Message):
     for k, v in GATES.items():
         cost = v["cost"] if v["cost"] is not None else config.GATE_COST.get(k, 1)
         lines.append(f"• <code>/{k}</code> — стоимость: {cost} кр.")
+    # /hit — не плагин реестра, в цикле выше его не было, хотя GATE_COST про
+    # него знает и он списывает 2 кредита за карту. /gates молчал о платной
+    # команде, и пользователь не видел, сколько она стоит.
+    for k in ("hit",):
+        if k not in GATES and k in config.GATE_COST:
+            lines.append(f"• <code>/{k}</code> — стоимость: {config.GATE_COST[k]} кр/карта")
 
     data_dir = os.path.join(os.path.dirname(__file__), "..", "data")
 
@@ -894,6 +1092,7 @@ async def addpremium(client, message: Message):
 
 @app.on_message(filters.command(["genkey"]))
 @admin_only
+@user_only
 async def genkey(client, message: Message):
     """Формат: /genkey КРЕДИТЫ или /genkey 0 ДНИ — ключ одноразовый."""
     p = (message.text or "").split()

@@ -2,6 +2,16 @@
 curl_cffi>=0.15
 aiohttp>=3.13
 
-# tg-bot layer (sprint 4); kurigram = живой форк pyrogram под новые Python
-kurigram>=2.2.20
-tgcrypto>=1.2.5
+# tg-bot layer (sprint 4)
+#
+# ВАЖНО — НЕ МЕНЯТЬ kurigram на pyrogram. Это не расхождение, а форк:
+# дистрибутив kurigram ставит тот же импортируемый неймспейс `pyrogram`
+# (проверено: kurigram 2.2.25 -> import pyrogram 2.2.25; Client, filters,
+# ParseMode, Message поднимаются). Код делает `from pyrogram import ...`, и он
+# прав: оригинальный pyrogram не собирается под Python 3.13+, поэтому здесь
+# kurigram. АРХИТЕКТУРА §10 D-13 и АУДИТ §11 утверждали обратное — они ошиблись.
+kurigram>=2.2.20          # предоставляет `import pyrogram`; держит Python 3.13+
+tgcrypto>=1.2.5           # нативный crypto-слой, ускоряет pyrogram
+
+# тесты (все офлайн, без сети) — раньше не были объявлены вообще
+pytest>=8.0

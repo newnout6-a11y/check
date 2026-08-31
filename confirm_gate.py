@@ -155,8 +155,8 @@ class ConfirmGateSession:
         if "id" not in tok_data:
             code = tok_data.get("error", {}).get("code", "tokenize_error")
             msg = tok_data.get("error", {}).get("message", "")
-            return {"card": card_raw, "status": f"DECLINED@{code.upper()}",
-                    "detail": msg, "retry_next_gate": False}
+            return {"card": card_raw, "status": gc.classify_verdict(f"{msg} {code}"),
+                    "detail": msg or code, "retry_next_gate": False}
         pm_id = tok_data["id"]
 
         if self.confirm_count >= MAX_CONFIRMS_PER_SECRET:

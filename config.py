@@ -40,6 +40,23 @@ VERDICT_ICONS = {
 }
 
 
+def coerce_verdict(verdict: str) -> str:
+    """Страховка таксономии: вердикт вне VERDICTS сводится к ближайшему классу.
+
+    Порядок: точное совпадение → базовый класс по префиксу (DECLINED@{ЧТО-ТО}
+    → DECLINED) → UNKNOWN. Сырая строка наружу не выходит НИКОГДА: она остаётся
+    без иконки, не попадает в статистику хитов и, главное, != "ERROR", из-за чего
+    кредит за проверку не возвращался.
+    """
+    v = (verdict or "").strip()
+    if v in VERDICTS:
+        return v
+    base = v.split("@", 1)[0].strip()
+    if base in VERDICTS:
+        return base
+    return "UNKNOWN"
+
+
 def is_hit(verdict: str) -> bool:
     return verdict in HIT_VERDICTS
 

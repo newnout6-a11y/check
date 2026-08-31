@@ -8,9 +8,44 @@ import time
 from . import config
 
 
+# Версия схемы живёт в PRAGMA user_version. Раньше было только
+# CREATE TABLE IF NOT EXISTS — добавление колонки в новой версии молча ломало
+# dict(row) у старых баз: SELECT * возвращал набор полей без новой колонки,
+# и KeyError всплывал уже в обработчике, а не на старте.
+SCHEMA_VERSION = 1
+# Миграции: {целевая_версия: [(таблица, колонка, DDL), ...]}
+# Пусто SCHEMA_VERSION=1 — это «исходная схема», механизм готов, миграций пока нет.
+_MIGRATIONS: dict[int, list[tuple[str, str, str]]] = {}
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    cur = conn.execute("PRAGMA user_version").fetchone()[0] or 0
+    for target in sorted(v for v in _MIGRATIONS if v > cur):
+        for table, column, ddl in _MIGRATIONS[target]:
+            if column not in _table_columns(conn, table):
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+        conn.execute(f"PRAGMA user_version = {target}")
+    if cur == 0:
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+
 def connect() -> sqlite3.Connection:
     conn = sqlite3.connect(config.DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    try:
+        # WAL: /mass держит до 20 карт на Semaphore(5), writers бились об
+        # единственную эксклюзивную блокировку rollback-journal — отсюда
+        # 'database is locked' на ровном месте. WAL даёт читателям не блокировать
+        # писателя, busy_timeout заставляет ждать, а не падать сразу.
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=10000")
+        conn.execute("PRAGMA synchronous=NORMAL")
+    except sqlite3.DatabaseError:
+        pass  # WAL недоступен (сеть/exFAT) — лучше жить без него, чем не стартовать
     return conn
 
 
@@ -47,6 +82,8 @@ def init_db():
             used_at     INTEGER
         );
         """)
+    with _db() as c:
+        _migrate(c)  # executescript коммитит и рвёт транзакцию — мигрируем отдельно
 
 
 def ensure_user(user_id: int, username: str = ""):
@@ -73,14 +110,27 @@ def is_premium(u: dict) -> bool:
     return u.get("premium_until", 0) > time.time()
 
 
+def _premium_on(conn: sqlite3.Connection, user_id: int) -> bool:
+    """Тот же признак премиума, но на УЖЕ открытом соединении.
+
+    get_user() открывал второе соединение, пока первое держало транзакцию —
+    это гонка за блокировку в /mass и лишний дескриптор на каждый чек.
+    """
+    if user_id in config.ADMIN_IDS:
+        return True
+    row = conn.execute("SELECT premium_until FROM users WHERE user_id=?", (user_id,)).fetchone()
+    return bool(row and (row["premium_until"] or 0) > time.time())
+
+
 def spend_credit(user_id: int, gate: str) -> bool:
     """Премиум чекает без кредитов; разработчик — безлимитно."""
-    if user_id in config.ADMIN_IDS:
-        with _db() as c:
-            c.execute("UPDATE users SET total_checks = total_checks + 1 WHERE user_id=?", (user_id,))
-        return True
-    cost = 0 if is_premium(get_user(user_id)) else config.GATE_COST.get(gate, 1)
     with _db() as c:
+        if user_id in config.ADMIN_IDS:
+            c.execute("UPDATE users SET total_checks = total_checks + 1 WHERE user_id=?", (user_id,))
+            return True
+        # премиум читается на ЭТОМ же соединении — раньше get_user() открывал
+        # второе, пока первое держало транзакцию
+        cost = 0 if _premium_on(c, user_id) else config.GATE_COST.get(gate, 1)
         # атомарный списывающий UPDATE: SELECT→UPDATE в разных неявных
         # транзакциях терял обновление при параллельных /mass (lost update)
         cur = c.execute(
@@ -99,25 +149,35 @@ def admin_add_credits(uid: int, delta: int) -> bool:
 
 def admin_add_premium(uid: int, days: int) -> bool:
     """Продление премиума от текущего max(premium_until, now); False = юзера нет."""
-    base = max(int(get_user(uid).get("premium_until") or 0), int(time.time()))
     with _db() as c:
+        row = c.execute("SELECT premium_until FROM users WHERE user_id=?", (uid,)).fetchone()
+        if not row:
+            return False
+        base = max(int(row["premium_until"] or 0), int(time.time()))
         cur = c.execute("UPDATE users SET premium_until=? WHERE user_id=?",
                         (base + days * 86400, uid))
         return cur.rowcount > 0
 
 
 def refund_credit(user_id: int, gate: str) -> bool:
-    """Возврат кредита при сбое движка (verdict ERROR) + откат счётчика проверок."""
-    cost = 0 if user_id in config.ADMIN_IDS else \
-        (0 if is_premium(get_user(user_id)) else config.GATE_COST.get(gate, 1))
+    """Возврат кредита при сбое движка (verdict ERROR) + откат счётчика проверок.
+
+    Списанных кредитов у премиума/админа нет, но счётчик проверок уже накручен —
+    откатываем его ВСЕГДА. Раньше refund выходил по `cost == 0` и не откатывал
+    ничего, из-за чего /me и /stats неуклонно расходились с реальностью.
+    """
     with _db() as c:
-        row = c.execute("SELECT credits, total_checks FROM users WHERE user_id=?",
-                        (user_id,)).fetchone()
-        if not row or cost == 0:
+        row = c.execute("SELECT premium_until FROM users WHERE user_id=?", (user_id,)).fetchone()
+        if not row:
             return False
-        c.execute("UPDATE users SET credits = credits + ?, "
-                  "total_checks = MAX(0, total_checks - 1) WHERE user_id=?",
-                  (cost, user_id))
+        cost = 0 if _premium_on(c, user_id) else config.GATE_COST.get(gate, 1)
+        if cost:
+            c.execute("UPDATE users SET credits = credits + ?, "
+                      "total_checks = MAX(0, total_checks - 1) WHERE user_id=?",
+                      (cost, user_id))
+        else:
+            c.execute("UPDATE users SET total_checks = MAX(0, total_checks - 1) "
+                      "WHERE user_id=?", (user_id,))
         return True
 
 
@@ -142,8 +202,11 @@ def redeem_key(user_id: int, key: str) -> str:
         # раньше credits-ветка была недостижима при непустом days
         msgs = []
         if row["days"]:
-            u = get_user(user_id)
-            base = max(int(u.get("premium_until") or 0), int(time.time()))
+            # чтение на ЭТОМ соединении: get_user() открывал второе, пока первое
+            # держит открытую транзакцию redeem — contention и лишний fd
+            u_row = c.execute("SELECT premium_until FROM users WHERE user_id=?",
+                              (user_id,)).fetchone()
+            base = max(int((u_row["premium_until"] if u_row else 0) or 0), int(time.time()))
             c.execute("UPDATE users SET premium_until=? WHERE user_id=?",
                       (base + row["days"] * 86400, user_id))
             msgs.append(f"✅ Премиум +{row['days']} дн.")
@@ -161,14 +224,24 @@ def add_key(key: str, days: int = 0, credits: int = 0):
 
 
 def antispam_ok(user_id: int) -> bool:
+    """Атомарное окно: один UPDATE с условием вместо SELECT→UPDATE.
+
+    Разделённые операторы рэйсились: два одновременных /chk от одного
+    пользователя оба читали протухший last_cmd_ts и оба проходили окно —
+    антиспам 3 с держался только на удаче и на глобальном GIL.
+    """
     now = time.time()
     with _db() as c:
-        row = c.execute("SELECT last_cmd_ts FROM users WHERE user_id=?", (user_id,)).fetchone()
-        last = row["last_cmd_ts"] if row else 0
-        if now - last < config.ANTISPAM_MIN_INTERVAL:
-            return False
-        c.execute("UPDATE users SET last_cmd_ts=? WHERE user_id=?", (now, user_id))
-        return True
+        cur = c.execute(
+            "UPDATE users SET last_cmd_ts=? "
+            "WHERE user_id=? AND ? - last_cmd_ts >= ?",
+            (now, user_id, now, config.ANTISPAM_MIN_INTERVAL))
+        if cur.rowcount > 0:
+            return True
+        # либо окно не истекло, либо юзера ещё нет (ensure_user вызывается не
+        # перед каждым антиспамом) — второй случай пускаем, как и раньше
+        row = c.execute("SELECT 1 FROM users WHERE user_id=?", (user_id,)).fetchone()
+        return row is None
 
 
 def get_global_stats() -> dict:
