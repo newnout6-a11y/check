@@ -9,6 +9,7 @@ import time
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
+import config
 
 HEALTH_FILE = os.path.join("data", "proxy_health.json")
 PROBE_URL = "https://api.ipify.org/?format=json"
@@ -58,7 +59,7 @@ class ProxyPool:
         async with sem:
             t0 = time.perf_counter()
             try:
-                async with AsyncSession(impersonate="chrome131", verify=False,
+                async with AsyncSession(impersonate=config.pick_impersonate(), verify=False,
                                         proxy=e["url"]) as s:
                     r = await s.get(PROBE_URL, timeout=10)
                     ok = r.status_code == 200

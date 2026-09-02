@@ -1,220 +1,5 @@
 [
   {
-    "domain": "forageplus.co.uk",
-    "base_url": "https://forageplus.co.uk",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 495,
-    "currency": "GBP",
-    "updated_at": 1788367530,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "Invalid or missing payment details. Please ensure the provided payment method is correctly entered.",
-    "phantom": false,
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "secrethashtagsclub.com",
-    "base_url": "https://secrethashtagsclub.com",
-    "pk_live": "pk_live_51L8Ux7JyE96ZnKMUUF9LlKF0oR1MravWtCuRjaLTFNdkzqD7gODhATUHtdpUaXkqBiKMHU6vK2nBBp37Fq1G5i1G00kFerzs2y",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 1900,
-    "updated_at": 1788366421,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card number is incorrect.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card number is incorrect.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "esotericastrologer.org",
-    "base_url": "https://esotericastrologer.org",
-    "pk_live": "pk_live_51BSeYhFHhsDC3My3uOjHACsYm5srk36Ky8SungrrBwr8In7k4FipyEE44tsR37A50ET2yaCHHD7j6coN05gCYF9K00wRVzg29w",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 1700,
-    "updated_at": 1788366386,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "updraftplus.com",
-    "base_url": "https://updraftplus.com",
-    "pk_live": "pk_live_5103WHZ23U6LItlHlgGAgKGkr1FAfl05EsLShTVL2Mqx5LOJ2Ra0V57BL0EzknetqZB2fPiVPkAbVDNrPactxmUX1009pk446JL",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 1089,
-    "updated_at": 1788366390,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: Your card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: Your card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "jeffsfinestbeefjerky.com",
-    "base_url": "https://jeffsfinestbeefjerky.com",
-    "pk_live": "pk_live_51RfqoOEIpVXiAfQVC1rbk5zq7ouUdjBxRVpV9ETQEUytZaONEcBjOlQqjjBcLIBwBcEapMsObwiKGEvrolkti67c0020g4rb3U",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 749,
-    "updated_at": 1788366356,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card number is incorrect.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card number is incorrect.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "jerky4u.com",
-    "base_url": "https://jerky4u.com",
-    "pk_live": "pk_live_51IR1rrCFqXmfze2v5WlVUGrVyYtsltI6cXqktTUwJmAWm9ckiwlCuQcf20JCwX0wm406e9PHJ3Wp2xJ7LUUp75L500jjGqFwAr",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 695,
-    "updated_at": 1788366352,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "atriumcoffeeroasters.com",
-    "base_url": "https://atriumcoffeeroasters.com",
-    "pk_live": "pk_live_51ETDmyFuiXB5oUVxaIafkGPnwuNcBxr1pXVhvLJ4BrWuiqfG6SldjatOGLQhuqXnDmgqwRA7tDoSFlbY4wFji7KR0079TvtxNs",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 600,
-    "updated_at": 1788366348,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "[{\"key\": \"errorMessage\", \"value\": \"Invalid or missing payment details. Please ensure the provided payment method is correctly entered.\"}, {\"key\": \"result\", \"value\": \"fail\"}, {\"key\": \"redirect\", \"value",
-    "phantom": false,
-    "phantom_probe": "DECLINED: [{\"key\": \"errorMessage\", \"value\": \"Invalid or missing payment details. Please en",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "artisalwaysmagic.com",
-    "base_url": "https://artisalwaysmagic.com",
-    "pk_live": "pk_live_51TNI9WGVygXXHvimd06qhAnTwgCJKW7UhbijE0g8ZnoF7f1d0dyCN9QL3RFYucrXz5dXL0MohGOgZBxyRkNnOAlb00bJryHACT",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 188,
-    "updated_at": 1788366302,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "vigilsbeefjerky.com",
-    "base_url": "https://vigilsbeefjerky.com",
-    "pk_live": "pk_live_51TGqQe2Xj8fnspnHl2Pe9DL6jkzlfg39njDZL3dNLI4pFT1gJIOo9kT7h2JEhG5v6SEhbkGFBIQOZFa01rUK80cY00KrneOc42",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 100,
-    "updated_at": 1788366306,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "petalane.ch",
-    "base_url": "https://petalane.ch",
-    "pk_live": "pk_live_51ETDmyFuiXB5oUVxaIafkGPnwuNcBxr1pXVhvLJ4BrWuiqfG6SldjatOGLQhuqXnDmgqwRA7tDoSFlbY4wFji7KR0079TvtxNs",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 1490,
-    "updated_at": 1788366249,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "[{\"key\": \"errorMessage\", \"value\": \"UngГјltige oder fehlende Zahlungsangaben. Bitte achte auf die korrekte Angabe der Zahlungsmethode.\"}, {\"key\": \"result\", \"value\": \"fail\"}, {\"key\": \"redirect\", \"value\":",
-    "phantom": false,
-    "phantom_probe": "DECLINED: [{\"key\": \"errorMessage\", \"value\": \"UngГјltige oder fehlende Zahlungsangaben. Bitt",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE"
-  },
-  {
-    "domain": "specialteacompany.com",
-    "base_url": "https://specialteacompany.com",
-    "pk_live": "pk_live_51Nw9sY1",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 822,
-    "updated_at": 1788364357,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: The card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: The card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE (cap $20)"
-  },
-  {
-    "domain": "yarnstreet.com",
-    "base_url": "https://yarnstreet.com",
-    "pk_live": "pk_live_51PpsY1C04hU1Uu1R",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 90,
-    "updated_at": 1788364357,
-    "status": "STORE_LIVE",
-    "verified": true,
-    "verify_status": "DECLINED",
-    "verify_detail": "There was an error processing the payment: Your card was declined.",
-    "phantom": false,
-    "phantom_probe": "DECLINED: Your card was declined.",
-    "dead_surface": false,
-    "battle_check": "2026-09-02",
-    "battle_result": "LIVE (cap $20)"
-  },
-  {
     "domain": "wisdomofplanets.com",
     "base_url": "https://wisdomofplanets.com",
     "pk_live": "pk_live_51PLMKYAH7opD6dQYmoFqwAem5u09mmcTWN3xm2h4SY2DelpDKlGJ6zwhvMytaLeu6qlXOWfcAeUBYVI1yt1z4Rhe00QnBB6js1",
@@ -227,7 +12,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 409: woocommerce_rest_cart_empty:Cannot place an order, your basket is empty.",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 409: woocommerce_rest_cart_empty:Cannot place an order, your basket is empty"
+    "phantom_probe": "ERROR: checkout HTTP 409: woocommerce_rest_cart_empty:Cannot place an order, your basket is empty",
+    "r10_status": "ERROR",
+    "r10_detail": "Timeout: Failed to perform, curl: (28) Connection timed out after 10004 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html firs",
+    "r10_verified": false,
+    "r10_reason": "GATE_TIMEOUT"
   },
   {
     "domain": "academy.yogaformazione.it",
@@ -242,7 +31,11 @@
     "verify_status": "ERROR",
     "verify_detail": "Timeout: Failed to perform, curl: (28) Connection timed out after 10006 milliseconds. See https://curl.se/libcurl/c/libc",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "Timeout: Failed to perform, curl: (28) Connection timed out after 10003 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html firs",
+    "r10_verified": false,
+    "r10_reason": "GATE_TIMEOUT"
   },
   {
     "domain": "artisalwaysmagic.com",
@@ -257,7 +50,11 @@
     "verify_status": "ERROR",
     "verify_detail": "Timeout: Failed to perform, curl: (28) Connection timed out after 10007 milliseconds. See https://curl.se/libcurl/c/libc",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "Timeout: Failed to perform, curl: (28) Connection timed out after 10002 milliseconds. See https://curl.se/libcurl/c/libcurl-errors.html firs",
+    "r10_verified": false,
+    "r10_reason": "GATE_TIMEOUT"
   },
   {
     "domain": "conferenziaworld.com",
@@ -272,7 +69,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=139900c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "essexmonastery.com",
@@ -285,12 +86,16 @@
     "status": "STORE_LIVE",
     "verified": true,
     "verify_status": "DECLINED",
-    "verify_detail": "Pay by Card is not available for this orderвЂ”please choose a different payment method",
+    "verify_detail": "Pay by Card is not available for this order—please choose a different payment method",
     "phantom": false,
-    "phantom_probe": "DECLINED: Pay by Card is not available for this orderвЂ”please choose a different payment method",
+    "phantom_probe": "DECLINED: Pay by Card is not available for this order—please choose a different payment method",
     "dead_surface": false,
     "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
+    "battle_result": "LIVE (cap $20)",
+    "r10_status": "ERROR",
+    "r10_detail": "SSLError: Failed to perform, curl: (35) TLS connect error: error:00000000:invalid library (0):OPENSSL_internal:invalid library (0). See http",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "expattaxonline.com",
@@ -305,7 +110,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "SSLError: Failed to perform, curl: (35) TLS connect error: error:00000000:invalid library (0):OPENSSL_internal:invalid library (0). See http",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "gvectors.com",
@@ -320,7 +129,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "PI_PENDING",
+    "r10_detail": "order 50854 placed, PI secret not found — payment NOT confirmed",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "herbaura.fr",
@@ -335,7 +148,11 @@
     "verify_status": "APPROVED@PAID",
     "verify_detail": "order paid 5893",
     "phantom": true,
-    "phantom_probe": "PI_PENDING: order 5898 placed, PI=requires_payment_method вЂ” payment NOT confirmed"
+    "phantom_probe": "PI_PENDING: order 5898 placed, PI=requires_payment_method — payment NOT confirmed",
+    "r10_status": "PI_PENDING",
+    "r10_detail": "order 5903 placed, PI secret not found — payment NOT confirmed",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "library.wpcode.com",
@@ -350,7 +167,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=5900c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "lifterlms.com",
@@ -365,7 +186,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "ADD_ITEM_NO_ITEMS: tried 1 product(s) under cap",
+    "r10_verified": false,
+    "r10_reason": "ADD_ITEM_NO_ITEMS"
   },
   {
     "domain": "magnesiumshop.nl",
@@ -380,7 +205,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 400: rest_invalid_param:Ongeldige parameter(s): shipping_address, billing_address",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 400: rest_invalid_param:Ongeldige parameter(s): shipping_address, billing_ad"
+    "phantom_probe": "ERROR: checkout HTTP 400: rest_invalid_param:Ongeldige parameter(s): shipping_address, billing_ad",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 400: rest_invalid_param:Ongeldige parameter(s): shipping_address, billing_address",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "purovitalis.com",
@@ -395,7 +224,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "PI_PENDING",
+    "r10_detail": "order 375027 placed, PI secret not found — payment NOT confirmed",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "rocketgeek.com",
@@ -412,7 +245,11 @@
     "phantom": false,
     "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
     "dead_surface": false,
-    "battle_check": "2026-08-27"
+    "battle_check": "2026-08-27",
+    "r10_status": "ERROR",
+    "r10_detail": "SSLError: Failed to perform, curl: (35) TLS connect error: error:00000000:invalid library (0):OPENSSL_internal:invalid library (0). See http",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "senseilms.com",
@@ -427,7 +264,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=6000c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "taiwanaji.com",
@@ -442,7 +283,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 403: woocommerce_rest_guest_checkout_disabled:購入手続きを行うには、ログインしている必要があります。",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "thimpress.com",
@@ -459,7 +304,11 @@
     "phantom": false,
     "phantom_probe": "DECLINED: There was an error processing the payment: The card was declined.",
     "dead_surface": false,
-    "battle_check": "2026-08-27"
+    "battle_check": "2026-08-27",
+    "r10_status": "DECLINED",
+    "r10_detail": "There was an error processing the payment: The card was declined.",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "uktyretechnicians.co.uk",
@@ -474,7 +323,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
+    "r10_verified": false,
+    "r10_reason": "CAPTCHA"
   },
   {
     "domain": "updraftplus.com",
@@ -489,7 +342,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "DECLINED",
+    "r10_detail": "[{\"key\": \"errorMessage\", \"value\": \"Payment processing failed. Please retry.\"}, {\"key\": \"result\", \"value\": \"fail\"}, {\"key\": \"redirect\", \"valu",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "woo.com",
@@ -502,9 +359,13 @@
     "status": "STORE_LIVE",
     "verified": false,
     "verify_status": "ERROR",
-    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this orderвЂ”please ch",
+    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this order—please ch",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "DECLINED",
+    "r10_detail": "[{\"key\": \"errorMessage\", \"value\": \"Invalid or missing payment details. Please ensure the provided payment method is correctly entered.\"}, {\"",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "woomultistore.com",
@@ -519,7 +380,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human."
+    "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
+    "r10_verified": false,
+    "r10_reason": "CAPTCHA"
   },
   {
     "domain": "cherryarts.org",
@@ -536,7 +401,11 @@
     "phantom": false,
     "phantom_probe": "DECLINED: [{\"key\": \"errorMessage\", \"value\": \"Payment processing failed. Please retry.\"}, {\"key\": \"re",
     "dead_surface": true,
-    "dead_reason": "РїСЂРѕС†РµСЃСЃРёРЅРі РјРµСЂС‡Р°РЅС‚Р° СЃС‚Р°Р±РёР»СЊРЅРѕ РїР°РґР°РµС‚ В«Please retryВ» (retВ­ry СЃРґРµР»Р°РЅ вЂ” С‚РѕС‚ Р¶Рµ РѕС‚РІРµС‚)"
+    "dead_reason": "процессинг мерчанта стабильно падает «Please retry» (ret­ry сделан — тот же ответ)",
+    "r10_status": "DECLINED",
+    "r10_detail": "There was an error processing the payment: The card was declined.",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "healthequip.co.nz",
@@ -551,7 +420,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=3900c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "madatshop.com",
@@ -564,11 +437,15 @@
     "status": "STORE_LIVE",
     "verified": true,
     "verify_status": "DECLINED",
-    "verify_detail": "Bei der Zahlungsabwicklung ist ein Fehler aufgetreten: Der ausgewГ¤hlte Zahlungsarten-Typ ist ungГјltig.",
+    "verify_detail": "Bei der Zahlungsabwicklung ist ein Fehler aufgetreten: Der ausgewählte Zahlungsarten-Typ ist ungültig.",
     "phantom": false,
-    "phantom_probe": "DECLINED: Bei der Zahlungsabwicklung ist ein Fehler aufgetreten: Der ausgewГ¤hlte Zahlungsarten-Typ i",
+    "phantom_probe": "DECLINED: Bei der Zahlungsabwicklung ist ein Fehler aufgetreten: Der ausgewählte Zahlungsarten-Typ i",
     "dead_surface": true,
-    "dead_reason": "card-С€Р»СЋР· РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚: enum = wallet/pppc/kco; card-pm РѕС‚РІРµСЂРіРЅСѓС‚ В«Zahlungsarten-Typ ungГјltigВ»"
+    "dead_reason": "card-шлюз отсутствует: enum = wallet/pppc/kco; card-pm отвергнут «Zahlungsarten-Typ ungültig»",
+    "r10_status": "PI_PENDING",
+    "r10_detail": "order 2710 placed, PI secret not found — payment NOT confirmed",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "newsroom.co.nz",
@@ -583,7 +460,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "ADD_ITEM_NO_ITEMS: tried 5 product(s) under cap",
+    "r10_verified": false,
+    "r10_reason": "ADD_ITEM_NO_ITEMS"
   },
   {
     "domain": "woocommerce.com",
@@ -596,9 +477,13 @@
     "status": "STORE_LIVE",
     "verified": false,
     "verify_status": "ERROR",
-    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this orderвЂ”please ch",
+    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this order—please ch",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "DECLINED",
+    "r10_detail": "[{\"key\": \"errorMessage\", \"value\": \"Invalid or missing payment details. Please ensure the provided payment method is correctly entered.\"}, {\"",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "aimi.lt",
@@ -613,7 +498,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=4000c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "atriumcoffeeroasters.com",
@@ -626,12 +515,16 @@
     "status": "STORE_LIVE",
     "verified": false,
     "verify_status": "ERROR",
-    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this orderвЂ”please ch",
+    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this order—please ch",
     "phantom": false,
     "phantom_probe": "ERROR: checkout HTTP 508: :",
     "dead_surface": false,
     "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
+    "battle_result": "LIVE (cap $20)",
+    "r10_status": "DECLINED",
+    "r10_detail": "[{\"key\": \"errorMessage\", \"value\": \"Invalid or missing payment details. Please ensure the provided payment method is correctly entered.\"}, {\"",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "brick-library.com",
@@ -646,7 +539,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 403: woocommerce_rest_guest_checkout_disabled:You must be logged in to checkout.",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 403: woocommerce_rest_guest_checkout_disabled:You must be logged in to check"
+    "phantom_probe": "ERROR: checkout HTTP 403: woocommerce_rest_guest_checkout_disabled:You must be logged in to check",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 403: woocommerce_rest_guest_checkout_disabled:You must be logged in to checkout.",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "businessbloomer.com",
@@ -661,7 +558,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCTS: no priced products",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "coachconnectaustralia.com.au",
@@ -676,7 +577,11 @@
     "verify_status": "ERROR",
     "verify_detail": "Timeout: Failed to perform, curl: (28) Operation timed out after 10000 milliseconds with 0 bytes received. See https://c",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 400: terms_error:You must accept the terms and conditions to create an accou"
+    "phantom_probe": "ERROR: checkout HTTP 400: terms_error:You must accept the terms and conditions to create an accou",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 400: terms_error:You must accept the terms and conditions to create an account.",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "compliancetrainingltd.co.uk",
@@ -691,7 +596,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "VARIATION_REQUIRED: tried 1 product(s) under cap",
+    "r10_verified": false,
+    "r10_reason": "VARIATION_REQUIRED"
   },
   {
     "domain": "kanten.fr",
@@ -706,7 +615,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "ADD_ITEM_NO_JSON: tried 30 product(s) under cap",
+    "r10_verified": false,
+    "r10_reason": "ADD_ITEM_NO_JSON"
   },
   {
     "domain": "nataliereeddesigns.com",
@@ -721,7 +634,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=9900c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "pianowizardacademy.com",
@@ -739,7 +656,11 @@
     "phantom_probe": "DECLINED: There was an error processing the payment: The card number is incorrect.",
     "dead_surface": true,
     "dead_reason": "battle_check_2026-08-27",
-    "dead_detail": "checkout blocked: please verify that you are human"
+    "dead_detail": "checkout blocked: please verify that you are human",
+    "r10_status": "ERROR",
+    "r10_detail": "Store API: no Nonce header",
+    "r10_verified": false,
+    "r10_reason": "NO_PM_SLUG"
   },
   {
     "domain": "showthemes.com",
@@ -754,7 +675,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=3900c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "theposhpundit.co.uk",
@@ -767,12 +692,16 @@
     "status": "STORE_LIVE",
     "verified": true,
     "verify_status": "DECLINED",
-    "verify_detail": "Credit / Debit Card is not available for this orderвЂ”please choose a different payment method",
+    "verify_detail": "Credit / Debit Card is not available for this order—please choose a different payment method",
     "phantom": false,
-    "phantom_probe": "DECLINED: Credit / Debit Card is not available for this orderвЂ”please choose a different payment meth",
+    "phantom_probe": "DECLINED: Credit / Debit Card is not available for this order—please choose a different payment meth",
     "dead_surface": true,
     "dead_reason": "battle_check_2026-08-27",
-    "dead_detail": "card payment method disabled by shop"
+    "dead_detail": "card payment method disabled by shop",
+    "r10_status": "DECLINED",
+    "r10_detail": "Payment processing failed. Please retry.",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "weinistgeil.de",
@@ -787,7 +716,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "PI_PENDING",
+    "r10_detail": "order 17185 placed, PI secret not found — payment NOT confirmed",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "wellyou.lt",
@@ -805,7 +738,11 @@
     "phantom_probe": "ERROR: pk_live not found on storefront",
     "dead_surface": true,
     "dead_reason": "battle_check_2026-08-27",
-    "dead_detail": "pk_live not found on storefront"
+    "dead_detail": "pk_live not found on storefront",
+    "r10_status": "PI_PENDING",
+    "r10_detail": "order 78672 placed, PI secret not found — payment NOT confirmed",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "woothemes.com",
@@ -820,7 +757,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "ADD_ITEM_NO_ITEMS: tried 5 product(s) under cap",
+    "r10_verified": false,
+    "r10_reason": "ADD_ITEM_NO_ITEMS"
   },
   {
     "domain": "wrhs76classreunion.org",
@@ -835,7 +776,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Delivery type mismatch, refresh the page and try again",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "basicsbymail.com",
@@ -850,7 +795,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 400: woocommerce_rest_invalid_shipping_option:Sorry, this order requires a shipping option.",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "cuttingfluid.online",
@@ -865,7 +814,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 400: woocommerce_rest_invalid_shipping_option:Sorry, this order requires a shipping option.",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 400: woocommerce_rest_invalid_shipping_option:Sorry, this order requires a shipping option.",
+    "r10_verified": false,
+    "r10_reason": "UNKNOWN"
   },
   {
     "domain": "layers-of-learning.com",
@@ -880,7 +833,11 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please complete the reCAPTCHA to verify that you are not a robo",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please complete the reCAPTCHA to "
+    "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please complete the reCAPTCHA to ",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please complete the reCAPTCHA to verify that you are not a robot.",
+    "r10_verified": false,
+    "r10_reason": "CAPTCHA"
   },
   {
     "domain": "petalane.ch",
@@ -893,12 +850,16 @@
     "status": "STORE_LIVE",
     "verified": false,
     "verify_status": "ERROR",
-    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Multibanco ist fГјr diese Bestellung nicht verfГјgbar",
+    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Multibanco ist für diese Bestellung nicht verfügbar",
     "phantom": false,
     "phantom_probe": "ERROR: Timeout: Failed to perform, curl: (28) Operation timed out after 10003 milliseconds with 0",
     "dead_surface": false,
     "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
+    "battle_result": "LIVE (cap $20)",
+    "r10_status": "ERROR",
+    "r10_detail": "Timeout: Failed to perform, curl: (28) Operation timed out after 10015 milliseconds with 0 bytes received. See https://curl.se/libcurl/c/lib",
+    "r10_verified": false,
+    "r10_reason": "GATE_TIMEOUT"
   },
   {
     "domain": "projectivities.com",
@@ -913,7 +874,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=12500c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "thehorsesback.com",
@@ -928,7 +893,11 @@
     "verify_status": "ERROR",
     "verify_detail": "Store API: no Nonce header",
     "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
+    "phantom_probe": "ERROR: pk_live not found on storefront",
+    "r10_status": "ERROR",
+    "r10_detail": "ADD_ITEM_NO_ITEMS: tried 3 product(s) under cap",
+    "r10_verified": false,
+    "r10_reason": "ADD_ITEM_NO_ITEMS"
   },
   {
     "domain": "themakersclub.it",
@@ -941,12 +910,16 @@
     "status": "STORE_LIVE",
     "verified": true,
     "verify_status": "DECLINED",
-    "verify_detail": "Si ГЁ verificato un errore durante l&#039;elaborazione del pagamento: Il numero della carta non ГЁ corretto.",
+    "verify_detail": "Si è verificato un errore durante l&#039;elaborazione del pagamento: Il numero della carta non è corretto.",
     "phantom": false,
-    "phantom_probe": "DECLINED: Si ГЁ verificato un errore durante l&#039;elaborazione del pagamento: La carta ГЁ stata rifi",
+    "phantom_probe": "DECLINED: Si è verificato un errore durante l&#039;elaborazione del pagamento: La carta è stata rifi",
     "dead_surface": false,
     "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
+    "battle_result": "LIVE (cap $20)",
+    "r10_status": "DECLINED",
+    "r10_detail": "Si è verificato un errore durante l&#039;elaborazione del pagamento: La carta è stata rifiutata.",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "tricolistica.com",
@@ -964,7 +937,11 @@
     "phantom_probe": "DECLINED: Se ha producido un error al procesar el pago: La tarjeta ha sido rechazada.",
     "dead_surface": false,
     "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
+    "battle_result": "LIVE (cap $20)",
+    "r10_status": "DECLINED",
+    "r10_detail": "Se ha producido un error al procesar el pago: El número de la tarjeta es incorrecto.",
+    "r10_verified": true,
+    "r10_reason": null
   },
   {
     "domain": "education.resilience.org",
@@ -979,7 +956,11 @@
     "verify_status": "ERROR",
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
+    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)",
+    "r10_status": "ERROR",
+    "r10_detail": "NO_PRODUCT_UNDER_CAP: cheapest=5000c cap=3000c",
+    "r10_verified": false,
+    "r10_reason": "NO_PRODUCT_UNDER_CAP"
   },
   {
     "domain": "tinwoodestate.com",
@@ -994,6 +975,10 @@
     "verify_status": "ERROR",
     "verify_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
     "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human."
+    "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
+    "r10_status": "ERROR",
+    "r10_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please verify that you are human.",
+    "r10_verified": false,
+    "r10_reason": "CAPTCHA"
   }
 ]

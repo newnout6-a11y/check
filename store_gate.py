@@ -40,7 +40,7 @@ async def check_target(root: str, card_raw: str, proxy: str | None,
     binfo = await bin_lookup(prefix)
     country = gc.bin_alpha2(binfo) or "US"
 
-    async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
+    async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=proxy) as s:
         res = await gc.store_api_confirm(s, root, "", card_raw,
                                          country=country,
                                          max_price_cents=max_price_cents)

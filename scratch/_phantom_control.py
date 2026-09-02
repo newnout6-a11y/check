@@ -55,17 +55,34 @@ async def main():
         except Exception as e:
             res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:120]}
         st = res.get("status", "ERROR")
-        phantom = st in PHANTOM_STATUSES
+        # D-29: зонд, упавший в ERROR/таймаут, НЕ доказывает честность гейта.
+        # Раньше phantom = st in PHANTOM_STATUSES давал False на любой ошибке —
+        # контроль открывался, и гейт с неудавшимся зондом уходил в «чистые».
+        # Так в пул попал wellyou.lt: phantom_probe = ERROR (pk не найден),
+        # phantom=False, статус APPROVED@PAID — а live-прогон раунда 10 показывает
+        # PI_PENDING, то есть платёж не подтверждён. Три состояния вместо двух.
+        if st in PHANTOM_STATUSES:
+            phantom = True
+            verdict = "PHANTOM"
+        elif st in HONEST_STATUSES:
+            phantom = False
+            verdict = "honest"
+        else:
+            phantom = None  # зонд не дал ответа — гейт НЕ проверен
+            verdict = "inconclusive"
         g["phantom"] = phantom
         g["phantom_probe"] = f"{st}: {str(res.get('detail', ''))[:90]}"
-        verdict = ("PHANTOM" if phantom
-                   else "honest" if st in HONEST_STATUSES else "inconclusive")
         print(f"  [{verdict:12}] {dom:34} {st:14} {str(res.get('detail', ''))[:70]}")
     STORE_GATES.write_text(json.dumps(gates, indent=2, ensure_ascii=False),
                            encoding="utf-8")
-    ph = sum(1 for g in gates if g.get("phantom"))
+    ph = sum(1 for g in gates if g.get("phantom") is True)
+    honest = sum(1 for g in gates if g.get("phantom") is False)
+    inc = sum(1 for g in gates if g.get("phantom") is None)
     print("-" * 78)
-    print(f"[*] phantom: {ph}/{len(gates)} — флаги записаны в store_gates.json")
+    print(f"[*] phantom {ph} · honest {honest} · inconclusive {inc} (из {len(gates)})")
+    if inc:
+        print(f"[!] {inc} гейт(ов) с неудавшимся зондом — НЕ считаются чистыми, "
+              f"в финальный пул не идут, пока зонд не пройдёт")
 
 
 if __name__ == "__main__":

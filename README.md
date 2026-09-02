@@ -63,17 +63,17 @@ python -m pytest tests/ -q
 
 ---
 
-## 3. Быстрое состояние (снято 2026-08-30)
+## 3. Быстрое состояние (снято 2026-08-31 / 2026-09-01)
 
 | Показатель | Значение |
 |---|---|
 | Боевых поверхностей | 6, из них **3 живы** (setupwoo, storegate, shopify) |
-| Доменов в очереди | 992 (forum 676 / dork 298 / dork2 1 / manual 17) |
-| Прошли квалификацию (`READY` в `domains.db`) | **0** |
-| Тесты | **91 passed** (8 файлов), все без сети |
-| `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 |
-| Прокси-пул | пуст — весь трафик идёт напрямую |
-| Код | 257 `.py`-файлов, 28 463 строки; живой контур (корень + `bot/` + `scratch/` + `tests/`) — 9 393 |
+| Доменов в очереди | 1 209 (forum 676 / dork 298 / recon 217 / manual 17 / dork2 1; pending 276) |
+| Прошли квалификацию (`READY` в `domains.db`) | **0** (v1 сканер) / пул scout v2 готов (`data/scout_pool.json`, `data/store_gates_r10.json`) |
+| Тесты | **153 passed** (11 файлов), все без сети |
+| `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
+| Прокси-пул | пуст — прямой трафик / ротация отпечатков TLS |
+| Код | 260+ `.py`-файлов; живой контур покрыт тестами |
 
 ---
 
@@ -81,21 +81,25 @@ python -m pytest tests/ -q
 
 | Файл | Строк | Роль |
 |---|---|---|
-| `gate_client.py` | 1 609 | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия, PI/3DS, Store API, Braintree, BIN, таксономия, ротация доноров |
-| `setup_gate.py` | 594 | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` |
-| `shopify_gate.py` | 691 | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
-| `hit_gate.py` | 317 | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений |
-| `confirm_gate.py` | 301 | Страница с торчащим `pi_..._secret_...`: retrieve PI → confirm → ретрай-бюджет → минт нового секрета |
-| `advanced_gate_scanner.py` | 399 | Квалификация очереди: DNS → форма → POST-регистрация → скрап nonces → боевой SetupIntent-пробник |
+| `gate_client.py` | 1 700+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия, PI/3DS, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
+| `surface.py` | 480+ | **S1 Пассивный отпечаток:** 3 GET-запроса, определение платформы (Woo Blocks/Legacy/Shopify), платёжных слагов, Stripe PK, крышки цены |
+| `recon.py` | 380+ | **S0 Добыча:** мульти-полосный сбор с доказательствами (L4 wp-json, L5 products.json, L6 pk_live, sitemap, corpus) |
+| `scout.py` | 170+ | **Оркестратор воронки:** ранжирование кандидатов по стоимости/ценности, сбор пула (`data/scout_pool.json`) |
+| `funnel.py` | 210+ | **Учёт потерь воронки:** закрытый enum причин отказа (`REASONS`), исключающий мусорный `NO_REG` |
+| `setup_gate.py` | 590+ | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` |
+| `shopify_gate.py` | 690+ | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
+| `hit_gate.py` | 310+ | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений |
+| `confirm_gate.py` | 300+ | Страница с торчащим `pi_..._secret_...`: retrieve PI → confirm → ретрай-бюджет → минт нового секрета |
+| `advanced_gate_scanner.py` | 390+ | Квалификация очереди v1: DNS → форма → POST-регистрация → скрап nonces → боевой SetupIntent-пробник |
 | `store_gate.py` | 110 | CLI-обёртка над `gate_client.store_api_confirm` с крышкой цены |
-| `proxy_manager.py` | 147 | Пул прокси: валидация, sticky-привязка к донору, health-файл |
-| `domains_store.py` | 123 | SQLite-очередь доменов (WAL, `INSERT OR IGNORE`, приоритет) |
-| `unified_harvester.py` | 97 | Оркестратор трёх полос добычи |
-| `harvest_donors.py` | 248 | Форумная полоса: 58 слагов wordpress.org, приоритет по System Status Report |
-| `bin_cache.py` | 109 | SQLite-кэш BIN (TTL ∞), ленивое создание схемы |
-| `stripe_fid.py` | 136 | Декодер `#fid`-фрагмента Stripe Checkout (base64 → XOR-5 → JSON) |
-| `config.py` | 48 | Единый источник констант и таксономии вердиктов |
-| `bot/` | 1 945 | Pyrogram-бот (`main.py` 773), реестр гейтов-плагинов, БД юзеров, кредиты, ключи |
+| `proxy_manager.py` | 140+ | Пул прокси: валидация, sticky-привязка к донору, health-файл |
+| `domains_store.py` | 120+ | SQLite-очередь доменов (WAL, `INSERT OR IGNORE`, приоритет) |
+| `unified_harvester.py` | 90+ | Оркестратор трёх полос добычи |
+| `harvest_donors.py` | 240+ | Форумная полоса: 58 слагов wordpress.org, приоритет по System Status Report |
+| `bin_cache.py` | 100+ | SQLite-кэш BIN (TTL ∞), ленивое создание схемы |
+| `stripe_fid.py` | 130+ | Декодер `#fid`-фрагмента Stripe Checkout (base64 → XOR-5 → JSON) |
+| `config.py` | 60+ | Единый источник констант, таксономии вердиктов и пула TLS-отпечатков |
+| `bot/` | 1 940+ | Pyrogram-бот (`main.py`), реестр гейтов-плагинов, БД юзеров, кредиты, ключи |
 
 ---
 
@@ -304,24 +308,24 @@ pusto/
 
 ## 12. Известные расхождения и открытые концы
 
-Актуальный список дефектов с приоритетами — `docs/АРХИТЕКТУРА-2026-08-30.md` §10,
-история раундов правок — `docs/АУДИТ.md`. Коротко, что открыто сейчас:
+**Весь реестр багов — в одном файле: [`docs/БАГИ.md`](docs/БАГИ.md).** 66 записей, статус каждой.
+Детали и обоснование — `docs/АРХИТЕКТУРА-2026-08-30.md` §10, история раундов — `docs/АУДИТ.md`.
+
+Коротко, что открыто сейчас (все пять: движок готов, носители пусты):
 
 1. **A4** — второй setupwoo-донор в EU/US. Весь `$0`-вектор держится на одном
    австралийском сайте с латентностью ~6.1 с. Это единственная точка отказа.
-2. **Прокси-пул пуст** при полностью готовом `ProxyPool` (sticky, EMA, health-файл).
+2. **D-6 — прокси-пул пуст** при полностью готовом `ProxyPool` (sticky, EMA, health-файл).
    Сырой список `data/proxies_https_60k.txt` не читает ни один боевой модуль —
    `gate_client.py` берёт `data/proxies.txt`, он пуст.
-3. **piconfirm и braintreenvbv без целей** — зарегистрированы, доступны напрямую,
-   гарантированно возвращают `ERROR` (кредит возвращается).
-4. **`confirm_gate.py:158`** возвращает сырой `DECLINED@{CODE}` вне таксономии —
-   ломает иконку и статистику хитов.
-5. **Подписи тиров в меню** (`TIER_LABELS`, `bot/main.py:88`) верны для storegate,
-   но расходятся с таблицей shopify: `low` у Shopify — это `≤$2`, а не `<$1`.
-6. **`requirements.txt` требует `kurigram`, код импортирует `pyrogram`** — чистая
-   переустановка по requirements сломает импорт бота.
-7. `data/hit_targets.txt`, `data/pi_gates.json`, `data/results/*.jsonl` пишутся, но
-   не читаются никем.
+3. **D-4 / D-5 — piconfirm и braintreenvbv без целей** — зарегистрированы, доступны
+   напрямую, гарантированно возвращают `ERROR` (кредит возвращается).
+4. **D-10** — `data/hit_targets.txt`, `data/pi_gates.json`, `data/results/*.jsonl`
+   пишутся, но не читаются никем.
+
+Закрыто раундом 9 и больше не актуально: `confirm_gate.py:158` (D-11), подписи тиров
+(D-12), `requirements.txt` против импорта pyrogram (**D-13 снят — дефекта не было**,
+kurigram отдаёт тот же импортируемый неймспейс).
 
 ---
 

@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
+import config
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
@@ -32,7 +33,7 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore,
         try:
             # ротация на КАЖДЫЙ пробник — раньше весь стадий шёл с одного прокси
             proxy = gc.pick_proxy(proxy_pool, explicit_proxy)
-            async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
+            async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=proxy) as s:
                 r = await s.get(url, timeout=8)
                 if r.status_code != 200:
                     return None
@@ -75,7 +76,7 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
     async with sem:
         try:
             proxy = gc.pick_proxy(proxy_pool, explicit_proxy)
-            async with AsyncSession(impersonate="chrome131", verify=False, proxy=proxy) as s:
+            async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=proxy) as s:
                 reg_url = f"{base}/my-account/"
 
                 # Fresh page for form inspection & nonce freshness

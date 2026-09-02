@@ -44,7 +44,7 @@ class CsHitSession:
         self.cs = str(d.get("checkoutSessionId") or "")
         if not self.pk.startswith("pk_live") or not self.cs.startswith("cs_"):
             return False, "не удалось извлечь pk/cs из fid-фрагмента (линк мёртв?)"
-        s = AsyncSession(impersonate="chrome131", verify=False)
+        s = AsyncSession(impersonate=config.pick_impersonate(), verify=False)
         try:
             r = await s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
                             params={"key": self.pk},

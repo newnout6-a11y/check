@@ -5,7 +5,28 @@
 # --- Stripe (первоисточник — менять ЗДЕСЬ) ---
 STRIPE_API_VERSION = "2024-06-20"
 STRIPE_JS_BUILD = "c1fbe29896"
-CHROME_IMPERSONATE = "chrome131"
+CHROME_IMPERSONATE = "chrome131"   # устарело: см. pick_impersonate() ниже
+
+# --- D-30: ротация TLS-отпечатка ---------------------------------------------
+# chrome120 и новее (120/124/131) систематически режутся: Cloudflare отдаёт 429
+# на витринах, DuckDuckGo отдаёт 202 с пустой выдачей. Проверено боем 2026-08-31
+# на 4 доменах и 6 поисковых отпечатках. chrome116 и старше, весь Safari,
+# Firefox, Edge и Tor проходят. firefox120 нестабилен (падает) — исключён.
+#
+# Причина одна и та же: самый свежий хром — самый заезженный след сканера,
+# по нему и узнают. Раньше весь проект ходил под одним chrome131.
+IMPERSONATIONS = (
+    "chrome116", "safari17_0", "chrome110", "safari18_0", "chrome107",
+    "safari17_2_ios", "firefox133", "chrome100", "edge101", "safari15_5",
+    "chrome99", "edge99", "tor145",
+)
+
+
+def pick_impersonate() -> str:
+    """Случайный отпечаток из рабочего пула. Случайность важна: пул, долбящий
+    одним и тем же следом синхронно, снова ловит 429 — просто позже."""
+    import random
+    return random.choice(IMPERSONATIONS)
 
 # --- PaymentIntent vector (Фаза 2) ---
 MAX_PI_AMOUNT_CENTS = 10000        # выше — CHARGE_RISK, не подтверждаем ($100)

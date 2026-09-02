@@ -1,0 +1,5663 @@
+[
+  {
+    "domain": "teamrhapsody.co.nz",
+    "canonical_host": "www.teamrhapsody.co.nz",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo"
+    ],
+    "stripe_pk": "pk_live_51N8zONLHdXM0ln7DeOm1wyE8boNFT28JY0YwBVU4CES151tIHuG2eI1grxGl1KMNtnfes6RebG1y7npNyEMgQeg800kR1Pbuib",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [
+      "eway",
+      "stripe_applepay",
+      "paypal"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "b61420eba7",
+    "cheapest_cents": 2999,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "nz",
+      "country": "NZ",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome107",
+    "ms": 625680
+  },
+  {
+    "domain": "elitemeds.com",
+    "canonical_host": "elitemeds.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo",
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "mollie_wc_gateway_creditcard",
+    "methods": [
+      "mollie_wc_gateway_applepay",
+      "mollie_wc_gateway_creditcard"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "0ff8449f40",
+    "cheapest_cents": 89,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 398352
+  },
+  {
+    "domain": "teaforallreasons.com",
+    "canonical_host": "www.teaforallreasons.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo",
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna",
+      "stripe_affirm",
+      "woocommerce_payments",
+      "ppcp-googlepay",
+      "ppcp-applepay",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "2fb6260043",
+    "cheapest_cents": 550,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 64903
+  },
+  {
+    "domain": "thenakedolive.com",
+    "canonical_host": "www.thenakedolive.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo",
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "square_credit_card",
+    "methods": [
+      "square_credit_card",
+      "paypal",
+      "cheque"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "42eab1e79a",
+    "cheapest_cents": 600,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:woo:olive oil"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 9235
+  },
+  {
+    "domain": "medubooks.com",
+    "canonical_host": "medubooks.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo",
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "stripe_fpx",
+      "stripe_grabpay"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "2fd42b0c78",
+    "cheapest_cents": 990,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 217864
+  },
+  {
+    "domain": "smokinbeans.com",
+    "canonical_host": "www.smokinbeans.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo",
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "amazon_payments_advanced",
+      "eh_paypal_express",
+      "paypal",
+      "cheque",
+      "bacs"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "d1e5e567db",
+    "cheapest_cents": 1200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 64803
+  },
+  {
+    "domain": "petalane.ch",
+    "canonical_host": "petalane.ch",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo",
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "mame_twint",
+      "woocommerce_payments"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "39621a59b3",
+    "cheapest_cents": 1490,
+    "catalog_size": 17,
+    "geo": {
+      "tld": "ch",
+      "country": "CH",
+      "lang": "DE"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome107",
+    "ms": 398870
+  },
+  {
+    "domain": "wholesalenutsanddriedfruit.com",
+    "canonical_host": "wholesalenutsanddriedfruit.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "b61e985f81",
+    "cheapest_cents": 3000,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 48138
+  },
+  {
+    "domain": "senseilms.com",
+    "canonical_host": "senseilms.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "c81f90909d",
+    "cheapest_cents": 6000,
+    "catalog_size": 23,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome110",
+    "ms": 285055
+  },
+  {
+    "domain": "paymentplugins.com",
+    "canonical_host": "paymentplugins.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "setupwoo"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "stripe_applepay"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "2ea324cb6d",
+    "cheapest_cents": 12000,
+    "catalog_size": 1,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 337857
+  },
+  {
+    "domain": "artoftea.com",
+    "canonical_host": "www.artoftea.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 16,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 47115
+  },
+  {
+    "domain": "koffeekult.com",
+    "canonical_host": "www.koffeekult.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 30,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:any:whole bean coffee"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 6047
+  },
+  {
+    "domain": "thehoneyjarhome.com",
+    "canonical_host": "thehoneyjarhome.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 40,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 56738
+  },
+  {
+    "domain": "hicocandleco.com",
+    "canonical_host": "hicocandleco.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 98,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 49494
+  },
+  {
+    "domain": "jdnatladyscreations.com",
+    "canonical_host": "jdnatladyscreations.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 98,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 50437
+  },
+  {
+    "domain": "eclatchocolate.com",
+    "canonical_host": "eclatchocolate.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 100,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 47697
+  },
+  {
+    "domain": "laherb.com",
+    "canonical_host": "laherb.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 125,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 51316
+  },
+  {
+    "domain": "rococochocolates.com",
+    "canonical_host": "www.rococochocolates.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 150,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 41858
+  },
+  {
+    "domain": "saratogateaandhoney.com",
+    "canonical_host": "www.saratogateaandhoney.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 170,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 57285
+  },
+  {
+    "domain": "sacredplantco.com",
+    "canonical_host": "sacredplantco.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 195,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 52753
+  },
+  {
+    "domain": "crystalsrawhoney.com",
+    "canonical_host": "crystalsrawhoney.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 199,
+    "catalog_size": 38,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 55164
+  },
+  {
+    "domain": "verenastreet.com",
+    "canonical_host": "www.verenastreet.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:any:whole bean coffee"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 5591
+  },
+  {
+    "domain": "pfwondersalve.com",
+    "canonical_host": "pfwondersalve.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 231,
+    "catalog_size": 22,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 239930
+  },
+  {
+    "domain": "happyproducts.com",
+    "canonical_host": "www.happyproducts.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 238,
+    "catalog_size": 32,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 49970
+  },
+  {
+    "domain": "goodhoney.com",
+    "canonical_host": "goodhoney.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 272,
+    "catalog_size": 12,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 54933
+  },
+  {
+    "domain": "saratogamaple.com",
+    "canonical_host": "saratogamaple.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 295,
+    "catalog_size": 38,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:maple syrup"
+    ],
+    "impersonate": "chrome99",
+    "ms": 3111
+  },
+  {
+    "domain": "thewoollythistle.com",
+    "canonical_host": "thewoollythistle.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 295,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 43237
+  },
+  {
+    "domain": "sincerelynuts.com",
+    "canonical_host": "sincerelynuts.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 300,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 537368
+  },
+  {
+    "domain": "communitycoffee.com",
+    "canonical_host": "www.communitycoffee.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 329,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 48367
+  },
+  {
+    "domain": "plantologyusa.com",
+    "canonical_host": "plantologyusa.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 350,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:plants online"
+    ],
+    "impersonate": "chrome116",
+    "ms": 9245
+  },
+  {
+    "domain": "sageworkorganics.com",
+    "canonical_host": "sageworkorganics.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 375,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 53238
+  },
+  {
+    "domain": "smallbatchstore.com",
+    "canonical_host": "smallbatchstore.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 398,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 52164
+  },
+  {
+    "domain": "plantsbymail.com",
+    "canonical_host": "www.plantsbymail.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 399,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:plants online"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 14899
+  },
+  {
+    "domain": "littleflowersoap.com",
+    "canonical_host": "littleflowersoap.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 399,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 50805
+  },
+  {
+    "domain": "jerkygent.com",
+    "canonical_host": "jerkygent.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 399,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 56426
+  },
+  {
+    "domain": "rockymountainsoap.com",
+    "canonical_host": "www.rockymountainsoap.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 400,
+    "catalog_size": 49,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 53375
+  },
+  {
+    "domain": "theteaspot.com",
+    "canonical_host": "www.theteaspot.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 400,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 54155
+  },
+  {
+    "domain": "yarn.com",
+    "canonical_host": "www.yarn.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 404,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 47897
+  },
+  {
+    "domain": "olioandolive.com",
+    "canonical_host": "olioandolive.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 450,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 38896
+  },
+  {
+    "domain": "camamusoap.com",
+    "canonical_host": "camamusoap.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 450,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 47799
+  },
+  {
+    "domain": "purerawbrands.com",
+    "canonical_host": "purerawbrands.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 450,
+    "catalog_size": 17,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 58166
+  },
+  {
+    "domain": "coffeebeancorral.com",
+    "canonical_host": "coffeebeancorral.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 475,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 57149
+  },
+  {
+    "domain": "incensesticks.com",
+    "canonical_host": "www.incensesticks.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 493,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 51162
+  },
+  {
+    "domain": "islandapothecary.com",
+    "canonical_host": "islandapothecary.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 495,
+    "catalog_size": 23,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 55303
+  },
+  {
+    "domain": "nuts.com",
+    "canonical_host": "nuts.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 499,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 46628
+  },
+  {
+    "domain": "farmhouseteas.com",
+    "canonical_host": "www.farmhouseteas.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 499,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 49971
+  },
+  {
+    "domain": "incensepro.com",
+    "canonical_host": "incensepro.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 499,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 49025
+  },
+  {
+    "domain": "therawhoneyshop.com",
+    "canonical_host": "www.therawhoneyshop.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 499,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 58659
+  },
+  {
+    "domain": "wegotnuts.com",
+    "canonical_host": "wegotnuts.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 499,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 60151
+  },
+  {
+    "domain": "shoptreehaus.com",
+    "canonical_host": "shoptreehaus.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 36,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 40997
+  },
+  {
+    "domain": "hickoryridgesoaps.com",
+    "canonical_host": "www.hickoryridgesoaps.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 51165
+  },
+  {
+    "domain": "jerky.com",
+    "canonical_host": "www.jerky.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 57150
+  },
+  {
+    "domain": "aliveherbals.com",
+    "canonical_host": "aliveherbals.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 57468
+  },
+  {
+    "domain": "store.theherbalist.com",
+    "canonical_host": "store.theherbalist.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 505,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 53391
+  },
+  {
+    "domain": "rustedacresoaps.com",
+    "canonical_host": "www.rustedacresoaps.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 550,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 53199
+  },
+  {
+    "domain": "vermontpuremaple.com",
+    "canonical_host": "vermontpuremaple.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 551,
+    "catalog_size": 27,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 53813
+  },
+  {
+    "domain": "jerkywholesale.com",
+    "canonical_host": "jerkywholesale.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 599,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 56738
+  },
+  {
+    "domain": "wildlyvirgin.com",
+    "canonical_host": "wildlyvirgin.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 600,
+    "catalog_size": 15,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 45163
+  },
+  {
+    "domain": "mountainmadnesssoap.com",
+    "canonical_host": "www.mountainmadnesssoap.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 600,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 51163
+  },
+  {
+    "domain": "weareknitters.com",
+    "canonical_host": "weareknitters.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 649,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 43969
+  },
+  {
+    "domain": "capecandle.com",
+    "canonical_host": "capecandle.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 679,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 47138
+  },
+  {
+    "domain": "barredwoodsmaple.com",
+    "canonical_host": "barredwoodsmaple.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 695,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:any:maple syrup"
+    ],
+    "impersonate": "edge99",
+    "ms": 3555
+  },
+  {
+    "domain": "artisanconfections.com",
+    "canonical_host": "artisanconfections.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 700,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 46083
+  },
+  {
+    "domain": "ninscents.com",
+    "canonical_host": "ninscents.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 700,
+    "catalog_size": 44,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 51549
+  },
+  {
+    "domain": "fallsriversoap.com",
+    "canonical_host": "fallsriversoap.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 750,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 48488
+  },
+  {
+    "domain": "papersource.com",
+    "canonical_host": "www.papersource.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 750,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 52160
+  },
+  {
+    "domain": "latherandmore.com",
+    "canonical_host": "latherandmore.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 795,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 52263
+  },
+  {
+    "domain": "coffeebean.com",
+    "canonical_host": "www.coffeebean.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 799,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:whole bean coffee"
+    ],
+    "impersonate": "chrome107",
+    "ms": 5191
+  },
+  {
+    "domain": "jerkybrands.com",
+    "canonical_host": "jerkybrands.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 799,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 56149
+  },
+  {
+    "domain": "mealswithmilton.com",
+    "canonical_host": "eztotz.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 799,
+    "catalog_size": 13,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 206351
+  },
+  {
+    "domain": "provenwinnersdirect.com",
+    "canonical_host": "provenwinnersdirect.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 824,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "dork:any:plants online"
+    ],
+    "impersonate": "edge101",
+    "ms": 9932
+  },
+  {
+    "domain": "craftrecordings.com",
+    "canonical_host": "craftrecordings.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 850,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 47678
+  },
+  {
+    "domain": "oliveandbasket.com",
+    "canonical_host": "oliveandbasket.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 894,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 43968
+  },
+  {
+    "domain": "woolery.com",
+    "canonical_host": "woolery.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 999,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 46088
+  },
+  {
+    "domain": "trinityteas.com",
+    "canonical_host": "www.trinityteas.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1000,
+    "catalog_size": 33,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:woo:specialty tea"
+    ],
+    "impersonate": "tor145",
+    "ms": 27486
+  },
+  {
+    "domain": "beeyouorganics.com",
+    "canonical_host": "beeyouorganics.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1000,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 46870
+  },
+  {
+    "domain": "sweetharvestfarms.com",
+    "canonical_host": "sweetharvestfarms.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1095,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:handmade soap"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 3289
+  },
+  {
+    "domain": "incenseocean.com",
+    "canonical_host": "www.incenseocean.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1095,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 51162
+  },
+  {
+    "domain": "sparkcandles.com",
+    "canonical_host": "www.sparkcandles.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1095,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 55041
+  },
+  {
+    "domain": "tasteoftea.com",
+    "canonical_host": "tasteoftea.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1095,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 54482
+  },
+  {
+    "domain": "canterburyequestrian.co.nz",
+    "canonical_host": "www.canterburyequestrian.co.nz",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1195,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "nz",
+      "country": "NZ",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome99",
+    "ms": 645962
+  },
+  {
+    "domain": "ontheround.com",
+    "canonical_host": "ontheround.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 39372
+  },
+  {
+    "domain": "shenblossom.com",
+    "canonical_host": "shenblossom.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 44233
+  },
+  {
+    "domain": "oliveoillovers.com",
+    "canonical_host": "oliveoillovers.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1295,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 39537
+  },
+  {
+    "domain": "republicoftea.com",
+    "canonical_host": "www.republicoftea.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1400,
+    "catalog_size": 49,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:woo:specialty tea"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 27523
+  },
+  {
+    "domain": "beehouse.com",
+    "canonical_host": "beehouse.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1400,
+    "catalog_size": 24,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 27814
+  },
+  {
+    "domain": "greenbottleherbs.com",
+    "canonical_host": "www.greenbottleherbs.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1400,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 49971
+  },
+  {
+    "domain": "farmfreshnuts.com",
+    "canonical_host": "farmfreshnuts.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1448,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 57987
+  },
+  {
+    "domain": "torquemotors.co.uk",
+    "canonical_host": "torquemotors.co.uk",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1499,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 564538
+  },
+  {
+    "domain": "emberycandles.com",
+    "canonical_host": "emberycandles.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 49310
+  },
+  {
+    "domain": "donkeylabel.com",
+    "canonical_host": "donkeylabel.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 392489
+  },
+  {
+    "domain": "puritycoffee.com",
+    "canonical_host": "puritycoffee.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1600,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 51861
+  },
+  {
+    "domain": "springhillnursery.com",
+    "canonical_host": "springhillnursery.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1798,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 41376
+  },
+  {
+    "domain": "rootssea.com",
+    "canonical_host": "rootssea.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1800,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 52430
+  },
+  {
+    "domain": "thesill.com",
+    "canonical_host": "www.thesill.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1900,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:any:plants online"
+    ],
+    "impersonate": "edge99",
+    "ms": 11002
+  },
+  {
+    "domain": "coffeebeandirect.com",
+    "canonical_host": "www.coffeebeandirect.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1995,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:whole bean coffee"
+    ],
+    "impersonate": "chrome100",
+    "ms": 5444
+  },
+  {
+    "domain": "thebeancoffeecompany.com",
+    "canonical_host": "thebeancoffeecompany.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1995,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 58804
+  },
+  {
+    "domain": "themaplefarmer.com",
+    "canonical_host": "themaplefarmer.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2000,
+    "catalog_size": 9,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 46426
+  },
+  {
+    "domain": "wildroothoney.com",
+    "canonical_host": "wildroothoney.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2200,
+    "catalog_size": 10,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 509053
+  },
+  {
+    "domain": "comebackvinyl.com",
+    "canonical_host": "comebackvinyl.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2299,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 47205
+  },
+  {
+    "domain": "torreycandleco.com",
+    "canonical_host": "torreycandleco.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2400,
+    "catalog_size": 7,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 53187
+  },
+  {
+    "domain": "wonena.com",
+    "canonical_host": "www.wonena.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 3195,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 55647
+  },
+  {
+    "domain": "kaffico.com",
+    "canonical_host": "www.kaffico.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 3200,
+    "catalog_size": 23,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:any:whole bean coffee"
+    ],
+    "impersonate": "firefox133",
+    "ms": 7006
+  },
+  {
+    "domain": "ecodunia.com",
+    "canonical_host": "ecodunia.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 3800,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 47938
+  },
+  {
+    "domain": "livelyroot.com",
+    "canonical_host": "www.livelyroot.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 4000,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:plants online"
+    ],
+    "impersonate": "chrome100",
+    "ms": 9843
+  },
+  {
+    "domain": "gobuyplants.com",
+    "canonical_host": "gobuyplants.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 6175,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:plants online"
+    ],
+    "impersonate": "edge99",
+    "ms": 9641
+  },
+  {
+    "domain": "watersandstone.com",
+    "canonical_host": "watersandstone.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 6500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 55613
+  },
+  {
+    "domain": "coastwoodcommercial.co.nz",
+    "canonical_host": "coastwoodcommercial.co.nz",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 9800,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "nz",
+      "country": "NZ",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 560114
+  },
+  {
+    "domain": "theexoteas.com",
+    "canonical_host": "theexoteas.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 38200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:woo:specialty tea"
+    ],
+    "impersonate": "tor145",
+    "ms": 13536
+  },
+  {
+    "domain": "yarnspirations.com",
+    "canonical_host": "www.yarnspirations.com",
+    "platform": "shopify",
+    "routes": [
+      "shopify"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 55612
+  },
+  {
+    "domain": "kanten.fr",
+    "canonical_host": "www.kanten.fr",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51Fr5r3K4R0TZzBJXPaf2M3s1ZdQdjvUBPn30uQYGKTH5B8fMgmLBUpAJv2DZC224ndVUhrB82feF6wUulCFptKtu00F9sCZuwS",
+    "pk_deferred": false,
+    "card_method": "stripe_upm",
+    "methods": [
+      "stripe_upm",
+      "stripe_applepay",
+      "stripe_googlepay",
+      "stripe_link_checkout"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 29,
+    "catalog_size": 43,
+    "geo": {
+      "tld": "fr",
+      "country": "FR",
+      "lang": "FR"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 394594
+  },
+  {
+    "domain": "taiwanaji.com",
+    "canonical_host": "taiwanaji.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51Ll5SELxCWwhty4phgtrwPLiUd4DHygFYXhtATv0yZVZJJ3ksuYKItpnDc7tfaLhKL8ESKZBT8ff0NMBW1H9KxIp00zPtqS7gr",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "stripe_applepay",
+      "bankjp",
+      "postofficebank",
+      "ppcp-gateway",
+      "stripe_alipay",
+      "stripe_wechat",
+      "stripe_googlepay",
+      "stripe_upm"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "6b99f89ccb",
+    "cheapest_cents": 50,
+    "catalog_size": 36,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "JA"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 281164
+  },
+  {
+    "domain": "wisdomofplanets.com",
+    "canonical_host": "www.wisdomofplanets.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51PLMKYAH7opD6dQYmoFqwAem5u09mmcTWN3xm2h4SY2DelpDKlGJ6zwhvMytaLeu6qlXOWfcAeUBYVI1yt1z4Rhe00QnBB6js1",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "stripe_applepay",
+      "ppcp"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 170,
+    "catalog_size": 4,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge99",
+    "ms": 68882
+  },
+  {
+    "domain": "wellyou.lt",
+    "canonical_host": "wellyou.lt",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51OWM1yFkDf0Fc87T3srbtvDJBsbXClIMK6BHDkTg5H6Q2v6UZQBHKAO0QNMXIx9BkTXdqy3r2h0zIrDNrZNOasmA00E6RnV95z",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "opay",
+      "ppcp-gateway",
+      "stripe_cc",
+      "stripe_applepay",
+      "stripe_googlepay"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "lt",
+      "country": "US",
+      "lang": "LT"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome107",
+    "ms": 398629
+  },
+  {
+    "domain": "brentrobitaille.com",
+    "canonical_host": "brentrobitaille.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51Irqz0Lq9v4eASepVFYyYkjrlH4ysL7vU28Y4DkcBrGqobNKyhccM3oyTfzDITKSizIi5iI4W29NawsLBcVPyorX00jQ3acVX0",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "paypal",
+      "stripe_applepay",
+      "stripe_googlepay"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 399,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "CAD"
+    },
+    "currency": "CAD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 394831
+  },
+  {
+    "domain": "basicsbymail.com",
+    "canonical_host": "basicsbymail.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51GgC9EKUHEWTFdeQcWYqKceZGzxRV7e7oTjszfDe9s5KcG91Jzm5poADhPaUprbiEBpQRBqXFnSXXlrBZD4KG0IF00q01PjwW5",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "paypal"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 444,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 394965
+  },
+  {
+    "domain": "herbaura.fr",
+    "canonical_host": "herbaura.fr",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51QPMcdRvPWXsLEUixpewCTvM9bInhJvUhQfFLssKJYh3vGAExt9tq1WAsJ6zG4bUQ1e9lLBnZHwWQkNMd2cRpkKF001050FfO0",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "ppcp-gateway",
+      "stripe_applepay",
+      "stripe_googlepay",
+      "stripe_klarna"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 490,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "fr",
+      "country": "FR",
+      "lang": "FR"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome99",
+    "ms": 279090
+  },
+  {
+    "domain": "layers-of-learning.com",
+    "canonical_host": "layers-of-learning.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51IFSS5KB58TVakyQIOfL1CHqdflsC4d91cxXCQCylgjglaeWDwq4Xa5s3HlRNfnNyp7ZqbloQbcf0Y2F3bxXvygK00LEmFZeAo",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "paypal",
+      "stripe_cc",
+      "stripe_upm"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "5f51d76f0b",
+    "cheapest_cents": 599,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 384029
+  },
+  {
+    "domain": "weinistgeil.de",
+    "canonical_host": "weinistgeil.de",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51KFgjnATsnHVLBjBl43xaBEqe25V05a1J3QT7g8qEU1rXq0AeUnfFeYVpWiuBjE2bce1bzRkzyYY8SA2y6Q0pjJz00VBYQIyS2",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "paypal",
+      "bacs",
+      "stripe_cc",
+      "stripe_applepay",
+      "stripe_googlepay",
+      "stripe_klarna"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 699,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "de",
+      "country": "DE",
+      "lang": "DE",
+      "currency": "EUR"
+    },
+    "currency": "EUR",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 379139
+  },
+  {
+    "domain": "cuttingfluid.online",
+    "canonical_host": "cuttingfluid.online",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51EfUk8AWR9nGqJkdd3Io3CPJKdbSVASPFQwEJW3SuXIQdnXhdpE7cEUfPCBnudRyYTmb8ZfJdmW4ME9QD32Ki1ri00wdUH1FT3",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "stripe_cc",
+      "stripe_applepay",
+      "stripe_googlepay"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 800,
+    "catalog_size": 3,
+    "geo": {
+      "tld": "online",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 388326
+  },
+  {
+    "domain": "purovitalis.com",
+    "canonical_host": "purovitalis.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51MwXpdBXuiXwfIkzUqNxmL63Ck9g4gjklLhRKtYmBezgTLzyWkJI7UVd4BUNh6leEYUs6AD29SuOF1SKo9CTzJN100Ie4HW4uv",
+    "pk_deferred": false,
+    "card_method": "stripe_cc",
+    "methods": [
+      "mollie_wc_gateway_swish",
+      "stripe_cc",
+      "ppcp",
+      "stripe_googlepay",
+      "stripe_applepay",
+      "stripe_link_checkout"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2000,
+    "catalog_size": 37,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 283751
+  },
+  {
+    "domain": "nutstop.com",
+    "canonical_host": "www.nutstop.com",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51Qfo7NByPhNpaXBuJTXfeMsu8hTmMNY7trExMPZ3VGQQcSXB1TCw4MJtsLWFtP86t0E0TKh2Mr9L4a38pPjNLe6h00k2jfbLQc",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 59378
+  },
+  {
+    "domain": "hexhambookfestival.co.uk",
+    "canonical_host": "www.hexhambookfestival.co.uk",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51DyHaOLac2isJdZDfajeXkQia00Rgy5LdHgCyuNroVuBqngxCf0cN1LPtIHx1cmb0lGjCtNaEDS1C2rcd3CYUVS000XYQfBArh",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 65143
+  },
+  {
+    "domain": "oceanwp.org",
+    "canonical_host": "oceanwp.org",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_DLqCkQp2BcEYHCHtRywu1VKl00f2o8zc5z",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "org",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge99",
+    "ms": 72948
+  },
+  {
+    "domain": "skeivteori.no",
+    "canonical_host": "skeivteori.no",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51MxpL8CbWz2RamlH0igH5FhgeJH0t9a7NT43Kmima6ghar7T1Woj020P4mOsX1mdzuyjSastgRthgCXuIigdzqrd00PbWo0mc4",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "no",
+      "country": "NO",
+      "lang": "NB"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 249321
+  },
+  {
+    "domain": "essexmonastery.com",
+    "canonical_host": "essexmonastery.com",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51HDuYnAWvjv33NmhYfVGgDzG5P4nKV2VtCjKBIN7zAruBe6ZycPk0ogyGUFiSuxLHY2OL7dihOWIVlS1PcZ3m9tu00OiB37zsf",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 273050
+  },
+  {
+    "domain": "flowers24hours.com.au",
+    "canonical_host": "www.flowers24hours.com.au",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_51Ec8McATYNEpLge090PwVOW6CBuELv8TDX10656C4e8HS0Y6JEhv1bSsM8k0MQ4kCbP4MYp9svRr7OSWDfuW8J2700We8pfnuH",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "au",
+      "country": "AU",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 305808
+  },
+  {
+    "domain": "kinsta.com",
+    "canonical_host": "kinsta.com",
+    "platform": "woo_legacy",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "pk_live_r16EiSaRITiPDMKQjLeoOviT",
+    "pk_deferred": false,
+    "card_method": "",
+    "methods": [],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome100",
+    "ms": 325057
+  },
+  {
+    "domain": "madatshop.com",
+    "canonical_host": "madatshop.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "ppcp-gateway",
+      "kco",
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "DE"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome99",
+    "ms": 605853
+  },
+  {
+    "domain": "thimpress.com",
+    "canonical_host": "thimpress.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "ppcp-gateway",
+      "stripe",
+      "stripe_cashapp",
+      "stripe_us_bank_account"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 10,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 284716
+  },
+  {
+    "domain": "woomultistore.com",
+    "canonical_host": "woomultistore.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 10,
+    "catalog_size": 13,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 283303
+  },
+  {
+    "domain": "unebonnedroite.fr",
+    "canonical_host": "www.unebonnedroite.fr",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "fkwcs_stripe",
+    "methods": [
+      "fkwcs_stripe",
+      "ppcp",
+      "fkwcs_stripe_apple_pay"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 10,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "fr",
+      "country": "FR"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 366096
+  },
+  {
+    "domain": "uktyretechnicians.co.uk",
+    "canonical_host": "www.uktyretechnicians.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "e72b67fc83",
+    "cheapest_cents": 30,
+    "catalog_size": 35,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome100",
+    "ms": 280219
+  },
+  {
+    "domain": "yarnstreet.com",
+    "canonical_host": "yarnstreet.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "bacs",
+      "stripe",
+      "makecommerce",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "009df25646",
+    "cheapest_cents": 60,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 47548
+  },
+  {
+    "domain": "greaterorlandoballoonrides.com",
+    "canonical_host": "greaterorlandoballoonrides.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "square_credit_card",
+    "methods": [
+      "square_credit_card"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 75,
+    "catalog_size": 31,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 209838
+  },
+  {
+    "domain": "vigilsbeefjerky.com",
+    "canonical_host": "vigilsbeefjerky.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 100,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 60560
+  },
+  {
+    "domain": "nutsite.com",
+    "canonical_host": "nutsite.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "authorize_net_cim_credit_card",
+    "methods": [
+      "paypal",
+      "authorize_net_cim_credit_card"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "89dc1634ba",
+    "cheapest_cents": 100,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 64116
+  },
+  {
+    "domain": "tacomagardenclub.org",
+    "canonical_host": "tacomagardenclub.org",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "square_credit_card",
+    "methods": [
+      "square_credit_card"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 100,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "org",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 85897
+  },
+  {
+    "domain": "rocketgeek.com",
+    "canonical_host": "rocketgeek.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 100,
+    "catalog_size": 20,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 276388
+  },
+  {
+    "domain": "snappytickets.co.uk",
+    "canonical_host": "snappytickets.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "bacs",
+      "cheque",
+      "cod",
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 100,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 358150
+  },
+  {
+    "domain": "polaris.codedcommerce.com",
+    "canonical_host": "polaris.codedcommerce.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 100,
+    "catalog_size": 18,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 474457
+  },
+  {
+    "domain": "berlinerbrandstifter.com",
+    "canonical_host": "berlinerbrandstifter.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "ppcp-gateway",
+      "bacs",
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 160,
+    "catalog_size": 32,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "DE"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 267376
+  },
+  {
+    "domain": "mainwp.com",
+    "canonical_host": "mainwp.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway",
+      "ppcp-credit-card-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 175,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 337029
+  },
+  {
+    "domain": "artisalwaysmagic.com",
+    "canonical_host": "artisalwaysmagic.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "ppcp-card-button-gateway",
+      "ppcp-gateway",
+      "stripe",
+      "stripe_klarna"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 188,
+    "catalog_size": 14,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome110",
+    "ms": 263303
+  },
+  {
+    "domain": "otavo.ie",
+    "canonical_host": "otavo.ie",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 213,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "ie",
+      "country": "IE",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 243884
+  },
+  {
+    "domain": "forageplus.co.uk",
+    "canonical_host": "forageplus.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "ppcp-gateway",
+      "wcpop_phone_orders_payments_phone_payment"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 250,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 636369
+  },
+  {
+    "domain": "thatscoffee.com",
+    "canonical_host": "www.thatscoffee.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "bambora_credit_card",
+    "methods": [
+      "paypal",
+      "bambora_credit_card",
+      "ppcp-pwc"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "859dadac86",
+    "cheapest_cents": 295,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db",
+      "dork:any:whole bean coffee"
+    ],
+    "impersonate": "edge99",
+    "ms": 15630
+  },
+  {
+    "domain": "efjerky.com",
+    "canonical_host": "efjerky.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "square_credit_card",
+    "methods": [
+      "square_credit_card",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "cae8291702",
+    "cheapest_cents": 299,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 63280
+  },
+  {
+    "domain": "thetrendywhippet.co.uk",
+    "canonical_host": "www.thetrendywhippet.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna",
+      "ppcp-card-button-gateway",
+      "ppcp-trustly",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "154722eec9",
+    "cheapest_cents": 299,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 67561
+  },
+  {
+    "domain": "familystyleschooling.com",
+    "canonical_host": "familystyleschooling.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 300,
+    "catalog_size": 12,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 198983
+  },
+  {
+    "domain": "sheetsofsanfrancisco.com",
+    "canonical_host": "sheetsofsanfrancisco.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "eh_stripe_pay",
+    "methods": [
+      "paypal",
+      "eh_stripe_pay",
+      "eh_stripe_checkout"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 300,
+    "catalog_size": 18,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome99",
+    "ms": 352936
+  },
+  {
+    "domain": "strictlymedicinalseeds.com",
+    "canonical_host": "strictlymedicinalseeds.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "authorize_net_cim_credit_card",
+    "methods": [
+      "authorize_net_cim_credit_card",
+      "ppcp-googlepay",
+      "ppcp-applepay",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 384,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 48808
+  },
+  {
+    "domain": "abbeygifts.co.uk",
+    "canonical_host": "abbeygifts.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 399,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 291415
+  },
+  {
+    "domain": "phoenixbad.de",
+    "canonical_host": "phoenixbad.de",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "eh_stripe_pay",
+    "methods": [
+      "paypal",
+      "eh_stripe_pay"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 470,
+    "catalog_size": 7,
+    "geo": {
+      "tld": "de",
+      "country": "DE",
+      "lang": "DE"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 250662
+  },
+  {
+    "domain": "pianowizardacademy.com",
+    "canonical_host": "pianowizardacademy.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 495,
+    "catalog_size": 33,
+    "geo": {
+      "tld": "com",
+      "country": "US"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome107",
+    "ms": 382582
+  },
+  {
+    "domain": "italiaeconomy.it",
+    "canonical_host": "italiaeconomy.it",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "ppcp-gateway",
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 499,
+    "catalog_size": 2,
+    "geo": {
+      "tld": "it",
+      "country": "IT",
+      "lang": "IT"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 248351
+  },
+  {
+    "domain": "functionalreflextherapy.co.uk",
+    "canonical_host": "www.functionalreflextherapy.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "cashflows_card",
+    "methods": [
+      "cashflows_card"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 2,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 203919
+  },
+  {
+    "domain": "businessbloomer.com",
+    "canonical_host": "www.businessbloomer.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "bacs",
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome100",
+    "ms": 388230
+  },
+  {
+    "domain": "tricolistica.com",
+    "canonical_host": "tricolistica.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 500,
+    "catalog_size": 9,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "ES"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 390413
+  },
+  {
+    "domain": "atriumcoffeeroasters.com",
+    "canonical_host": "atriumcoffeeroasters.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "woocommerce_payments_affirm",
+      "woocommerce_payments_afterpay_clearpay",
+      "woocommerce_payments_klarna",
+      "wps_paypal"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "0bfcd401c3",
+    "cheapest_cents": 600,
+    "catalog_size": 13,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 366243
+  },
+  {
+    "domain": "jerky4u.com",
+    "canonical_host": "jerky4u.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna",
+      "stripe_affirm",
+      "paypal"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 695,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome99",
+    "ms": 59180
+  },
+  {
+    "domain": "jeffsfinestbeefjerky.com",
+    "canonical_host": "jeffsfinestbeefjerky.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "1f44e08941",
+    "cheapest_cents": 699,
+    "catalog_size": 26,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 60644
+  },
+  {
+    "domain": "thedragonshoard.com",
+    "canonical_host": "thedragonshoard.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "woocommerce_payments_affirm",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "b47d35a85c",
+    "cheapest_cents": 700,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 357642
+  },
+  {
+    "domain": "lifterlms.com",
+    "canonical_host": "lifterlms.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "096fca689c",
+    "cheapest_cents": 724,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 288596
+  },
+  {
+    "domain": "cjdannemiller.com",
+    "canonical_host": "cjdannemiller.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "d1321360ac",
+    "cheapest_cents": 750,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "firefox133",
+    "ms": 43523
+  },
+  {
+    "domain": "8streme.eu",
+    "canonical_host": "8streme.eu",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_bancontact"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "d141c5a62c",
+    "cheapest_cents": 829,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "eu",
+      "country": "DE",
+      "lang": "FR"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 621453
+  },
+  {
+    "domain": "wp-rocket.me",
+    "canonical_host": "wp-rocket.me",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 899,
+    "catalog_size": 34,
+    "geo": {
+      "tld": "me",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome110",
+    "ms": 368919
+  },
+  {
+    "domain": "oliveepitome.com",
+    "canonical_host": "www.oliveepitome.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna",
+      "paypal",
+      "bacs",
+      "cod",
+      "xpay",
+      "xpay_npg_applepay",
+      "xpay_npg_iris"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 960,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EL"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:woo:olive oil"
+    ],
+    "impersonate": "chrome100",
+    "ms": 11377
+  },
+  {
+    "domain": "brick-library.com",
+    "canonical_host": "brick-library.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna",
+      "stripe_affirm"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 999,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 385072
+  },
+  {
+    "domain": "updraftplus.com",
+    "canonical_host": "teamupdraft.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1089,
+    "catalog_size": 12,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 287462
+  },
+  {
+    "domain": "bloomscape.com",
+    "canonical_host": "bloomscape.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db",
+      "dork:any:plants online"
+    ],
+    "impersonate": "safari15_5",
+    "ms": 29157
+  },
+  {
+    "domain": "cherryarts.org",
+    "canonical_host": "cherryarts.org",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "6f52285f9f",
+    "cheapest_cents": 1200,
+    "catalog_size": 48,
+    "geo": {
+      "tld": "org",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 608616
+  },
+  {
+    "domain": "tinwoodestate.com",
+    "canonical_host": "www.tinwoodestate.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "4a90a80506",
+    "cheapest_cents": 1200,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 636592
+  },
+  {
+    "domain": "simplerootssoap.com",
+    "canonical_host": "simplerootssoap.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "square_credit_card",
+    "methods": [
+      "square_credit_card"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1500,
+    "catalog_size": 1,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "dork:any:handmade soap"
+    ],
+    "impersonate": "edge101",
+    "ms": 5175
+  },
+  {
+    "domain": "neosluvn.elementor.cloud",
+    "canonical_host": "soisbelleavecdeaneira.be",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "woocommerce_payments_bancontact",
+      "woocommerce_payments_ideal",
+      "bacs"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1500,
+    "catalog_size": 37,
+    "geo": {
+      "tld": "cloud",
+      "country": "US",
+      "lang": "NL"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 212493
+  },
+  {
+    "domain": "wrhs76classreunion.org",
+    "canonical_host": "wrhs76classreunion.org",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "ppcp-credit-card-gateway",
+      "ppcp-gateway",
+      "bacs",
+      "cheque"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "87141b3eb2",
+    "cheapest_cents": 1500,
+    "catalog_size": 2,
+    "geo": {
+      "tld": "org",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 386218
+  },
+  {
+    "domain": "newsroom.co.nz",
+    "canonical_host": "newsroom.co.nz",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1500,
+    "catalog_size": 9,
+    "geo": {
+      "tld": "nz",
+      "country": "NZ",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 612370
+  },
+  {
+    "domain": "esotericastrologer.org",
+    "canonical_host": "esotericastrologer.org",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "paypal"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1700,
+    "catalog_size": 18,
+    "geo": {
+      "tld": "org",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome110",
+    "ms": 398792
+  },
+  {
+    "domain": "mudpenny.com",
+    "canonical_host": "www.mudpenny.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "df53d3dacf",
+    "cheapest_cents": 1800,
+    "catalog_size": 6,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 60283
+  },
+  {
+    "domain": "wordpress-1550062-5998994.cloudwaysapps.com",
+    "canonical_host": "wordpress-1550062-5998994.cloudwaysapps.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1900,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 375151
+  },
+  {
+    "domain": "secrethashtagsclub.com",
+    "canonical_host": "secrethashtagsclub.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 1900,
+    "catalog_size": 28,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome100",
+    "ms": 481649
+  },
+  {
+    "domain": "compliancetrainingltd.co.uk",
+    "canonical_host": "compliancetrainingltd.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe",
+      "stripe_klarna"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2000,
+    "catalog_size": 4,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari18_0",
+    "ms": 376479
+  },
+  {
+    "domain": "theposhpundit.co.uk",
+    "canonical_host": "www.theposhpundit.co.uk",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "fkwcs_stripe",
+    "methods": [
+      "fkwcs_stripe",
+      "fkwcs_stripe_apple_pay"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": 2000,
+    "catalog_size": 6,
+    "geo": {
+      "tld": "uk",
+      "country": "GB",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_2_ios",
+    "ms": 383655
+  },
+  {
+    "domain": "woolnyarn.com",
+    "canonical_host": "woolnyarn.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "square_credit_card",
+    "methods": [
+      "square_credit_card",
+      "ppcp-gateway"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "a82639d38c",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN",
+      "currency": "USD"
+    },
+    "currency": "USD",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "safari17_0",
+    "ms": 63428
+  },
+  {
+    "domain": "champagnesocial.club",
+    "canonical_host": "champagnesocial.club",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": false,
+    "reg_nonce_value": "",
+    "cheapest_cents": null,
+    "catalog_size": 0,
+    "geo": {
+      "tld": "club",
+      "country": "US",
+      "lang": "IT"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge99",
+    "ms": 71216
+  },
+  {
+    "domain": "thedronecoach.com",
+    "canonical_host": "thedronecoach.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "3d3145d886",
+    "cheapest_cents": null,
+    "catalog_size": 0,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "tor145",
+    "ms": 261976
+  },
+  {
+    "domain": "emm.org",
+    "canonical_host": "www.emm.org",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "authorize_net_cim_credit_card",
+    "methods": [
+      "authorize_net_cim_credit_card"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "5344befc36",
+    "cheapest_cents": null,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "org",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome116",
+    "ms": 300407
+  },
+  {
+    "domain": "store.ara.com",
+    "canonical_host": "store.ara.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "authorize_net_cim_credit_card",
+    "methods": [
+      "purchase_order_gateway",
+      "authorize_net_cim_credit_card"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "aa84d3de1a",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "edge101",
+    "ms": 369759
+  },
+  {
+    "domain": "knxtra.co.nz",
+    "canonical_host": "knxtra.co.nz",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "woocommerce_payments",
+    "methods": [
+      "woocommerce_payments",
+      "bacs",
+      "paypal",
+      "wcb2b_purchaseorder_gateway",
+      "yith-request-a-quote"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "f26da86865",
+    "cheapest_cents": null,
+    "catalog_size": null,
+    "geo": {
+      "tld": "nz",
+      "country": "NZ",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome99",
+    "ms": 570262
+  },
+  {
+    "domain": "nlrugs.com",
+    "canonical_host": "www.nlrugs.com",
+    "platform": "woo_blocks",
+    "routes": [
+      "storegate"
+    ],
+    "stripe_pk": "",
+    "pk_deferred": true,
+    "card_method": "stripe",
+    "methods": [
+      "cod",
+      "stripe"
+    ],
+    "braintree": false,
+    "reg_nonce": true,
+    "reg_nonce_value": "a82847b731",
+    "cheapest_cents": null,
+    "catalog_size": 50,
+    "geo": {
+      "tld": "com",
+      "country": "US",
+      "lang": "EN"
+    },
+    "currency": "",
+    "evidence": [
+      "db"
+    ],
+    "impersonate": "chrome107",
+    "ms": 574000
+  }
+]

@@ -44,7 +44,7 @@ class ConfirmGateSession:
         self.charge_risk = False
 
     async def open(self) -> tuple[bool, str]:
-        s = AsyncSession(impersonate="chrome131", verify=False, proxy=self.proxy)
+        s = AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=self.proxy)
         try:
             r = await s.get(self.target, timeout=15)
             if r.status_code != 200:

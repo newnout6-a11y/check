@@ -1,5 +1,645 @@
 [
   {
+    "url": "https://yarnspirations.com",
+    "domain": "yarnspirations.com",
+    "cheapest_cents": 100,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://shenblossom.com",
+    "domain": "shenblossom.com",
+    "cheapest_cents": 1199,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://ontheround.com",
+    "domain": "ontheround.com",
+    "cheapest_cents": 1200,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://canterburyequestrian.co.nz",
+    "domain": "canterburyequestrian.co.nz",
+    "cheapest_cents": 1195,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://tasteoftea.com",
+    "domain": "tasteoftea.com",
+    "cheapest_cents": 495,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://sparkcandles.com",
+    "domain": "sparkcandles.com",
+    "cheapest_cents": 1095,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://incenseocean.com",
+    "domain": "incenseocean.com",
+    "cheapest_cents": 1095,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://sweetharvestfarms.com",
+    "domain": "sweetharvestfarms.com",
+    "cheapest_cents": 695,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://beeyouorganics.com",
+    "domain": "beeyouorganics.com",
+    "cheapest_cents": 850,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://trinityteas.com",
+    "domain": "trinityteas.com",
+    "cheapest_cents": 1000,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://woolery.com",
+    "domain": "woolery.com",
+    "cheapest_cents": 450,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://oliveandbasket.com",
+    "domain": "oliveandbasket.com",
+    "cheapest_cents": 495,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://craftrecordings.com",
+    "domain": "craftrecordings.com",
+    "cheapest_cents": 800,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://provenwinnersdirect.com",
+    "domain": "provenwinnersdirect.com",
+    "cheapest_cents": 824,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://jerkybrands.com",
+    "domain": "jerkybrands.com",
+    "cheapest_cents": 799,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://coffeebean.com",
+    "domain": "coffeebean.com",
+    "cheapest_cents": 399,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://latherandmore.com",
+    "domain": "latherandmore.com",
+    "cheapest_cents": 395,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://papersource.com",
+    "domain": "papersource.com",
+    "cheapest_cents": 35,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://ninscents.com",
+    "domain": "ninscents.com",
+    "cheapest_cents": 700,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://artisanconfections.com",
+    "domain": "artisanconfections.com",
+    "cheapest_cents": 700,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://barredwoodsmaple.com",
+    "domain": "barredwoodsmaple.com",
+    "cheapest_cents": 570,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://capecandle.com",
+    "domain": "capecandle.com",
+    "cheapest_cents": 525,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://wildlyvirgin.com",
+    "domain": "wildlyvirgin.com",
+    "cheapest_cents": 600,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://jerkywholesale.com",
+    "domain": "jerkywholesale.com",
+    "cheapest_cents": 499,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://vermontpuremaple.com",
+    "domain": "vermontpuremaple.com",
+    "cheapest_cents": 551,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://store.theherbalist.com",
+    "domain": "store.theherbalist.com",
+    "cheapest_cents": 470,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://aliveherbals.com",
+    "domain": "aliveherbals.com",
+    "cheapest_cents": 250,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://jerky.com",
+    "domain": "jerky.com",
+    "cheapest_cents": 500,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://hickoryridgesoaps.com",
+    "domain": "hickoryridgesoaps.com",
+    "cheapest_cents": 495,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://wegotnuts.com",
+    "domain": "wegotnuts.com",
+    "cheapest_cents": 399,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://therawhoneyshop.com",
+    "domain": "therawhoneyshop.com",
+    "cheapest_cents": 499,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://incensepro.com",
+    "domain": "incensepro.com",
+    "cheapest_cents": 400,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://farmhouseteas.com",
+    "domain": "farmhouseteas.com",
+    "cheapest_cents": 299,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://nuts.com",
+    "domain": "nuts.com",
+    "cheapest_cents": 64,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://islandapothecary.com",
+    "domain": "islandapothecary.com",
+    "cheapest_cents": 495,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://incensesticks.com",
+    "domain": "incensesticks.com",
+    "cheapest_cents": 149,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://coffeebeancorral.com",
+    "domain": "coffeebeancorral.com",
+    "cheapest_cents": 210,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://purerawbrands.com",
+    "domain": "purerawbrands.com",
+    "cheapest_cents": 450,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://olioandolive.com",
+    "domain": "olioandolive.com",
+    "cheapest_cents": 380,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://yarn.com",
+    "domain": "yarn.com",
+    "cheapest_cents": 269,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://theteaspot.com",
+    "domain": "theteaspot.com",
+    "cheapest_cents": 200,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://rockymountainsoap.com",
+    "domain": "rockymountainsoap.com",
+    "cheapest_cents": 100,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://jerkygent.com",
+    "domain": "jerkygent.com",
+    "cheapest_cents": 189,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://littleflowersoap.com",
+    "domain": "littleflowersoap.com",
+    "cheapest_cents": 399,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://smallbatchstore.com",
+    "domain": "smallbatchstore.com",
+    "cheapest_cents": 350,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://sageworkorganics.com",
+    "domain": "sageworkorganics.com",
+    "cheapest_cents": 375,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://plantologyusa.com",
+    "domain": "plantologyusa.com",
+    "cheapest_cents": 350,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://sincerelynuts.com",
+    "domain": "sincerelynuts.com",
+    "cheapest_cents": 299,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://thewoollythistle.com",
+    "domain": "thewoollythistle.com",
+    "cheapest_cents": 295,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://saratogamaple.com",
+    "domain": "saratogamaple.com",
+    "cheapest_cents": 295,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://happyproducts.com",
+    "domain": "happyproducts.com",
+    "cheapest_cents": 238,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://pfwondersalve.com",
+    "domain": "pfwondersalve.com",
+    "cheapest_cents": 232,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://verenastreet.com",
+    "domain": "verenastreet.com",
+    "cheapest_cents": 200,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://sacredplantco.com",
+    "domain": "sacredplantco.com",
+    "cheapest_cents": 195,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://rococochocolates.com",
+    "domain": "rococochocolates.com",
+    "cheapest_cents": 150,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://laherb.com",
+    "domain": "laherb.com",
+    "cheapest_cents": 75,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://eclatchocolate.com",
+    "domain": "eclatchocolate.com",
+    "cheapest_cents": 100,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://jdnatladyscreations.com",
+    "domain": "jdnatladyscreations.com",
+    "cheapest_cents": 98,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://koffeekult.com",
+    "domain": "koffeekult.com",
+    "cheapest_cents": 30,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://artoftea.com",
+    "domain": "artoftea.com",
+    "cheapest_cents": 16,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://goodhoney.com",
+    "domain": "goodhoney.com",
+    "cheapest_cents": 272,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://crystalsrawhoney.com",
+    "domain": "crystalsrawhoney.com",
+    "cheapest_cents": 199,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://saratogateaandhoney.com",
+    "domain": "saratogateaandhoney.com",
+    "cheapest_cents": 140,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://hicocandleco.com",
+    "domain": "hicocandleco.com",
+    "cheapest_cents": 98,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://thehoneyjarhome.com",
+    "domain": "thehoneyjarhome.com",
+    "cheapest_cents": 30,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://badsheepyarn.com",
+    "domain": "badsheepyarn.com",
+    "cheapest_cents": 695,
+    "cheapest_title": "Mini skein",
+    "variant_id": null,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://artisanduchocolat.com",
+    "domain": "artisanduchocolat.com",
+    "cheapest_cents": 500,
+    "cheapest_title": "Chocolate sample",
+    "variant_id": null,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://loopyarn.com",
+    "domain": "loopyarn.com",
+    "cheapest_cents": 300,
+    "cheapest_title": "Yarn swatch",
+    "variant_id": null,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://barrettwoolco.com",
+    "domain": "barrettwoolco.com",
+    "cheapest_cents": 195,
+    "cheapest_title": "Wool sample card",
+    "variant_id": null,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
+    "url": "https://barenakedwools.com",
+    "domain": "barenakedwools.com",
+    "cheapest_cents": 1,
+    "cheapest_title": "Digital pattern / yarn card",
+    "variant_id": null,
+    "currency": "USD",
+    "verified": true,
+    "last_live_check": "2026-09-02",
+    "last_live_verdict": "DECLINED"
+  },
+  {
     "url": "https://daydesigner.myshopify.com",
     "domain": "daydesigner.myshopify.com",
     "cheapest_cents": 0,

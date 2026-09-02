@@ -23,6 +23,13 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
 
+# D-35: пробовал ротировать отпечаток перед открытием сессии — ОТКАЧЕНО.
+# Замер 2026-08-31: контрольный донор blackbeltprotein.com.au давал
+# DECLINED за 5030 мс на одном отпечатке и уходил в таймаут на 75 с, когда
+# перед сессией шёл пробник на 4 отпечатка. Пять запросов вместо одного —
+# донор начинает душить, и ротация превращается в самонаведённый рейт-лимит.
+# Тот же механизм, что в D-30, только направленный на самого себя.
+
 
 async def bin_lookup(bin_num: str) -> dict:
     # A1: кэш-сначала — BIN не меняется, второй раз того же BIN'а ходит в сеть
@@ -33,7 +40,7 @@ async def bin_lookup(bin_num: str) -> dict:
 async def _bin_lookup_net(bin_num: str) -> dict:
     # binlist -> handyapi -> bins.antipublic.cc (Sprint 5: третий источник),
     # на движке curl_cffi; нормализуем к нижнекейсовому виду.
-    async with AsyncSession(impersonate="chrome131", verify=False) as s:
+    async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
         for url, headers, pick in (
             (f"https://lookup.binlist.net/{bin_num}", {"Accept-Version": "3"}, "binlist"),
             (f"https://data.handyapi.com/bin/{bin_num}", {}, "handyapi"),
@@ -231,6 +238,7 @@ class GateSession:
         self.legacy_nonce = ""
         self.telem: dict | None = None
         self.account_email = ""
+        self.impersonate = ""
         # Sprint 1 state: живые Radar-cookie и hcaptcha-токен
         self.hcaptcha_token: str | None = None
         self.stripe_cookies: dict = {"mid": "", "sid": ""}
@@ -238,7 +246,9 @@ class GateSession:
     async def open(self) -> tuple[bool, str]:
         base = self.u["base"]
         reg_url = self.u["reg_url"]
-        s = AsyncSession(impersonate="chrome131", verify=False, proxy=self.proxy)
+        imp = config.pick_impersonate()
+        self.impersonate = imp
+        s = AsyncSession(impersonate=imp, verify=False, proxy=self.proxy)
         try:
             # 1. GET /my-account/ — nonce регистрации + детект капчи
             r = await s.get(reg_url, timeout=12)
