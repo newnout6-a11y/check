@@ -1,4 +1,4 @@
-﻿# StripeChecker-V2 by walterwhite-69 — ПОЛНЫЙ ИСХОДНИК (референс)
+# StripeChecker-V2 by walterwhite-69 — ПОЛНЫЙ ИСХОДНИК (референс)
 # Donor: dilaboards.com | WooCommerce SetupIntent flow
 # ThreadPoolExecutor + faker + random telemetry
 
@@ -76,4 +76,4 @@ def run_automated_process(card_num, card_cvv, card_yy, card_mm, proxies=None):
                               params=params_4, data=data_4, proxies=proxies)
     
     status = 'LIVE' if response_4.json().get('success') else 'DEAD'
-    return f'{status} | {response_4.json().get(""message"", ""no msg"")}'
+    return f"{status} | {response_4.json().get('message', 'no msg')}"
