@@ -142,13 +142,28 @@ VERTICALS = (
     "spice blends", "dried herbs", "vinyl records", "plants online",
     "handmade jewelry", "leather goods", "wool yarn", "greeting cards",
     "incense sticks", "nuts and dried fruit", "olive oil", "maple syrup",
+    # Цифровые товары и билеты (без физической доставки, высокий checkout pass rate)
+    "ebooks download", "digital printables", "online workshop ticket",
+    "webinar access", "sheet music pdf", "sewing patterns pdf",
 )
+
 # (шаблон дорка, подсказка платформы). {v} — вертикаль.
 DORK_TEMPLATES = (
     ("inurl:/product-category/ {v}", "woo"),      # Woo-структура каталога
     ("inurl:/product/ {v} buy online", "woo"),
     ("{v} buy online shop", "any"),               # широкая, hohe recall
     ("{v} small batch online store", "any"),
+)
+
+# Специализированные шаблоны для SetupIntent ($0) и донатов (piconfirm)
+SETUP_DORK_TEMPLATES = (
+    ('inurl:/my-account/ "{v}" -site:wordpress.org', "setupwoo"),
+    ('{v} "my-account" "Register" "Lost your password"', "setupwoo"),
+)
+
+DONATE_DORK_TEMPLATES = (
+    ('inurl:/donate/ "stripe" {v}', "piconfirm"),
+    ('inurl:/give/ "card" {v}', "piconfirm"),
 )
 def _norm_host(h: str) -> str:
     h = (h or "").lower().strip()

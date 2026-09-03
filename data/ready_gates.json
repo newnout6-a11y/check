@@ -15,6 +15,11 @@
     "latency_avg_ms": 6111,
     "success_rate": 0.7608,
     "fail_count": 0,
-    "last_success_ts": 1787853429
+    "last_success_ts": 1787853429,
+    "verified": true,
+    "verify_status": "DECLINED",
+    "verify_detail": "Your card was declined.",
+    "battle_result": "LIVE",
+    "battle_check": "2026-09-03"
   }
 ]

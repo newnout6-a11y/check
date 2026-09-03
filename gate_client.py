@@ -1252,6 +1252,7 @@ async def _resolve_variation(s, api: str, product: dict, nonlocal_nonce: list,
         return None
     first = variations[0]
     if isinstance(first, dict):
+        var_id = first.get("id")
         raw = first.get("attributes") or []
         out = []
         for a in raw:
@@ -1259,7 +1260,7 @@ async def _resolve_variation(s, api: str, product: dict, nonlocal_nonce: list,
             val = a.get("value") or a.get("option")
             if name:
                 out.append({"attribute": name, "value": val or ""})
-        return out or None
+        return {"id": var_id, "attributes": out} if (var_id or out) else None
     return None
 
 
@@ -1394,7 +1395,13 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 if not var:
                     last_reason = "VARIATION_REQUIRED"
                     continue
-                body["variation"] = var
+                if isinstance(var, dict):
+                    if var.get("id"):
+                        body["id"] = var["id"]
+                    if var.get("attributes"):
+                        body["variation"] = var["attributes"]
+                elif isinstance(var, list):
+                    body["variation"] = var
             r_add = await s.post(f"{api}/cart/add-item", json=body,
                                  headers={"Nonce": nonlocal_nonce[0],
                                           "Content-Type": "application/json"}, timeout=10)
@@ -1795,7 +1802,10 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 m0 = re.search(r"#response=([A-Za-z0-9+/=_-]+)", redir0)
                 if m0:
                     try:
-                        dec = _b64.urlsafe_b64decode(m0.group(1) + "==").decode("utf-8", "ignore")
+                        import base64 as _b64
+                        raw_b64 = m0.group(1)
+                        pad = raw_b64 + "=" * (-len(raw_b64) % 4)
+                        dec = _b64.urlsafe_b64decode(pad).decode("utf-8", "ignore")
                         secs = RE_CLIENT_SECRET.findall(dec)
                     except Exception:
                         pass
