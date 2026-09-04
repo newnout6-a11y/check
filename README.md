@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **186 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **191 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **186 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **191 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -270,7 +270,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**186 passed** (14 файлов), все офлайн (Python 3.14, pytest 9.0.3).
+**191 passed** (15 файлов), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -285,6 +285,7 @@ UNKNOWN, ERROR
 | `tests/test_audit_fixes.py` | 8 | обогащённый BIN lookup без NameError, санитизация вывода, граничные случаи |
 | `tests/test_proxy_priority.py` | 6 | взвешенный выбор SOCKS5/HTTP/SOCKS4, штрафы, fallback на прямое подключение |
 | `tests/test_round10_fixes.py` | 6 | изоляция парсинга карт и прокси, регрессионные фиксы регулярных выражений |
+| `tests/test_stripe_ctoken.py` | 5 | Stripe Confirmation Tokens (`ctoken_...`), dual-payload Store API, изоляция параметров |
 | `tests/test_hit_3ds.py` | 5 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 |
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
 | `tests/test_stripe_fid.py` | 4 | fid round-trip на перехваченном фрагменте |
@@ -334,7 +335,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 14 файлов, 186 тестов, без сети
+├── tests/                      # 15 файлов, 191 тест, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
@@ -383,6 +384,7 @@ pusto/
 | 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — probe-прогон: полный цикл (cart→add-item 201→tokenize→checkout), испанский отказ эмитента |
 | 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — боевой прогон 2026: Stripe Dahlia `2026-03-25.dahlia` (соль `eb42eea6af`) + Chromium TLS 2026, токенизация `pm_1UC2Rt...` 200, чекаут 400 |
 | 2026-09-04 | setupwoo | blackbeltprotein.com.au | `DECLINED` — боевой прогон 2026: прямой запуск direct, сессия открыта, SetupIntent подтвержден, вердикт эмитента |
+| 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — боевой прогон: Stripe Confirmation Token flow (`pm_1UC2pK...` 200 -> `ctoken_1UC2pK...` 200 -> checkout 400) |
 
 Живость пула определяется боевым прогоном, а не числом записей в JSON. Пересчитывать
 состояние: `python scratch/_doc_audit.py`.

@@ -872,6 +872,76 @@ TOKENIZE_HEADERS = {
 }
 
 
+def confirmation_token_body(pm_id: str, pk: str, return_url: str = "",
+                            shipping: dict | None = None) -> dict:
+    """Формирует payload для создания ConfirmationToken из готового PaymentMethod.
+    Поддерживает Two-Step Confirmation и UPE Optimized Checkout (2026)."""
+    body = {
+        "key": pk,
+        "payment_method": pm_id,
+    }
+    if return_url:
+        body["return_url"] = return_url
+    if shipping:
+        for k, v in shipping.items():
+            if v:
+                body[f"shipping[{k}]"] = str(v)
+    return body
+
+
+async def create_confirmation_token(session, pk: str, pm_id_or_card,
+                                    telem: dict | None = None, return_url: str = "",
+                                    referrer: str = "", timeout: int = 10) -> dict:
+    """Генерирует ConfirmationToken (ctoken_...).
+    Принимает либо готовый pm_... id, либо (card, telem) — в этом случае
+    сначала создаёт PaymentMethod через tokenize_body, а затем оборачивает в ctoken."""
+    if isinstance(pm_id_or_card, str) and pm_id_or_card.startswith("pm_"):
+        pm_id = pm_id_or_card
+    else:
+        card = pm_id_or_card
+        t = telem or stripe_telemetry(referrer or "https://example.com", pk)
+        tok_body = tokenize_body(card, t, referrer or "https://example.com")
+        r_tok = await session.post("https://api.stripe.com/v1/payment_methods",
+                                   data=tok_body, headers=TOKENIZE_HEADERS, timeout=timeout)
+        _log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code)
+        tok_data = r_tok.json()
+        if "id" not in tok_data:
+            err = tok_data.get("error", {})
+            _log.log_stripe("TOKENIZE_FAIL", mask_pan(card.get("number", "")), err.get("code", "error"), err.get("message", ""))
+            return {
+                "status": classify_verdict(str(err.get("message", "")) + str(err.get("code", ""))),
+                "detail": err.get("message", str(tok_data))[:200],
+                "error": err,
+            }
+        pm_id = tok_data["id"]
+        _log.log_stripe("TOKENIZE_OK", pm_id, detail=mask_pan(card.get("number", "")))
+
+    body = confirmation_token_body(pm_id, pk, return_url=return_url)
+    r = await session.post("https://api.stripe.com/v1/confirmation_tokens",
+                           data=body, headers=TOKENIZE_HEADERS, timeout=timeout)
+    _log.log_http("POST", "https://api.stripe.com/v1/confirmation_tokens", r.status_code)
+    tok_data = r.json()
+    if "id" not in tok_data:
+        err = tok_data.get("error", {})
+        msg = err.get("message", "")
+        code = err.get("code", "error")
+        _log.log_stripe("CTOKEN_FAIL", pm_id, code, msg)
+        return {
+            "status": classify_verdict(str(msg) + str(code)),
+            "detail": msg or str(tok_data)[:200],
+            "error": err,
+            "pm_id": pm_id,
+        }
+    ctoken_id = tok_data["id"]
+    _log.log_stripe("CTOKEN_OK", ctoken_id, detail=pm_id)
+    return {
+        "status": "OK",
+        "id": ctoken_id,
+        "token": tok_data,
+        "pm_id": pm_id,
+    }
+
+
 def ajax_headers_for(origin: str, referer: str) -> dict:
     return {
         "Origin": origin,
@@ -1653,6 +1723,15 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         pm_id = tok_data["id"]
         _log.log_stripe("TOKENIZE_OK", pm_id, detail=mask_pan(card_raw))
 
+        # Confirmation Token (2026 UPE Optimized Checkout support):
+        ctoken_id = None
+        try:
+            ctok_res = await create_confirmation_token(s, pk or telem["key"], pm_id, timeout=10)
+            if ctok_res.get("status") == "OK":
+                ctoken_id = ctok_res.get("id")
+        except Exception as _e_ct:
+            _log.log_warn(f"[store_api_confirm] ctoken generation skipped: {_e_ct}")
+
         # D-25: слаг обязан существовать на сайте. Иначе Woo ответит
         # payment_method_disabled и схлопнет корзину — карта уже токенизирована и
         # потрачена зря. Проверяем ДО сборки тела и падаем честной причиной.
@@ -1667,6 +1746,15 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                     "detail": f"PM_SLUG_MISSING: picked '{pm_slug}', "
                               f"site offers {cart_payment_methods[:6]}",
                     "amount_cents": price_c, "currency": curr}
+
+        payment_data = [
+            {"key": "payment_method", "value": pm_slug},
+            {"key": "wc-stripe-payment-method", "value": pm_id},
+            {"key": "wc-stripe-payment-type", "value": "card"},
+            {"key": "wc-stripe-is-deferred-intent", "value": True},
+        ]
+        if ctoken_id:
+            payment_data.append({"key": "wc-stripe-confirmation-token", "value": ctoken_id})
 
         checkout_body = {
             "billing_address": {
@@ -1704,12 +1792,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
             # верный slug с первого раза: cart.payment_methods знает список;
             # предпочитаем чистые card-методы (stripe_cc/stripe), wallet/local — мимо
             "payment_method": pm_slug,
-            "payment_data": [
-                {"key": "payment_method", "value": pm_slug},
-                {"key": "wc-stripe-payment-method", "value": pm_id},
-                {"key": "wc-stripe-payment-type", "value": "card"},
-                {"key": "wc-stripe-is-deferred-intent", "value": True},
-            ],
+            "payment_data": payment_data,
         }
         # Первый проход "stripe"; магазины с кастомными enum-именами шлюзов
         # (stripe_cc, stripe_upm, ...) ретраятся по списку из ошибки валидации
