@@ -43,21 +43,35 @@ python hit_gate.py "https://checkout.stripe.com/c/pay/cs_live_...#fid..." "CARD|
 # Карта по странице с торчащим client_secret:
 python confirm_gate.py https://donate.example.com "CARD|MM|YY|CVC"
 
-# Добыча доменов всеми полосами → data/domains.db:
-python unified_harvester.py
+# Добыча доменов: форумная полоса (58 слагов wordpress.org) + manual-цели + доркеры → data/domains.db:
+python unified_harvester.py              # --forum-only — без доркеров; --pages N — глубина форумов
 
-# Квалификация очереди из db → data/ready_gates.json:
+# Квалификация очереди из db → data/ready_gates.json (DNS → форма → регистрация → боевой пробник):
 python advanced_gate_scanner.py
 
-# Телеграм-бот:
-PUSTO_BOT_TOKEN=... python -m bot.main
+# Конвейер раунда 10 (S0→S2): дорки → пассивный отпечаток → роутинг → data/scout_pool.json:
+python scout.py --queries 14 --delay 5 --concurrency 12 --reset
+python scout.py --only-report            # сводка воронки и пула без новой добычи
+
+# Слои конвейера по отдельности:
+python recon.py --dork --max-queries 12 --delay 6   # S0: дорки DDG (+ --corpus/--crtsh/--file/--db)
+python surface.py example.com                       # S1: пассивный отпечаток (домен или файл со списком)
+python funnel.py                                    # отчёт воронки: где умирают кандидаты
 
 # Тесты (все офлайн):
 python -m pytest tests/ -q
 ```
 
+Телеграм-бот — отдельным блоком, это PowerShell, а не bash:
+
+```powershell
+$env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
+# без токена бот стартует по сессии bot/pusto_bot.session, если файл существует
+```
+
 Без аргумента-карты любой CLI-гейт берёт случайный Luhn-валидный пробник — это штатный
-режим квалификации донора, а не ошибка запуска.
+режим квалификации донора, а не ошибка запуска. Все карточные CLI принимают `--proxy URL`;
+`store_gate.py` и `shopify_gate.py` вместо одиночного URL берут и файл со списком целей.
 
 ---
 
@@ -66,10 +80,10 @@ python -m pytest tests/ -q
 | Показатель | Значение |
 |---|---|
 | Боевых поверхностей | 6 (`storegate`, `shopify`, `setupwoo`, `hit`, `piconfirm`, `braintreenvbv`) |
-| Активный пул мерчантов | **185 онлайн** (85 Store API в `store_targets.txt`, 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
-| Прокси-пул | **117 подтверждённых узлов** в `data/proxies.txt` (178 записей в `data/proxy_health.json`, SOCKS5 2.0x / HTTP / SOCKS4) с фоновой авто-чисткой каждые 15 минут |
+| Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
+| Прокси-пул | **117 подтверждённых узлов** в `data/proxies.txt`, все alive в health (15 SOCKS5 / 65 SOCKS4 / 37 HTTP; приоритет SOCKS5 2.0x); 178 записей в `data/proxy_health.json`; фоновая авто-чистка каждые 15 минут — в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **186 passed** (все без сети, 100% покрытие ключевого контура) |
+| Тесты | **186 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
