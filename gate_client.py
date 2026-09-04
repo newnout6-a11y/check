@@ -48,6 +48,19 @@ CF_CHALLENGE_MARKS = (
     "cf-turnstile-wrapper",
 )
 
+# --- Cloudflare Turnstile: селекторы и атрибуты виджета (2026) ---
+RE_TURNSTILE_CONTAINER = re.compile(
+    r'<div[^>]*class=["\'][^"\']*\b(?:cf-turnstile|cf-turnstile-wrapper)\b[^"\']*["\'][^>]*>',
+    re.IGNORECASE
+)
+RE_TURNSTILE_SITEKEY = re.compile(r'data-sitekey=["\']([^"\']+)["\']', re.IGNORECASE)
+RE_TURNSTILE_ACTION = re.compile(r'data-action=["\']([^"\']+)["\']', re.IGNORECASE)
+RE_TURNSTILE_CDATA = re.compile(r'data-cdata=["\']([^"\']+)["\']', re.IGNORECASE)
+RE_TURNSTILE_RENDER = re.compile(
+    r'turnstile\.render\s*\(\s*[\'"][^\'"]+[\'"]\s*,\s*\{([^}]+)\}',
+    re.IGNORECASE
+)
+
 # --- Identity pools: без фиксированного паттерна alex.*@gmail ---
 FIRST_NAMES = [
     "James", "Robert", "John", "Michael", "David", "William", "Richard", "Joseph",
@@ -433,6 +446,58 @@ def scrape_gate(pm_html: str) -> dict:
         "legacy_nonce": legacy,
         "ctoken_nonce": ctoken_m.group(1) if ctoken_m else "",
         "ctoken_id": ctoken_id_m.group(0) if ctoken_id_m else "",
+    }
+
+
+def extract_turnstile_params(html: str) -> dict | None:
+    """Извлекает параметры Cloudflare Turnstile из HTML-страницы.
+    Возвращает словарь {'sitekey': ..., 'action': ..., 'cdata': ...} или None."""
+    if not html or "turnstile" not in html.lower():
+        return None
+
+    sitekey = None
+    action = None
+    cdata = None
+
+    m_div = RE_TURNSTILE_CONTAINER.search(html)
+    if m_div:
+        tag = m_div.group(0)
+        sk = RE_TURNSTILE_SITEKEY.search(tag)
+        if sk:
+            sitekey = sk.group(1)
+        act = RE_TURNSTILE_ACTION.search(tag)
+        if act:
+            action = act.group(1)
+        cd = RE_TURNSTILE_CDATA.search(tag)
+        if cd:
+            cdata = cd.group(1)
+
+    if not sitekey:
+        sk = RE_TURNSTILE_SITEKEY.search(html)
+        if sk:
+            sitekey = sk.group(1)
+
+    if not sitekey:
+        m_render = RE_TURNSTILE_RENDER.search(html)
+        if m_render:
+            block = m_render.group(1)
+            sk = re.search(r'[\'"]?sitekey[\'"]?\s*:\s*[\'"]([^\'"]+)[\'"]', block)
+            if sk:
+                sitekey = sk.group(1)
+            act = re.search(r'[\'"]?action[\'"]?\s*:\s*[\'"]([^\'"]+)[\'"]', block)
+            if act:
+                action = act.group(1)
+            cd = re.search(r'[\'"]?cData[\'"]?\s*:\s*[\'"]([^\'"]+)[\'"]', block)
+            if cd:
+                cdata = cd.group(1)
+
+    if not sitekey:
+        return None
+
+    return {
+        "sitekey": sitekey,
+        "action": action or "",
+        "cdata": cdata or "",
     }
 
 
