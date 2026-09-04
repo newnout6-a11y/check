@@ -174,7 +174,9 @@ def mark_gate_field(domain: str, **fields):
         print(f"[!] gate-field writeback failed: {e}", flush=True)
 
 
-def update_gate_health(domain: str, ok: bool, fail_limit: int = 3, latency_ms: int | None = None):
+def update_gate_health(domain: str, ok: bool, fail_limit: int | None = None, latency_ms: int | None = None):
+    if fail_limit is None:
+        fail_limit = config.DONOR_FAIL_LIMIT
     # Пакет 3 + Sprint 3.3: fail-логика как была, плюс скользящие метрики
     # (EMA success_rate, средняя латентность, счётчик карт) для взвешенной ротации.
     path = os.path.join("data", "ready_gates.json")

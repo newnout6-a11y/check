@@ -240,7 +240,7 @@ async def main():
         import domains_store
         HAS_DB = True
         domains_store.init_db()
-        due = domains_store.due_for_scan(hours=24)
+        due = domains_store.due_for_scan(hours=config.RESCAN_INTERVAL_HOURS)
         if due:
             raw_domains = [r["domain"] for r in due]
             print(f"[*] Source: data/domains.db queue — {len(raw_domains)} due (>24h or never scanned)")

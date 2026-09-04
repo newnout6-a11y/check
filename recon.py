@@ -285,7 +285,7 @@ def lane_file(path: str) -> list[tuple[str, str]]:
 def lane_db_pending() -> list[tuple[str, str]]:
     """Что уже лежит в очереди и ещё не сканилось."""
     domains_store.init_db()
-    return [(r["domain"], "db") for r in domains_store.due_for_scan(hours=24)]
+    return [(r["domain"], "db") for r in domains_store.due_for_scan(hours=config.RESCAN_INTERVAL_HOURS)]
 
 
 # --- оркестрация -------------------------------------------------------------

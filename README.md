@@ -215,7 +215,8 @@ UNKNOWN, ERROR
 | Константа | Значение |
 |---|---|
 | `STRIPE_API_VERSION` | `2024-06-20` |
-| `CHROME_IMPERSONATE` | `chrome131` (fallback; активен `pick_impersonate()`: ротация 13 профилей Chrome/Safari/Firefox/Edge/Tor) |
+| `STRIPE_JS_BUILD` | `c1fbe29896` — версия stripe.js: подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
+| `CHROME_IMPERSONATE` | `chrome131` — легаси, живым кодом не читается; рабочий механизм — `IMPERSONATIONS` (13 профилей) + `pick_impersonate()`; аварийный fallback — `surface._FALLBACK_IMP` |
 | `MAX_PI_AMOUNT_CENTS` | `10 000` (выше — `CHARGE_RISK`, не подтверждаем) |
 | `MAX_CONFIRMS_PER_SECRET` | `20` |
 | `DONOR_FAIL_LIMIT` | `3` (подряд отказа — донор из пула) |
@@ -228,12 +229,15 @@ UNKNOWN, ERROR
 
 | Носитель | Состояние | Кто пишет / кто читает |
 |---|---|---|
-| `data/domains.db` | 1 229 доменов, отсканировано 933 (NO_REG 926, CAPTCHA_ADDCARD 7, **READY 0**), в ожидании 296 | пишут `unified_harvester`, `advanced_gate_scanner`; читает сканер |
-| `data/ready_gates.json` | 1 запись (setupwoo-донор) | пишет сканер, читает `setup_gate` |
+| `data/domains.db` | 1 229 доменов, отсканировано 933 (NO_REG 926, CAPTCHA_ADDCARD 7, **READY 0**), в ожидании 296 | пишут `unified_harvester`, `recon`/`scout` (квалифицированных priority 1, мёртвых priority 3), `advanced_gate_scanner`; читают сканер, `surface`, `recon`, `scout` |
+| `data/scout_pool.json` | **190 записей** — пул конвейера S0→S2: woo_blocks 83 / shopify 100 / woo_legacy 7; маршруты setupwoo 10, storegate 86, shopify 100 | пишет `scout.py`; читают `scout --only-report` и scratch-квалификаторы |
+| `data/probe_targets.txt` | 17 строк — ручные manual-цели | пишется руками; читают `unified_harvester` (manual-полоса) и сканер (fallback) |
+| `data/harvested_domains.txt`, `dork_harvested.txt` | по 992 строки — txt-экспорт пула из domains.db | пишут `harvest_donors` и доркеры через `unified_harvester`; читает сканер как fallback при пустой db |
+| `data/ready_gates.json` | 1 запись (setupwoo-донор) | пишут сканер и `setup_gate` (EMA success_rate/латентность, captcha-флаг, выброс при 3 фейлах); читает `setup_gate` |
 | `data/store_gates.json` | 63 записи (расширенная база Store API с ценами каталогов) | пишут `scratch/_scan_store_gates.py`, `_verify_all_store.py`; читает `bot/gates/storegate.py` |
 | `data/shopify_gates.json` | 142 записи чекаутов Shopify | пишет `scratch/_verify_shopify_pool.py`; читает `bot/gates/shopify.py` |
-| `data/final_gates.json` | 6 записей: `setup_intent` 1, `store_confirm` 5 | `scratch/_finalize_pool.py` |
-| `data/store_targets.txt` | 85 проверенных целей | ротация `/st` (WooCommerce Store API) |
+| `data/final_gates.json` | 6 записей: `setup_intent` 1, `store_confirm` 5 | пишет `scratch/_finalize_pool.py`; читает бот-монитор `/gates` |
+| `data/store_targets.txt` | 85 проверенных целей | пишут `scratch/_scan_store_gates.py`, `_build_store_targets.py`; ротация `/st` (WooCommerce Store API) |
 | `data/shopify_targets.txt` | 100 проверенных целей | ротация `/sp` (Shopify Checkout One) |
 | `data/hit_targets.txt` | 10 линков | пул **не используется**: `/hit` берёт URL из команды |
 | `data/proxy_health.json` | 178 записей | телеметрия задержек и ошибок узлов |
@@ -285,18 +289,24 @@ pusto/
 ├── advanced_gate_scanner.py    # квалификация очереди из domains.db
 ├── unified_harvester.py        # оркестратор полос добычи
 ├── harvest_donors.py           # форумная полоса (58 слагов wordpress.org)
+├── scout.py                    # оркестратор S0→S2 → data/scout_pool.json
+├── surface.py                  # S1: пассивный отпечаток поверхностей
+├── recon.py                    # S0: полосы добычи (дорки/crt.sh/corpus)
+├── funnel.py                   # учёт потерь воронки: причины отказов
 ├── domains_store.py            # SQLite-очередь доменов
 ├── proxy_manager.py            # пул прокси: sticky, EMA-веса, health
 ├── bin_cache.py                # SQLite-кэш BIN
 ├── stripe_fid.py               # декодер #fid фрагмента
+├── pusto_logger.py             # центральный ANSI-логгер (бейджи по слоям)
 ├── config.py                   # константы + 24 вердикта
+├── рабочий_файл.md             # рабочий журнал (фиксация волн правок)
 ├── bot/
 │   ├── main.py                 # команды, диспетчер гейтов, /mass, /hit
+│   ├── keyboards.py            # inline-клавиатуры меню и мониторов
 │   ├── gates/                  # плагины: setupwoo, storegate, shopify, piconfirm, braintreenvbv
 │   ├── db.py                   # SQLite юзеров, кредитов и ключей
 │   ├── config.py               # GATE_COST, START_CREDITS, админы, антиспам
 │   └── utils/formatter.py      # карточка вывода: Card/BIN/Gate/Status/Detail/Latency
-├── data/                       # пулы и логи (см. §9)
 ├── scratch/                    # рабочие инструменты конвейера + _doc_audit.py
 │   ├── _scan_store_gates.py    # квалификация Store-API поверхностей
 │   ├── _verify_all_store.py    # боевая верификация store-пула probe-картой
@@ -305,7 +315,8 @@ pusto/
 │   ├── _phantom_control.py     # контроль фантом-гейтов просроченной картой
 │   ├── _scan_pi_gates.py       # поиск торчащих client_secret
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
-│   └── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
+│   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
+│   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
 ├── tests/                      # 14 файлов, 186 тестов, без сети
 ├── docs/                       # PROJECT.md — единая мастер-документация
 └── data/                       # пулы, кэши, результаты (см. §9)

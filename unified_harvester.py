@@ -12,6 +12,7 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 import domains_store
+import config
 
 
 MANUAL_TARGETS = os.path.join("data", "probe_targets.txt")
@@ -88,7 +89,7 @@ async def main():
     n_txt = domains_store.export_txt(os.path.join("data", "harvested_domains.txt"))
     domains_store.export_txt(os.path.join("data", "dork_harvested.txt"))
     print(f"[*] exported {n_txt} domains -> harvested_domains.txt / dork_harvested.txt")
-    due = domains_store.due_for_scan(hours=24)
+    due = domains_store.due_for_scan(hours=config.RESCAN_INTERVAL_HOURS)
     print(f"[*] due for scan (>24h or never): {len(due)}")
     print("=" * 80)
 

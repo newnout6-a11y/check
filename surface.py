@@ -496,9 +496,10 @@ if __name__ == "__main__":
     elif a.target:
         doms = [a.target]
     else:
+        import config
         import domains_store
         domains_store.init_db()
-        doms = [r["domain"] for r in domains_store.due_for_scan(hours=24)]
+        doms = [r["domain"] for r in domains_store.due_for_scan(hours=config.RESCAN_INTERVAL_HOURS)]
 
     funnel.init_db()
     asyncio.run(sweep(doms, concurrency=a.concurrency, explicit_proxy=a.proxy))
