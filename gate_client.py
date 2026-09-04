@@ -305,6 +305,8 @@ def pick_proxy(pool: list[str] | None, explicit: str | None) -> str | None:
     Если живых проверенных прокси нет — возвращает None (прямое подключение),
     чтобы ни в коем случае НЕ ломать чеки пользователю непроверенными узлами!"""
     if explicit:
+        if explicit.strip().lower() in ("direct", "none", "no"):
+            return None
         return normalize_proxy(explicit)
     if not pool:
         return None
@@ -671,7 +673,7 @@ async def stripe_3ds2_authenticate(session, pk: str, source_id: str) -> dict:
         "screenHeight": 1080,
         "screenWidth": 1920,
         "timeZoneOffset": -120,
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
         "javaEnabled": False,
         "javascriptEnabled": True,
     }

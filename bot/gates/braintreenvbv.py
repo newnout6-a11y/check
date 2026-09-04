@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import gate_client as gc
+import config
 from curl_cffi.requests import AsyncSession
 import pusto_logger as log
 
@@ -59,7 +60,7 @@ async def gate(cc, mm, yy, cvv) -> tuple[str, str]:
             log.log_target("braintreenvbv", target)
             log.log_gate("braintreenvbv", masked, "CHECKING", f"target={target}")
             try:
-                async with AsyncSession(impersonate="chrome131", verify=False) as s:
+                async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
                     r = await s.get(target, timeout=10)
                     res = await gc.braintree_vbv_check(s, r.text, raw, target)
             except Exception as e:

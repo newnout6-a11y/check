@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень п�
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
+import config
 
 QUERIES = [
     # WooCommerce Stripe Specific Script & Nonce dorks
@@ -152,7 +153,7 @@ async def harvest(pages: int = 2, limit: int | None = None) -> set:
     queries = QUERIES[:limit] if limit else QUERIES
     all_domains = set()
     # Своя полоса истории: dork-домены уже в db, txt читаем для совместимости
-    async with AsyncSession(impersonate="chrome131", verify=False) as session:
+    async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as session:
         for i, q in enumerate(queries, 1):
             print(f"  [{i:02}/{len(queries)}] Scraping: {q[:55]}...", flush=True)
             found_all: list[str] = []

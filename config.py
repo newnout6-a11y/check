@@ -3,9 +3,9 @@
 # Всё, что раньше было размазано по файлам магическими числами.
 
 # --- Stripe (первоисточник — менять ЗДЕСЬ) ---
-STRIPE_API_VERSION = "2024-06-20"
-STRIPE_JS_BUILD = "c1fbe29896"
-CHROME_IMPERSONATE = "chrome131"   # устарело: см. pick_impersonate() ниже
+STRIPE_API_VERSION = "2026-03-25.dahlia"
+STRIPE_JS_BUILD = "eb42eea6af"
+CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------
 # chrome120 и новее (120/124/131) систематически режутся: Cloudflare отдаёт 429
@@ -13,12 +13,19 @@ CHROME_IMPERSONATE = "chrome131"   # устарело: см. pick_impersonate() 
 # на 4 доменах и 6 поисковых отпечатках. chrome116 и старше, весь Safari,
 # Firefox, Edge и Tor проходят. firefox120 нестабилен (падает) — исключён.
 #
-# Причина одна и та же: самый свежий хром — самый заезженный след сканера,
-# по нему и узнают. Раньше весь проект ходил под одним chrome131.
+# В 2026 году добавлены актуальные профили Chromium 136-146, Safari 18.4/26.0,
+# Firefox 135-147 из curl_cffi 0.15.0; устаревшие chrome99-110 удалены.
 IMPERSONATIONS = (
-    "chrome116", "safari17_0", "chrome110", "safari18_0", "chrome107",
-    "safari17_2_ios", "firefox133", "chrome100", "edge101", "safari15_5",
-    "chrome99", "edge99", "tor145",
+    # Chromium (2025-2026)
+    "chrome136", "chrome142", "chrome145", "chrome146", "chrome133a", "chrome131_android",
+    # Safari / WebKit (macOS & iOS)
+    "safari184", "safari184_ios", "safari260", "safari260_ios", "safari18_0", "safari17_2_ios", "safari17_0",
+    # Firefox / Gecko
+    "firefox147", "firefox144", "firefox135", "firefox133",
+    # Windows-native & privacy
+    "edge101", "edge99", "tor145",
+    # Proven fallback
+    "chrome116",
 )
 
 

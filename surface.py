@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import gate_client as gc
 import funnel
+import config as _cfg
 
 try:                       # единственный источник правды о крышке цены
     from store_gate import MAX_PRICE_CENTS
@@ -160,13 +161,9 @@ _VISIBLE_CAPTCHA = (
 # по нему и узнают сканер. Проверено на 4 доменах: chrome131/124/120 → 429,
 # chrome116 и старше + все safari/firefox133/edge/tor → 200.
 # firefox120 падает с EXC (нестабилен) — исключён.
-IMPERSONATIONS = (
-    "chrome116", "safari17_0", "chrome110", "safari18_0", "chrome107",
-    "safari17_2_ios", "firefox133", "chrome100", "edge101", "safari15_5",
-    "chrome99", "edge99", "tor145",
-)
+IMPERSONATIONS = _cfg.IMPERSONATIONS
 # Последняя надежда — если и она даёт 429, значит режут по IP, не по отпечатку.
-_FALLBACK_IMP = "chrome131"
+_FALLBACK_IMP = _cfg.CHROME_IMPERSONATE
 _THROTTLE_CODES = (403, 429, 503)
 
 

@@ -11,6 +11,7 @@ from curl_cffi import requests
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc
+import config
 
 DORKS = [
     '"/my-account/add-payment-method/" "woocommerce"',
@@ -146,7 +147,7 @@ async def harvest(pages: int = 2, limit: int | None = None) -> set:
     limit — срез списка дорков для смоук-прогонов."""
     dorks = DORKS[:limit] if limit else DORKS
     all_domains = set()
-    async with AsyncSession(impersonate="chrome131", verify=False) as s:
+    async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
         for i, d in enumerate(dorks, 1):
             print(f"  [{i:02}/{len(dorks)}] Querying: {d[:50]}...", flush=True)
             found_all: list[str] = []

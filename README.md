@@ -230,9 +230,10 @@ UNKNOWN, ERROR
 
 | Константа | Значение |
 |---|---|
-| `STRIPE_API_VERSION` | `2024-06-20` |
-| `STRIPE_JS_BUILD` | `c1fbe29896` — версия stripe.js: подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
-| `CHROME_IMPERSONATE` | `chrome131` — легаси, живым кодом не читается; рабочий механизм — `IMPERSONATIONS` (13 профилей) + `pick_impersonate()`; аварийный fallback — `surface._FALLBACK_IMP` |
+| `STRIPE_API_VERSION` | `2026-03-25.dahlia` — актуальная стабильная версия API Stripe 2026 года |
+| `STRIPE_JS_BUILD` | `eb42eea6af` — живой билд stripe.js v3 (сентябрь 2026): подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
+| `CHROME_IMPERSONATE` | `edge101` — нативный Windows-профиль (устраняет p0f TCP mismatch TTL=128); fallback для `surface._FALLBACK_IMP` |
+| `IMPERSONATIONS` | Пул из 22 актуальных профилей `curl_cffi 0.15.0` (Chromium 133a-146, Safari 18.4/26.0, Firefox 135-147, Edge 99/101, Tor 145); устаревшие `chrome99`-`chrome110` удалены |
 | `MAX_PI_AMOUNT_CENTS` | `10 000` (выше — `CHARGE_RISK`, не подтверждаем) |
 | `MAX_CONFIRMS_PER_SECRET` | `20` |
 | `DONOR_FAIL_LIMIT` | `3` (подряд отказа — донор из пула) |
@@ -356,15 +357,14 @@ pusto/
 3. **D-10 — носители-сироты**: `data/hit_targets.txt` (10 линков) не читается никем —
    `/hit` берёт URL аргументом; `data/pi_gates.json` пуст. связать пулы с движком
    или сделать их полноценным источником целей.
-4. **Хардкод `chrome131` вне guard-теста** (находка сверки 2026-09-04):
-   `bot/gates/braintreenvbv.py:62` (боевой гейт) и дорк-полосы `scratch/dork_harvester.py:149`,
-   `scratch/deep_dorker.py:155` ходят под режущимся отпечатком; тест
-   `test_live_modules_do_not_hardcode_chrome131` проверяет только 9 корневых модулей
-   и эти места не видит. чинится заменой на `config.pick_impersonate()`.
 
 Закрыто в текущей версии движка (не переоткрывать):
 - **D-6 (прокси-пул)** — пул развёрнут, механика в §3; **D-11 / D-12** — тиры и
   вердикты согласованы (§5, §7); интерактивный бот — §6, сьют — §10.
+- **Хардкод `chrome131` и аудит 2026** (закрыто 2026-09-04): хардкоды устранены
+  (`bot/gates/braintreenvbv.py`, `scratch/dork_harvester.py`, `scratch/deep_dorker.py` переведены
+  на `config.pick_impersonate()`, userAgent обновлен до Chrome/136), guard-тест расширен
+  на 12 модулей; Stripe обновлен до `2026-03-25.dahlia` и билда `eb42eea6af`.
 
 ---
 
@@ -381,6 +381,8 @@ pusto/
 | 2026-08-28 | hit | buy.stripe.com ($1) | `3DS_REQUIRED` (полный цикл) |
 | 2026-09-03 | setupwoo | blackbeltprotein.com.au | `DECLINED` — контроль живости донора: `battle_result: LIVE`, харнесс исправен |
 | 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — probe-прогон: полный цикл (cart→add-item 201→tokenize→checkout), испанский отказ эмитента |
+| 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — боевой прогон 2026: Stripe Dahlia `2026-03-25.dahlia` (соль `eb42eea6af`) + Chromium TLS 2026, токенизация `pm_1UC2Rt...` 200, чекаут 400 |
+| 2026-09-04 | setupwoo | blackbeltprotein.com.au | `DECLINED` — боевой прогон 2026: прямой запуск direct, сессия открыта, SetupIntent подтвержден, вердикт эмитента |
 
 Живость пула определяется боевым прогоном, а не числом записей в JSON. Пересчитывать
 состояние: `python scratch/_doc_audit.py`.

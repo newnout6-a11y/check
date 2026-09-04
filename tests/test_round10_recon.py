@@ -234,7 +234,9 @@ def test_live_modules_do_not_hardcode_chrome131():
     root = pathlib.Path(__file__).resolve().parent.parent
     for name in ("gate_client.py", "store_gate.py", "shopify_gate.py",
                  "setup_gate.py", "hit_gate.py", "confirm_gate.py",
-                 "advanced_gate_scanner.py", "proxy_manager.py", "recon.py"):
+                 "advanced_gate_scanner.py", "proxy_manager.py", "recon.py",
+                 "bot/gates/braintreenvbv.py", "scratch/dork_harvester.py",
+                 "scratch/deep_dorker.py"):
         p = root / name
         if not p.exists():
             continue

@@ -7,6 +7,7 @@ import re
 import sys
 
 import gate_client as gc
+import config
 from store_gate import bin_lookup
 
 from curl_cffi.requests import AsyncSession
@@ -24,7 +25,7 @@ async def verify(gate: dict, sem: asyncio.Semaphore) -> dict:
     root = gate["base_url"]
     async with sem:
         try:
-            async with AsyncSession(impersonate="chrome131", verify=False) as s:
+            async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
                 res = await gc.store_api_confirm(s, root, gate.get("pk_live", ""),
                                                  gc.card_raw_from_probe(), country="US",
                                                  max_price_cents=3000)
