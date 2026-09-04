@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **196 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **200 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **196 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **200 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -270,7 +270,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**196 passed** (16 файлов), все офлайн (Python 3.14, pytest 9.0.3).
+**200 passed** (17 файлов), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -289,6 +289,7 @@ UNKNOWN, ERROR
 | `tests/test_turnstile.py` | 5 | экстракция параметров Cloudflare Turnstile (контейнеры, wrapper, скриптовый рендер, фоллбэки) |
 | `tests/test_hit_3ds.py` | 5 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 |
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
+| `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
 | `tests/test_stripe_fid.py` | 4 | fid round-trip на перехваченном фрагменте |
 
 Покрыты: ядро классификации, эвристики рекона, воронки чекаута, тиры, ротация, скоринг прокси, валидация карт, атомарная БД, интерактивные меню и роутинг сообщений Telegram-бота. Внешняя сеть при запуске тестового сьюта отключена — тесты полностью детерминированы.
@@ -299,7 +300,9 @@ UNKNOWN, ERROR
 
 ```
 pusto/
-├── gate_client.py              # ядро: 1985 строк, весь HTTP и классификация
+├── gate_client.py              # ядро: 2140 строк, весь HTTP и классификация
+├── bin_steering.py             # селекция Non-VBV и скоринг 3DS рисков
+├── frictionless_engine.py      # эмуляция EMVCo 3DS-Method и телеметрия
 ├── setup_gate.py               # $0 SetupIntent-вектор
 ├── store_gate.py               # Woo Store API direct-confirm
 ├── shopify_gate.py             # Shopify Checkout (GraphQL + классика)
@@ -336,7 +339,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 16 файлов, 196 тестов, без сети
+├── tests/                      # 17 файлов, 200 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
@@ -386,6 +389,8 @@ pusto/
 | 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — боевой прогон 2026: Stripe Dahlia `2026-03-25.dahlia` (соль `eb42eea6af`) + Chromium TLS 2026, токенизация `pm_1UC2Rt...` 200, чекаут 400 |
 | 2026-09-04 | setupwoo | blackbeltprotein.com.au | `DECLINED` — боевой прогон 2026: прямой запуск direct, сессия открыта, SetupIntent подтвержден, вердикт эмитента |
 | 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — боевой прогон: Stripe Confirmation Token flow (`pm_1UC2pK...` 200 -> `ctoken_1UC2pK...` 200 -> checkout 400) |
+| 2026-09-04 | hit | checkout.stripe.com (Kimi.ai, $1900) | `3DS_CHALLENGE` / `DECLINED@FRAUD` — боевой прогон 20 карт: 3DS2 fingerprint (`payatt_...`), сессия выдержала 20 запросов, статус open |
+| 2026-09-04 | hit | checkout.stripe.com (Kimi.ai, $1900) | `3DS_CHALLENGE` — интеграционный прогон: `bin_steering` приоритизация очереди + `frictionless_engine` исполнение 3DS-Method (Visa VCAS / MC Entersekt ACS -> 200 OK) |
 
 Живость пула определяется боевым прогоном, а не числом записей в JSON. Пересчитывать
 состояние: `python scratch/_doc_audit.py`.
