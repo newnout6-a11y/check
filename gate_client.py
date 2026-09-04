@@ -749,6 +749,10 @@ def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
     Возвращает (verdict, detail)."""
     if pi_resp.get("status") == "succeeded":
         return "APPROVED", f"PaymentIntent {pi_resp.get('id', '')} succeeded"
+    if pi_resp.get("status") == "processing":
+        # согласовано с hit_gate/_classify_and_resolve_3ds и store_api_confirm:
+        # PI в процессинге — не отказ и не UNKNOWN, деньги в пути
+        return "PI_PENDING", f"PaymentIntent {pi_resp.get('id', '')} processing"
     if pi_resp.get("status") == "requires_capture":
         return "APPROVED@HOLD", "authorized, capture_method=manual — холд без списания"
     na = pi_resp.get("next_action") or {}

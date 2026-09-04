@@ -100,18 +100,19 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | `funnel.py` | 210+ | **Учёт потерь воронки:** закрытый enum причин отказа (`REASONS`), исключающий мусорный `NO_REG` |
 | `setup_gate.py` | 590+ | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` |
 | `shopify_gate.py` | 690+ | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
-| `hit_gate.py` | 410+ | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений |
+| `hit_gate.py` | 310+ | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений |
 | `confirm_gate.py` | 300+ | Страница с торчащим `pi_..._secret_...`: retrieve PI → confirm → ретрай-бюджет → минт нового секрета |
 | `advanced_gate_scanner.py` | 390+ | Квалификация очереди v1: DNS → форма → POST-регистрация → скрап nonces → боевой SetupIntent-пробник |
 | `store_gate.py` | 110 | CLI-обёртка над `gate_client.store_api_confirm` с крышкой цены |
-| `proxy_manager.py` | 140+ | Пул прокси: валидация, sticky-привязка к донору, health-файл |
+| `proxy_manager.py` | 200+ | Пул прокси: валидация (80 воркеров), sticky-привязка к донору (в CLI `setup_gate`), health-файл, 3 страйка |
 | `domains_store.py` | 120+ | SQLite-очередь доменов (WAL, `INSERT OR IGNORE`, приоритет) |
 | `unified_harvester.py` | 90+ | Оркестратор трёх полос добычи |
 | `harvest_donors.py` | 240+ | Форумная полоса: 58 слагов wordpress.org, приоритет по System Status Report |
 | `bin_cache.py` | 100+ | SQLite-кэш BIN (TTL ∞), ленивое создание схемы |
 | `stripe_fid.py` | 130+ | Декодер `#fid`-фрагмента Stripe Checkout (base64 → XOR-5 → JSON) |
+| `pusto_logger.py` | 280+ | **Центральный консольный логгер:** Windows Virtual Terminal, ANSI/UTF-8, бейджи `[TG]` `[HTTP]` `[STRIPE]` `[GATE]` `[RESULT]` по всем слоям, адаптер стандартного `logging` |
 | `config.py` | 60+ | Единый источник констант, таксономии вердиктов и пула TLS-отпечатков |
-| `bot/` | 1 940+ | Pyrogram-бот (`main.py`), реестр гейтов-плагинов, БД юзеров, кредиты, ключи |
+| `bot/` | 3 570+ | Pyrogram-бот (`main.py` 1 890+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
 
 ---
 
@@ -158,7 +159,7 @@ Pyrogram, polling. Реестр гейтов (`bot/gates/__init__.py`) подн�
 | `/start`, `/cmds`, `/help` | Меню, авто-создание пользователя | — |
 | `/me` | ID, баланс, проверки, хиты | — |
 | `/key`, `/redeem` `<KEY>` | Активация ключа (дни **и** кредиты) | — |
-| `/chk` cc | Авто-выбор поверхности по приоритету | по выбранному гейту |
+| `/chk` cc | Авто-выбор поверхности по приоритету с фолл-троу: при `ERROR` движка чек уходит следующему живому гейту цепочки | по выбранному гейту |
 | `/au` cc | SetupIntent `$0`-auth | 1 кр |
 | `/st [1\|5\|20]` cc | Store API | 2 кр |
 | `/sp [1\|5\|20]` cc | Shopify Checkout | 2 кр |
@@ -169,8 +170,11 @@ Pyrogram, polling. Реестр гейтов (`bot/gates/__init__.py`) подн�
 | `/bin` 123456 | BIN: банк, система, тип, страна, 3DS | — |
 | `/gates` | Реестр гейтов, пулы доноров | — |
 | `/stats` | Личная и общая статистика | — |
-| `/proxy`, `/addproxy`, `/clearproxy` | Просмотр / добавление / очистка пула (админ) | — |
+| `/proxy` | Проверка и чистка пула (валидация до 500 узлов, медиана пинга) — доступна всем | — |
+| `/addproxy`, `/clearproxy` | Добавление (текст/`.txt`) / очистка пула — админ | — |
 | `/addcredits` UID N, `/addpremium` UID ДНИ, `/genkey` [кр] [дни] | Админ-команды | — |
+| *без команды:* карта в чат | Чек выбранным шлюзом и тиром; список карт → массовый чек; ровно 6 цифр → автоматический BIN-lookup | по шлюзу |
+| *без команды:* `.txt` файл | Список карт → массовый чек; прокси-лист (по имени или структуре) → валидация и пул (админ) | по шлюзу |
 
 Экономика: `START_CREDITS = 5` (env `PUSTO_START_CREDITS`), списание атомарное
 (`UPDATE ... WHERE credits >= ?` + rowcount), при вердикте `ERROR` кредит возвращается,
@@ -197,12 +201,12 @@ UNKNOWN, ERROR
 
 - `incorrect_cvc` → `APPROVED@CCN` — карта жива, PAN и срок верны
 - `insufficient_funds` → `APPROVED@CVV` — карта жива, CVV верен
-- `transStatus Y` → `3DS_FRICTIONLESS`, `C` → `3DS_CHALLENGE` — **вердикт «жива и enrolled»**, а не провал
-- `PI succeeded` → `APPROVED@PAID`, `PI processing` → `PI_PENDING`
+- `transStatus Y` → `3DS_FRICTIONLESS`, `C` → `3DS_CHALLENGE` — **вердикт «жива и enrolled»**, а не провал; в hit при `Y` с успешным опросом PI вердикт эскалирует до `APPROVED@PAID`
+- `PI succeeded` → `APPROVED@PAID` в hit и storegate, чистый `APPROVED` в piconfirm-классификаторе; `PI processing` → `PI_PENDING` во всех движках
 - Woo `success: true` при неоплаченном PI → `PI_PENDING`, не `APPROVED@PAID` (фикс по кейсу herbaura)
 
 `HIT_VERDICTS` в корневом `config.py` — 4 класса; бот расширяет их `APPROVED@PAID`,
-`3DS_FRICTIONLESS`, `3DS_CHALLENGE` (`bot/main.py:38`).
+`3DS_FRICTIONLESS`, `3DS_CHALLENGE` (`bot/main.py:68`).
 
 ---
 
