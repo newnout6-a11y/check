@@ -6,6 +6,7 @@ import asyncio
 import gate_client as gc
 import bin_cache
 from setup_gate import GateSession, bin_alpha2, bin_lookup, load_ready_gates
+import pusto_logger as log
 
 NAME = "setupwoo"
 COST = 1
@@ -24,12 +25,22 @@ async def _get_session():
         if gs is not None:
             return gs
         proxy_pool = gc.load_proxies()
-        gs = GateSession(g, proxy=gc.pick_proxy(proxy_pool, None))
+        proxy = gc.pick_proxy(proxy_pool, None)
+        gs = GateSession(g, proxy=proxy)
         ok, detail = await gs.open()
         if ok:
             _session_cache.clear()
             _session_cache[dom] = gs
             return gs
+        # Если была попытка через прокси и она сорвалась — пробуем этот же донор напрямую
+        if proxy and not ok:
+            gs_dir = GateSession(g, proxy=None)
+            ok_dir, _ = await gs_dir.open()
+            if ok_dir:
+                _session_cache.clear()
+                _session_cache[dom] = gs_dir
+                return gs_dir
+            await gs_dir.close()
         await gs.close()
     raise RuntimeError("no live donor in pool")
 
@@ -78,14 +89,18 @@ async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple[str, str]:
                 except Exception:
                     pass
             _session_cache.clear()
+            log.log_error("setupwoo", f"No live donors available in pool: {e}")
             return ("ERROR", str(e))
     try:
+        dom = gs.gate.get("domain") or ""
+        log.log_target("setupwoo", dom, f"proxy: {gs.proxy or 'direct'}")
+        log.log_gate("setupwoo", f"Checking {gc.mask_pan(raw)} on {dom}...")
         async with _sem:  # A6: параллельные чеки, не сериализация юзеров
             res = await gs.check_card(raw, bin_alpha2=bin_alpha2(binfo or {}))
+        log.log_gate("setupwoo", f"Result on {dom}: {res.get('status')} | {res.get('detail')}")
         if res.get("retry_next_gate"):
             # гейт-левел отказ — сессию НЕ оставляем в кэше, иначе все
             # следующие чеки бьют в труп до случайного exception
-            dom = gs.gate.get("domain") or ""
             dead_gs = _session_cache.pop(dom, None)
             if dead_gs is not None:
                 try:
@@ -97,6 +112,7 @@ async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple[str, str]:
                 {"proxy": gs.proxy})
     except Exception as e:
         dom = gs.gate.get("domain") or next(iter(_session_cache), "?")
+        log.log_error("setupwoo", f"Check card exception on {dom}: {e}", exc=e)
         dead_gs = _session_cache.pop(dom, None)
         if dead_gs is not None:
             try:

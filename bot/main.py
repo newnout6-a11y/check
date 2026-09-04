@@ -18,15 +18,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
-from pyrogram.types import Message
+from pyrogram.types import CallbackQuery, Message
 
 import gate_client as gc
 import setup_gate
 import hit_gate as hit_engine  # Stripe Checkout /hit (cs_live hosted)
 import config as engine_cfg  # корневой config проекта (HIT_VERDICTS таксономии)
-from bot import config, db
+from bot import config, db, keyboards
 from bot.gates import load_gates
 from bot.utils import formatter
+import pusto_logger as log
+
+log.setup_logging()
 
 db.init_db()
 GATES = load_gates()
@@ -35,6 +38,31 @@ TG_API_HASH = os.environ.get("PUSTO_TG_API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f5
 app = Client("pusto_bot", workdir=str(Path(__file__).parent),
              api_id=TG_API_ID, api_hash=TG_API_HASH,
              bot_token=config.BOT_TOKEN or None)
+
+
+@app.on_message(group=-1)
+async def _global_msg_logger(client, message: Message):
+    if message.from_user:
+        u_id = message.from_user.id
+        uname = message.from_user.username or ""
+        text = (message.text or message.caption or "").strip()
+        display = text
+        if text and not text.startswith("/"):
+            pan = gc.extract_pan(text)
+            if pan:
+                display = gc.mask_pan(text)
+        log.log_tg(f"Text: {display}", user_id=u_id, username=uname)
+    message.continue_propagation()
+
+
+@app.on_callback_query(group=-1)
+async def _global_callback_logger(client, callback_query: CallbackQuery):
+    if callback_query.from_user:
+        u_id = callback_query.from_user.id
+        uname = callback_query.from_user.username or ""
+        log.log_callback(callback_query.data, user_id=u_id, username=uname)
+    callback_query.continue_propagation()
+
 
 # Единый источник хитов: корневая таксономия + бот-специфичные (3DS-живость, оплаты)
 HIT_VERDICTS = set(engine_cfg.HIT_VERDICTS) | {"APPROVED@PAID", "3DS_FRICTIONLESS",
@@ -139,19 +167,24 @@ def gate_label(gate_name: str, tier: str | None = None) -> str:
     return base
 
 
-def _card_fields(text: str) -> list[str] | None:
-    """CC|MM|YY|CVV / CC MM YY CVV / 4-блочный PAN + MM YY CVV -> [cc, mm, yy, cvv].
-    Раньше '4111 1111 1111 1111 09 25 123' парсился как cc=4111 mm=1111 — мусор."""
-    parts = text.replace("|", " ").replace(":", " ").replace("/", " ").split()
-    if len(parts) == 7 and all(re.fullmatch(r"\d{4}", p) for p in parts[:4]):
-        parts = ["".join(parts[:4])] + parts[4:]
-    return parts if len(parts) == 4 else None
-
-
 _PAN_RE = re.compile(r"\d{13,19}")
 _MM_RE = re.compile(r"\d{1,2}")
 _YY_RE = re.compile(r"\d{2,4}")
 _CVV_RE = re.compile(r"\d{3,4}")
+
+
+def _card_fields(text: str) -> list[str] | None:
+    """CC|MM|YY|CVV / CC MM YY CVV / 4-блочный PAN + MM YY CVV -> [cc, mm, yy, cvv]."""
+    parts = text.replace("|", " ").replace(":", " ").replace("/", " ").split()
+    if len(parts) == 7 and all(re.fullmatch(r"\d{4}", p) for p in parts[:4]):
+        parts = ["".join(parts[:4])] + parts[4:]
+    if (len(parts) == 4
+            and _PAN_RE.fullmatch(parts[0])
+            and _MM_RE.fullmatch(parts[1])
+            and _YY_RE.fullmatch(parts[2])
+            and _CVV_RE.fullmatch(parts[3])):
+        return parts
+    return None
 
 
 def _collect_cards(chunk: str, out: list[list[str]], limit: int,
@@ -255,46 +288,300 @@ def _safe_pan(raw: str) -> str:
         return f"{digits[:6]}…{digits[-4:]}" if len(digits) >= 10 else (digits or "?")
 
 
-def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
+def render_main_menu(u: dict, settings: dict, creator: str = CREATOR_NICK) -> str:
     is_dev = db.is_developer(u)
     is_prem = db.is_premium(u)
     if is_dev:
         tier_str = "Developer (Unlimited)"
         tier_icon = "👑"
-        limit_str = "∞"
     elif is_prem:
-        tier_str = "Premium"
+        tier_str = "Premium (Безлимит)"
         tier_icon = "💎"
-        limit_str = "Чеки без кредитов · /mass до 20 карт"
     else:
         tier_str = "Free"
         tier_icon = "🎫"
-        limit_str = f"{config.START_CREDITS} стартовых кредитов · /mass до 20 карт"
+
+    gate_cur = settings.get("selected_gate", "chk")
+    tier_cur = settings.get("selected_tier", "1")
+    gate_lbl = keyboards.get_gate_display(gate_cur)
+    tier_lbl = keyboards.get_tier_display(tier_cur)
+    u_name = f"@{u['username']}" if u.get("username") else "Operator"
 
     return (
-        "✦ <b>PUSTO CHECKER</b> ✦\n\n"
-        "★ <b>𝑾𝑬𝑳𝑪𝑶𝑴𝑬</b> ★\n\n"
-        f"{tier_icon} <b>Tier</b> : {tier_str}\n"
-        f"📊 <b>Limit</b> : {limit_str}\n"
-        "🎟 <b>Redeem</b> : <code>/redeem &lt;key&gt;</code>\n\n"
-        "⚡ <b>𝑪𝑶𝑴𝑴𝑨𝑵𝑫𝑺</b> ⚡\n\n"
-        "💳 <code>/chk</code> cc — авто-выбор поверхности\n"
-        "💳 <code>/au</code> cc — Stripe $0 Auth (SetupIntent)\n"
-        "💳 <code>/st1</code> <code>/st5</code> <code>/st20</code> cc — Store API (тир: &lt;$1 / $1-5 / $5-20)\n"
-        "💳 <code>/sp1</code> <code>/sp5</code> <code>/sp20</code> cc — Shopify Checkout (тир: &lt;$1 / $1-5 / $5-20)\n"
-        "⚡ <code>/hit</code> url cc — Stripe Checkout (готовый cs_live-линк)\n"
-        "🔍 <code>/bin</code> bin — BIN Lookup\n"
-        "📁 <code>/mass</code> [гейт] — Mass Check (≤20 карт, .txt или текст)\n\n"
-        "🌐 <b>𝑷𝑹𝑶𝑿𝑰𝑬𝑺</b> 🌐\n\n"
-        "📡 <code>/proxy</code> — Check &amp; clean proxies\n"
-        "📡 <code>/addproxy</code> — Add proxies (text/file) <i>— админ</i>\n"
-        "📡 <code>/clearproxy</code> — Clear all proxies <i>— админ</i>\n\n"
-        "📈 <b>𝑰𝑵𝑭𝑶</b> 📈\n\n"
-        "📊 <code>/stats</code> — твоя статистика и пул\n"
-        "🧩 <code>/gates</code> — какие гейты живы и сколько стоят\n"
-        "───────────────────────\n"
-        f"✈️ Made by <i>{creator}</i>"
+        "|  <b>𝐏𝐔𝐒𝐓𝐎 𝐓𝐄𝐑𝐌𝐈𝐍𝐀𝐋</b>  |\n\n"
+        "⭐  𝑾𝑬𝑳𝑪𝑶𝑴𝑬  ⭐\n\n"
+        f"👤 {html.escape(u_name)} (<code>{u['user_id']}</code>)\n"
+        f"{tier_icon} <b>{tier_str}</b>\n"
+        f"💳 <b>{u['credits']}</b> кр. │ 📊 <b>{u['total_checks']}</b> │ 🎯 <b>{u['hits']}</b>\n\n"
+        "⚙️ <b>РАБОЧИЙ КОНТУР:</b>\n"
+        f"├─ 🎯 <b>Активный шлюз:</b> <code>{gate_lbl}</code>\n"
+        f"└─ 💰 <b>Ценовой тир:</b> <code>{tier_lbl}</code>\n\n"
+        "💡 <i>Отправьте карту <code>CC MM YY CVV</code> прямо в чат или управляйте кнопками ниже:</i>\n"
+        "───────────────────────────────────\n"
+        f"✈️ Engine by <i>{creator}</i>"
     )
+
+
+def render_prices_menu(settings: dict) -> str:
+    t = settings.get("selected_tier", "1")
+    t_disp = keyboards.get_tier_display(t)
+    g = settings.get("selected_gate", "chk")
+    g_disp = keyboards.get_gate_display(g)
+
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│      <b>💰 ВЫБОР ЦЕНОВОГО ТИРА</b>        │\n"
+        "╰───────────────────────────────────╯\n"
+        f"⚙️ <b>Текущий тир:</b> <b>{t_disp}</b>\n"
+        f"🎯 <b>Активный шлюз:</b> <code>{g_disp}</code>\n\n"
+        "<b>Доступные ценовые диапазоны:</b>\n"
+        "• 🟢 <b>Tier 1 (&lt;$1):</b> Микро-чеки ($0.10 – $1.00). Самый быстрый отклик и минимальный порог.\n"
+        "• 🟡 <b>Tier 5 ($1–$5):</b> Оптимальный рабочий пул мерчантов ($1.01 – $5.00).\n"
+        "• 🔴 <b>Tier 20 ($5–$20):</b> Расширенный пул мерчантов ($5.01 – $20.00).\n"
+        "• ⚙️ <b>Auto:</b> Любой доступный товар без фильтрации цены.\n\n"
+        "<i>Нажмите кнопку ниже — выбор сразу сохранится в базе и будет применяться при чеке через Store API и Shopify.</i>"
+    )
+
+
+def render_gates_menu(settings: dict) -> str:
+    g = settings.get("selected_gate", "chk")
+    g_disp = keyboards.get_gate_display(g)
+    t = settings.get("selected_tier", "1")
+    t_disp = keyboards.get_tier_display(t)
+
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│        <b>🎯 ВЫБОР ШЛЮЗА ЧЕКА</b>         │\n"
+        "╰───────────────────────────────────╯\n"
+        f"⚙️ <b>Текущий шлюз:</b> <b>{g_disp}</b>\n"
+        f"💰 <b>Активный тир цены:</b> <b>{t_disp}</b>\n\n"
+        "<b>Доступные поверхности чека:</b>\n"
+        "• ⚡ <b>Авто-выбор (/chk):</b> Умный выбор по приоритету живых целей.\n"
+        "• 🟢 <b>Stripe Auth $0 (/au):</b> SetupIntent без списания баланса (1 кр).\n"
+        "• 🛒 <b>Store API (/st):</b> Woo Store API чекаут с авто-товаром (2 кр).\n"
+        "• 🛍 <b>Shopify Vault (/sp):</b> Токенизация deposit.us.shopifycs.com (2 кр).\n"
+        "• 🎯 <b>Stripe Direct (/hit):</b> Прямой прогон по cs_live ссылкам (2 кр).\n"
+        "• 🛡 <b>Braintree VBV (/vbv):</b> Non-VBV / 3DS проверка (1 кр).\n"
+        "• 🔑 <b>PI Confirm (/pi):</b> Чекаут по client_secret (2 кр).\n\n"
+        "<i>Выберите шлюз для автоматического использования при отправке карт:</i>"
+    )
+
+
+def render_prompt_check(settings: dict) -> str:
+    g = settings.get("selected_gate", "chk")
+    g_disp = keyboards.get_gate_display(g)
+    t = settings.get("selected_tier", "1")
+    t_disp = keyboards.get_tier_display(t)
+    cost = config.GATE_COST.get(g, 1)
+
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│     <b>💳 БЫСТРАЯ ПРОВЕРКА КАРТЫ</b>     │\n"
+        "╰───────────────────────────────────╯\n"
+        f"🎯 <b>Активный шлюз:</b> <code>{g_disp}</code>\n"
+        f"💰 <b>Ценовой тир:</b> <code>{t_disp}</code>\n"
+        f"💳 <b>Стоимость чека:</b> <b>{cost}</b> кр.\n\n"
+        "<b>Форматы ввода (отправьте прямо в чат):</b>\n"
+        "• <code>4111111111111111|12|28|123</code>\n"
+        "• <code>4111 1111 1111 1111 12 28 123</code>\n"
+        "• <code>4111111111111111 12/28 123</code>\n\n"
+        "💡 <i>Просто вставьте данные карты в чат — бот мгновенно проведёт её через выбранный шлюз.</i>"
+    )
+
+
+def render_profile(u: dict, settings: dict) -> str:
+    is_dev = db.is_developer(u)
+    is_prem = db.is_premium(u)
+    if is_dev:
+        rank_str = "👑 Developer (Unlimited)"
+    elif is_prem:
+        rank_str = "💎 Premium"
+    else:
+        rank_str = "🎫 Free Tier"
+
+    g = settings.get("selected_gate", "chk")
+    t = settings.get("selected_tier", "1")
+    u_name = f"@{u['username']}" if u.get("username") else "Operator"
+
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│       <b>📊 ПРОФИЛЬ ОПЕРАТОРА</b>        │\n"
+        "╰───────────────────────────────────╯\n"
+        f"👤 <b>Пользователь:</b> {html.escape(u_name)}\n"
+        f"🆔 <b>User ID:</b> <code>{u['user_id']}</code>\n"
+        f"👑 <b>Ранг доступа:</b> {rank_str}\n"
+        f"💳 <b>Баланс кредитов:</b> <b>{u['credits']}</b> кр.\n"
+        f"📈 <b>Всего проверок:</b> <b>{u['total_checks']}</b>\n"
+        f"🎯 <b>Успешных (Live-хитов):</b> <b>{u['hits']}</b>\n"
+        "⏱ <b>Антиспам окно:</b> 3 сек.\n\n"
+        "⚙️ <b>Твои настройки по умолчанию:</b>\n"
+        f"• Выбранный шлюз: <code>{keyboards.get_gate_display(g)}</code>\n"
+        f"• Ценовой фильтр: <code>{keyboards.get_tier_display(t)}</code>"
+    )
+
+
+def render_gates_monitor() -> str:
+    data_dir = os.path.join(os.path.dirname(__file__), "..", "data")
+
+    def load_json(name):
+        p = os.path.join(data_dir, name)
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                return d if isinstance(d, list) else []
+            except Exception:
+                return []
+        return []
+
+    ready = [g for g in load_json("ready_gates.json") if g.get("status", "READY") == "READY"]
+    store = [g for g in load_json("store_gates.json") if not g.get("phantom") and not g.get("dead_surface")]
+    shopify = load_json("shopify_gates.json")
+    final = load_json("final_gates.json")
+
+    lines = [
+        "╭───────────────────────────────────╮\n"
+        "│     <b>🧩 МОНИТОР ПОВЕРХНОСТЕЙ</b>     │\n"
+        "╰───────────────────────────────────╯",
+        f"🟢 <b>Stripe Auth ($0 SetupIntent):</b> <b>{len(ready)}</b> онлайн",
+        f"🛒 <b>Woo Store API:</b> <b>{len(store)}</b> мерчантов (от 0.10$)",
+        f"🛍 <b>Shopify Vault:</b> <b>{len(shopify)}</b> магазинов (от 0.01$)",
+        f"🎯 <b>Пул финальных целей:</b> <b>{len(final)}</b> шлюзов",
+        "",
+        "<b>Тарифы шлюзов:</b>",
+    ]
+    for k, v in GATES.items():
+        cost = v["cost"] if v["cost"] is not None else config.GATE_COST.get(k, 1)
+        lines.append(f"• <code>/{k}</code> — <b>{cost}</b> кр.")
+    lines.append(f"• <code>/hit</code> — <b>{config.GATE_COST.get('hit', 2)}</b> кр/карта")
+
+    return "\n".join(lines)
+
+
+def render_proxy_status() -> str:
+    proxies = gc.load_proxies()
+    s5 = sum(1 for p in proxies if p.startswith("socks5://"))
+    s4 = sum(1 for p in proxies if p.startswith("socks4://"))
+    ht = sum(1 for p in proxies if p.startswith("http://") or p.startswith("https://"))
+
+    health_file = os.path.join("data", "proxy_health.json")
+    tested = 0
+    med = 0
+    if os.path.exists(health_file):
+        try:
+            with open(health_file, encoding="utf-8") as f:
+                hdata = json.load(f)
+                tested = len(hdata)
+                lats = sorted(e["latency_ms"] for e in hdata if e.get("latency_ms"))
+                med = lats[len(lats) // 2] if lats else 0
+        except Exception:
+            pass
+
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│       <b>📡 ПРОКСИ-ИНФРАСТРУКТУРА</b>     │\n"
+        "╰───────────────────────────────────╯\n"
+        f"• Прокси в пуле: <b>{len(proxies)}</b> шт.\n"
+        f"• Протоколы: <b>SOCKS5: {s5}</b> | <b>SOCKS4: {s4}</b> | <b>HTTP: {ht}</b>\n"
+        f"• Проверено узлов: <b>{tested}</b> (медиана: <b>{med} ms</b>)\n"
+        f"• Приоритет: <b>SOCKS5 (2.0x) > Fast HTTP > SOCKS4</b>\n"
+        "💡 <i>Управление пулом:</i>\n"
+        "• Чтобы добавить прокси: просто отправьте <b>.txt файл</b> в чат бота (или <code>/addproxy host:port</code>).\n"
+        "• Нажмите <b>«Проверить и очистить»</b> для немедленной проверки текущего пула."
+    )
+
+
+def render_mass_help(settings: dict) -> str:
+    g = settings.get("selected_gate", "chk")
+    t = settings.get("selected_tier", "1")
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│       <b>📁 МАССОВЫЙ ЧЕК (/mass)</b>     │\n"
+        "╰───────────────────────────────────╯\n"
+        "Поддерживается до <b>20 карт</b> в одном пакете.\n\n"
+        "<b>Способы запуска:</b>\n"
+        "1. Отправьте список карт прямо в чат (каждая с новой строки).\n"
+        f"2. Командой: <code>/mass {g} CC MM YY CVV\nCC MM YY CVV</code>\n"
+        "3. Прикрепите <b>.txt файл</b> с картами.\n\n"
+        f"⚙️ <i>Текущий рабочий шлюз: <code>{keyboards.get_gate_display(g)}</code>, тир: <code>{keyboards.get_tier_display(t)}</code>.</i>"
+    )
+
+
+def render_bin_help() -> str:
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│       <b>🔍 BIN LOOKUP / ПОИСК</b>       │\n"
+        "╰───────────────────────────────────╯\n"
+        "Быстрый поиск информации по первым 6 цифрам карты:\n"
+        "• Банк-эмитент, страна, валюта\n"
+        "• Бренд: Visa, Mastercard, Amex, Discover\n"
+        "• Тип: Credit / Debit / Prepaid\n"
+        "• Уровень: Classic, Gold, Platinum, Infinite\n"
+        "• 3DS / VBV статус\n\n"
+        "<b>Использование:</b>\n"
+        "Отправьте: <code>/bin 411111</code>\n"
+        "<i>Или просто отправьте 6 цифр в чат!</i>"
+    )
+
+
+def render_redeem_help() -> str:
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│     <b>🎟 АКТИВАЦИЯ КЛЮЧА ДОСТУПА</b>     │\n"
+        "╰───────────────────────────────────╯\n"
+        "Ключи пополняют баланс кредитов или активируют премиум.\n\n"
+        "<b>Формат активации:</b>\n"
+        "<code>/redeem ВАШ_КЛЮЧ</code> или <code>/key ВАШ_КЛЮЧ</code>\n\n"
+        "<i>Пример:</i> <code>/redeem a1b2c3d4e5f6</code>"
+    )
+
+
+def render_help_menu() -> str:
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│     <b>ℹ️ СПРАВОЧНИК И КОМАНДЫ</b>      │\n"
+        "╰───────────────────────────────────╯\n"
+        "⚡ <b>КОМАНДЫ ЧЕКА:</b>\n"
+        "• <code>/chk CC MM YY CVV</code> — Авто-выбор лучшего шлюза\n"
+        "• <code>/au CC MM YY CVV</code> — Stripe $0 Auth (SetupIntent)\n"
+        "• <code>/st [1|5|20] CC MM YY CVV</code> — Woo Store API\n"
+        "• <code>/sp [1|5|20] CC MM YY CVV</code> — Shopify Vault\n"
+        "• <code>/hit URL CC MM YY CVV</code> — Stripe Direct Checkout\n"
+        "• <code>/bin 123456</code> — BIN Lookup\n"
+        "• <code>/mass [шлюз]</code> — Пакетный чек (до 20 карт)\n\n"
+        "📊 <b>УПРАВЛЕНИЕ:</b>\n"
+        "• <code>/start</code> — Главное интерактивное меню\n"
+        "• <code>/me</code> или <code>/stats</code> — Личная статистика\n"
+        "• <code>/gates</code> — Монитор активных шлюзов\n"
+        "• <code>/proxy</code> — Проверка и очистка прокси\n\n"
+        "💡 <i>Отправляйте карты прямо в чат — бот автоматически применит выбранные настройки!</i>"
+    )
+
+
+def render_admin_panel() -> str:
+    proxies = gc.load_proxies()
+    g_stats = db.get_global_stats()
+    return (
+        "╭───────────────────────────────────╮\n"
+        "│       <b>👑 ПАНЕЛЬ УПРАВЛЕНИЯ</b>        │\n"
+        "╰───────────────────────────────────╯\n"
+        f"👥 Всего пользователей: <b>{g_stats['users_count']}</b>\n"
+        f"💎 Премиум аккаунтов: <b>{g_stats['premium_users']}</b>\n"
+        f"📈 Суммарно проверок: <b>{g_stats['total_checks']}</b>\n"
+        f"🎯 Суммарно хитов: <b>{g_stats['total_hits']}</b>\n"
+        f"📡 Прокси в файле: <b>{len(proxies)}</b> шт.\n\n"
+        "<b>Команды администратора:</b>\n"
+        "• <code>/addcredits UID N</code> — начислить N кредитов\n"
+        "• <code>/addpremium UID ДНИ</code> — выдать премиум\n"
+        "• <code>/genkey КРЕДИТЫ ДНИ</code> — сгенерировать ключ\n"
+        "• <code>/addproxy host:port</code> — добавить прокси\n"
+        "• <code>/clearproxy</code> — очистить список прокси"
+    )
+
+
+def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
+    settings = db.get_user_settings(u.get("user_id", 0))
+    return render_main_menu(u, settings, creator=creator)
 
 
 @app.on_message(filters.command(["start", "cmds", "help"]))
@@ -302,14 +589,28 @@ def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
 async def cmd_start(client, message: Message):
     db.ensure_user(message.from_user.id, message.from_user.username or "")
     u = db.get_user(message.from_user.id)
-    await message.reply(build_start_menu(u), parse_mode=ParseMode.HTML)
+    settings = db.get_user_settings(message.from_user.id)
+    is_admin = db.is_developer(u)
+    await message.reply(
+        render_main_menu(u, settings),
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboards.main_menu_kb(
+            settings["selected_gate"], settings["selected_tier"], is_admin=is_admin
+        )
+    )
 
 
 @app.on_message(filters.command(["me"]))
 @user_only
 async def cmd_me(client, message: Message):
     db.ensure_user(message.from_user.id, message.from_user.username or "")
-    await message.reply(me_line(db.get_user(message.from_user.id)), parse_mode=ParseMode.HTML)
+    u = db.get_user(message.from_user.id)
+    settings = db.get_user_settings(message.from_user.id)
+    await message.reply(
+        render_profile(u, settings),
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboards.profile_kb()
+    )
 
 
 @app.on_message(filters.command(["key", "redeem"]))
@@ -341,9 +642,12 @@ async def cmd_proxy(client, message: Message):
     """Проверка и чистка пула. Раньше команда только печатала длину списка,
     хотя меню обещало «Check & clean» — ProxyPool.validate_all() просто не
     был подключён."""
+    is_admin = bool(message.from_user and message.from_user.id in config.ADMIN_IDS)
     proxies = gc.load_proxies()
     if not proxies:
-        return await message.reply("📡 <b>Прокси-пул:</b> пуст (прямое подключение)\nДобавить: <code>/addproxy host:port</code> или файлом.", parse_mode=ParseMode.HTML)
+        return await message.reply("📡 <b>Прокси-пул:</b> пуст (прямое подключение)\nДобавить: <code>/addproxy host:port</code> или файлом.",
+                                   parse_mode=ParseMode.HTML,
+                                   reply_markup=keyboards.proxy_kb(is_admin=is_admin))
 
     # validate_all держит 20 потоков по 10с — на списке из 60k это часы.
     # Режем выборку: чистим то, что реально проверим, остальное честно не трогаем.
@@ -360,7 +664,8 @@ async def cmd_proxy(client, message: Message):
     except Exception as e:
         return await status.edit_text(
             f"❌ Валидация сорвалась: <code>{html.escape(type(e).__name__)}: {html.escape(str(e)[:120])}</code>",
-            parse_mode=ParseMode.HTML)
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboards.proxy_kb(is_admin=is_admin))
 
     # «мёртвый» по ProxyPool = три накопленных фейла, но для ручной чистки
     # считаем неответивших на ЭТОЙ проверке: alive=False или fail_count вырос.
@@ -371,34 +676,35 @@ async def cmd_proxy(client, message: Message):
     alive_urls = [e["url"] for e in pool.entries if e["url"] not in dead_urls]
 
     if dead_urls:
-        # обратно в файл — тем же форматом, что пишет /addproxy (без схемы).
-        # load_proxies() сам вернёт схему при чтении. Непроверенный хвост
-        # дописываем как есть — /proxy не должен молча терять прокси.
         os.makedirs("data", exist_ok=True)
         with open(os.path.join("data", "proxies.txt"), "w", encoding="utf-8") as f:
             for url in alive_urls + skipped:
-                f.write(url.split("://", 1)[-1] + "\n")
+                f.write(url + "\n")
 
     lats = sorted(e["latency_ms"] for e in pool.entries
                   if e["url"] not in dead_urls and e.get("latency_ms"))
     med = lats[len(lats) // 2] if lats else 0
+    s5_alive = sum(1 for u in alive_urls if u.startswith("socks5://"))
+    s4_alive = sum(1 for u in alive_urls if u.startswith("socks4://"))
+    ht_alive = sum(1 for u in alive_urls if u.startswith("http://") or u.startswith("https://"))
+
     lines = [
         f"📡 <b>Прокси-пул:</b> {len(alive_urls)}/{len(checked)} живых",
+        f"• Протоколы: <b>SOCKS5: {s5_alive}</b> | <b>SOCKS4: {s4_alive}</b> | <b>HTTP: {ht_alive}</b>",
         f"• Медиана отклика: <b>{med} ms</b>",
         f"• Не ответили: <b>{len(dead_urls)}</b>"
         + (" — удалены из пула" if dead_urls else ""),
     ]
     if skipped:
         lines.append(f"• Не проверено (лимит {PROBE_CAP}): <b>{len(skipped)}</b> — остались в пуле")
-    # alive от ProxyPool считает по своим трём страйкам; он мягче нашей чистки,
-    # поэтому показываем обе цифры, чтобы не казалось, что они противоречат.
     lines.append(f"• По пулу (3 страйка): <b>{alive}</b> живых")
     if dead_urls:
         sample = ", ".join(html.escape(u.split("://", 1)[-1]) for u in
                            list(dead_urls)[:3])
-        lines.append(f"• Примеры: <code>{sample}</code>")
-    lines.append("• Управление: <code>/addproxy</code> (админ) | Очистить: <code>/clearproxy</code> (админ)")
-    await status.edit_text("\n".join(lines), parse_mode=ParseMode.HTML)
+        lines.append(f"• Удалены: <code>{sample}</code>")
+    lines.append("• Управление: <code>/addproxy</code> | Очистить: <code>/clearproxy</code>")
+    await status.edit_text("\n".join(lines), parse_mode=ParseMode.HTML,
+                           reply_markup=keyboards.proxy_kb(is_admin=is_admin))
 
 
 @app.on_message(filters.command(["addproxy"]))
@@ -419,25 +725,103 @@ async def cmd_addproxy(client, message: Message):
         if len(parts) > 1:
             text = parts[1]
 
-    lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
-    if not lines:
+    raw_lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
+    if not raw_lines:
         return await message.reply("Формат: <code>/addproxy host:port</code> (или ответом на .txt файл)", parse_mode=ParseMode.HTML)
+
+    lines = []
+    seen = set()
+    for rl in raw_lines:
+        norm = gc.normalize_proxy(rl)
+        if norm and norm not in seen:
+            seen.add(norm)
+            lines.append(norm)
+
+    if not lines:
+        return await message.reply("❌ Не удалось распознать ни один валидный прокси.", parse_mode=ParseMode.HTML)
 
     p_path = os.path.join("data", "proxies.txt")
     existing: list[str] = []
     if os.path.exists(p_path):
         try:
             with open(p_path, encoding="utf-8") as f:
-                existing = [x.strip() for x in f if x.strip()]
+                for x in f:
+                    nx = gc.normalize_proxy(x)
+                    if nx and nx not in existing:
+                        existing.append(nx)
         except Exception:
             existing = []
-    # dict.fromkeys сохраняет порядок и режет дубли: /addproxy один и тот же
-    # список дважды раздувал пул, а ротация 1/lat потом взвешивала копии
+
     merged = list(dict.fromkeys(existing + lines))
     _atomic_write_lines(p_path, merged)
     added = len(merged) - len(existing)
-    await message.reply(f"✅ Добавлено <b>{added}</b> прокси (дубли отсечены). "
-                        f"Всего в пуле: <b>{len(merged)}</b> шт.", parse_mode=ParseMode.HTML)
+
+    s5 = sum(1 for p in lines if p.startswith("socks5://"))
+    s4 = sum(1 for p in lines if p.startswith("socks4://"))
+    ht = sum(1 for p in lines if p.startswith("http://") or p.startswith("https://"))
+
+    is_admin = bool(message.from_user and message.from_user.id in config.ADMIN_IDS)
+    status_msg = await message.reply(
+        f"📥 <b>Загружено {len(lines)} прокси</b> (всего в пуле: {len(merged)} шт.).\n"
+        f"⚡ <i>Запускаю мгновенную проверку на живость...</i>",
+        parse_mode=ParseMode.HTML
+    )
+
+    from proxy_manager import ProxyPool
+    pool = ProxyPool(merged)
+    fails_before = {e["url"]: e["fail_count"] for e in pool.entries}
+
+    last_edit = 0.0
+    async def _on_progress(done: int, total_p: int, alive_now: int):
+        nonlocal last_edit
+        now = time.time()
+        if now - last_edit >= 3.0 or done == total_p:
+            last_edit = now
+            pct = int((done / total_p) * 100) if total_p else 0
+            try:
+                await status_msg.edit_text(
+                    f"📡 <b>Проверка пула: {pct}%</b>\n"
+                    f"• Проверено: <b>{done}</b> / {total_p}\n"
+                    f"• Найдено живых: <b>{alive_now}</b>\n\n"
+                    f"⚡ <i>Подробные логи летят в реальном времени в консоль...</i>",
+                    parse_mode=ParseMode.HTML
+                )
+            except Exception:
+                pass
+
+    try:
+        alive_count_raw, total = await pool.validate_all(concurrency=80, on_progress=_on_progress)
+        dead_urls = {e["url"] for e in pool.entries
+                     if not e["alive"] or e["fail_count"] > fails_before.get(e["url"], 0)}
+        alive_urls = [e["url"] for e in pool.entries if e["url"] not in dead_urls]
+        alive_count = len(alive_urls)
+        dead_count = total - alive_count
+        _atomic_write_lines(p_path, alive_urls)
+        
+        lats = sorted(e["latency_ms"] for e in pool.entries if e["url"] not in dead_urls and e.get("latency_ms"))
+        med = lats[len(lats) // 2] if lats else 0
+        s5_alive = sum(1 for u in alive_urls if u.startswith("socks5://"))
+        s4_alive = sum(1 for u in alive_urls if u.startswith("socks4://"))
+        ht_alive = sum(1 for u in alive_urls if u.startswith("http://") or u.startswith("https://"))
+
+        await status_msg.edit_text(
+            f"✅ <b>Прокси проверены и добавлены в активный пул:</b>\n"
+            f"• Живых узлов: <b>{alive_count}</b> / {total}\n"
+            f"• Протоколы: <b>SOCKS5: {s5_alive}</b> | <b>SOCKS4: {s4_alive}</b> | <b>HTTP: {ht_alive}</b>\n"
+            f"• Отсеяно мёртвых: <b>{dead_count}</b>\n"
+            f"• Медиана пинга: <b>{med} ms</b>\n\n"
+            f"🔄 <i>Фоновый валидатор обновляет статус каждые 15 минут.</i>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboards.proxy_kb(is_admin=is_admin)
+        )
+    except Exception as e:
+        log.log_error("proxy_upload", "Validation failed after upload", e)
+        await status_msg.edit_text(
+            f"✅ <b>Добавлено {added} новых прокси</b> в список.\n"
+            f"⚠️ Фоновая проверка завершится в ближайшем цикле (каждые 15 мин).",
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboards.proxy_kb(is_admin=is_admin)
+        )
 
 
 @app.on_message(filters.command(["clearproxy"]))
@@ -488,6 +872,10 @@ async def run_gate(message: Message, gate_name: str, argline: str,
             if tier is None:
                 tier = toks[0].lower()
             argline = " ".join(toks[1:])
+        if tier is None and gate_name in ("storegate", "shopify"):
+            saved = db.get_user_settings(u_id).get("selected_tier", "1")
+            if saved not in ("all", "none"):
+                tier = saved
         # формат валидируется ДО списания кредитов — кривой ввод не сжигает баланс.
         # Тот же parse_cards, что в /hit и /mass: запятые в '/chk 4111...,12,30,123'
         # раньше ломались, потому что _card_fields их не ел.
@@ -495,13 +883,18 @@ async def run_gate(message: Message, gate_name: str, argline: str,
         parts = cards[0] if cards else None
         if parts is None:
             return await message.reply(f"Формат: /{gate_name} CC MM YY CVV")
+        masked = gc.mask_pan(parts[0])
         bad = card_rejection(parts)
         if bad:
+            log.log_card("Rejected", masked, bad)
             return await message.reply(bad)
         cost = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
         if not db.spend_credit(u_id, gate_name):
+            log.log_billing(u_id, f"Insufficient credits for {gate_name} (needs {cost})")
             return await message.reply(f"❌ Недостаточно кредитов ({cost}/чек). Используйте /redeem для пополнения")
+        log.log_billing(u_id, f"spent {cost} credits for {gate_name}", balance=db.get_user(u_id).get("credits"))
         label = gate_label(gate_name, tier)
+        log.log_router(f"Checking card {masked} via {label}...")
         if status_msg is None:
             status_msg = await message.reply(f"💳 Проверка · {label}...")
         else:
@@ -519,9 +912,12 @@ async def run_gate(message: Message, gate_name: str, argline: str,
         except Exception as e:
             verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:180]
             gate_extra = {}
+            log.log_error(gate_name, f"Exception during gate call: {e}", exc=e)
+        latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
+        log.log_verdict(gate_name, masked, verdict, detail=str(detail), latency_ms=latency_ms, proxy=gate_extra.get("proxy"))
         if verdict == "ERROR":
             db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
-        latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
+            log.log_billing(u_id, f"refunded {cost} credits for {gate_name} (error)", balance=db.get_user(u_id).get("credits"))
         try:
             binfo = await asyncio.wait_for(binfo_task, timeout=4)
         except Exception:
@@ -530,7 +926,9 @@ async def run_gate(message: Message, gate_name: str, argline: str,
             break
         nxt = _pick_gate(None, exclude=tried)
         if not nxt:
+            log.log_router(f"No further fallback gates available in priority chain")
             break
+        log.log_router(f"Fallback: gate '{gate_name}' unavailable -> trying next gate '{nxt}'")
         await status_msg.edit_text(
             f"⚠️ {label} недоступен ({str(detail)[:100]}) — пробую {GATE_LABELS.get(nxt, nxt)}…")
         gate_name = nxt
@@ -546,7 +944,8 @@ async def run_gate(message: Message, gate_name: str, argline: str,
     await status_msg.edit_text(
         formatter.format_single(parts[0], binfo, gate_label(gate_name, tier), verdict,
                                 detail, latency_ms, proxy=a_proxy, pool_size=a_pool),
-        parse_mode=ParseMode.HTML)
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboards.check_prompt_kb(gate_name, tier or "1"))
 
 ALL_GATE_CMDS = (list(GATES.keys()) + list(GATE_ALIASES.keys())
                  + list(TIERED_GATE_CMDS.keys()) + ["chk"])
@@ -594,7 +993,7 @@ async def gate_dispatch(client, message: Message):
 
 # --- мультигейт: порядок выбора для /mass (форс первым аргументом) ---
 
-GATE_PRIORITY = ["setupwoo", "storegate", "shopify", "piconfirm", "braintreenvbv"]
+GATE_PRIORITY = ["storegate", "setupwoo", "shopify", "piconfirm", "braintreenvbv"]
 
 
 def _available_gates() -> list[str]:
@@ -687,6 +1086,7 @@ async def cmd_hit(client, message: Message):
         return await message.reply(
             f"❌ Недостаточно кредитов: {len(good_cards)} карт × {meta_cost} = {len(good_cards) * meta_cost}")
     status_msg = await message.reply(f"⚡ /hit · {len(good_cards)} карт · бью по линку со свежими сессиями...")
+    log.log_hit(f"User {u_id} started /hit: {len(good_cards)} cards on {target_url}")
     link_dead = None
     for idx, f in enumerate(good_cards, 1):
         if link_dead:
@@ -709,6 +1109,7 @@ async def cmd_hit(client, message: Message):
             # СВЕЖАЯ сессия на каждую карту. Конструктор ВНУТРИ try: раньше он
             # стоял снаружи, и исключение в нём оставляло gs неопределённым для
             # finally (NameError) при уже списанном кредите и без возврата.
+            log.log_hit(f"[{idx}/{len(good_cards)}] Checking card {_safe_pan(f[0])}...")
             gs = hit_engine.CsHitSession(target_url)
             ok, detail = await gs.open()
             if not ok:
@@ -722,6 +1123,7 @@ async def cmd_hit(client, message: Message):
             # возврат делает общий блок ниже — здесь только verdict, иначе
             # кредит возвращался дважды
             res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
+            log.log_error("hit", f"Error checking {_safe_pan(f[0])}: {e}", exc=e)
         finally:
             # закрытие ровно один раз: раньше было и в теле ветки, и в finally
             if gs is not None:
@@ -740,6 +1142,7 @@ async def cmd_hit(client, message: Message):
             detail = f"[{price_s}] {detail}" if price_s else detail
             if verdict in HIT_VERDICTS:
                 db.add_hit(u_id)
+        log.log_verdict("hit", _safe_pan(f[0]), verdict, detail=detail[:60])
         results.append({"card": _safe_pan(f[0]), "status": verdict,
                         "detail": detail[:60]})
         if idx < len(good_cards):
@@ -797,22 +1200,28 @@ async def cmd_mass(client, message: Message):
     elif raw_tail.strip():
         cards_text = raw_tail
 
+    u = db.get_user(u_id)
+    is_admin = bool(u_id in config.ADMIN_IDS or db.is_developer(u))
+    is_prem = db.is_premium(u)
+    max_batch = 10000 if is_admin else (100 if is_prem else 20)
+
     if not cards_text.strip():
+        limit_desc = "безлимит (Admin/Dev)" if is_admin else f"до {max_batch} карт"
         return await message.reply(
             "<b>Использование массовой проверки:</b>\n"
             "• <code>/mass [гейт] CC MM YY CVV\nCC MM YY CVV...</code>\n"
             "• Гейт: <code>au</code> / <code>st</code> <code>1|5|20</code> / <code>st1</code> / <code>sp20</code>\n"
             "• Или ответом на .txt файл: <code>/mass [гейт]</code>\n"
-            "(Максимум 20 карт за раз)", parse_mode=ParseMode.HTML)
+            f"({limit_desc})", parse_mode=ParseMode.HTML)
 
     valid_cards = parse_cards(cards_text, limit=10 ** 6, dedupe=False)
 
     if not valid_cards:
         return await message.reply("❌ Не найдено карт в подходящем формате (ожидается CC MM YY CVV).")
 
-    if len(valid_cards) > 20:
-        await message.reply(f"⚠️ Лимит 20 карт за прогон — взяты первые 20 из {len(valid_cards)}.")
-    valid_cards = valid_cards[:20]
+    if len(valid_cards) > max_batch:
+        await message.reply(f"⚠️ Лимит {max_batch} карт за прогон — взяты первые {max_batch} из {len(valid_cards)}.")
+    valid_cards = valid_cards[:max_batch]
 
     # Семантическая валидация ДО прогона: кривая карта не сжигает кредит, не
     # занимает слот семафора и не уходит к донору — она сразу ложится в отчёт
@@ -838,19 +1247,18 @@ async def cmd_mass(client, message: Message):
     meta = GATES[gate_name]
     cost_per = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
 
-    u = db.get_user(u_id)
-    is_prem = db.is_premium(u)
-    if not is_prem and u.get("credits", 0) < len(valid_cards) * cost_per:
-        return await message.reply(f"❌ Недостаточно кредитов. Требуется {len(valid_cards) * cost_per} кредитов на {len(valid_cards)} карт.")
+    if not is_prem and not is_admin and u.get("credits", 0) < len(good_cards) * cost_per:
+        return await message.reply(f"❌ Недостаточно кредитов. Требуется {len(good_cards) * cost_per} кредитов на {len(good_cards)} валидных карт.")
 
     status_msg = await message.reply(
         f"🚀 Запуск массовой проверки ({len(valid_cards)} карт) через <b>{gate_label(gate_name, tier_forced)}</b>...",
         parse_mode=ParseMode.HTML)
 
+    log.log_mass(f"User {u_id} started mass check: {len(good_cards)} good, {len(rejected)} rejected via {gate_name} (tier={tier_forced})")
+
     # A5 (ИССЛЕДОВАНИЕ-СКОРОСТЬ.md): параллельный прогон вместо поочерёдного
-    # с sleep 1.5с — semaphore(5) держит вежливый темп к донору (Stripe ~20
-    # concurrent), 20 карт идут ~4 волнами вместо 20×latency
-    mass_sem = asyncio.Semaphore(5)
+    # с sleep 1.5с — semaphore(10 для админа, 5 дефолт) держит вежливый темп
+    mass_sem = asyncio.Semaphore(10 if is_admin else 5)
     stop_evt = asyncio.Event()  # кредиты кончились — хвост не запускаем
 
     async def _check_one(card_parts: list[str]) -> dict | None:
@@ -872,6 +1280,7 @@ async def cmd_mass(client, message: Message):
                 return {"card": _safe_pan(card_parts[0]), "status": "ERROR",
                         "detail": "Недостаточно кредитов", "_hit": False}
             try:
+                log.log_mass(f"Checking card {_safe_pan(card_parts[0])} via {gate_name}...")
                 if tier_forced and gate_name in ("storegate", "shopify"):
                     res = await meta["fn"](*card_parts, tier=tier_forced)
                 else:
@@ -881,6 +1290,8 @@ async def cmd_mass(client, message: Message):
                 verdict, detail = engine_cfg.coerce_verdict(res[0]), res[1]
             except Exception as e:
                 verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:100]
+                log.log_error(f"mass:{gate_name}", f"Error checking {_safe_pan(card_parts[0])}: {e}", exc=e)
+            log.log_verdict(gate_name, _safe_pan(card_parts[0]), verdict, detail=str(detail)[:60])
             if verdict == "ERROR":
                 try:
                     db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
@@ -907,6 +1318,8 @@ async def cmd_mass(client, message: Message):
             db.add_hit(u_id)
             approved_count += 1
         mass_results.append(r)
+
+    log.log_mass(f"Finished mass check for user {u_id}: {approved_count} approved out of {len(mass_results)}")
 
     pool_line = ""
     if u_id in config.ADMIN_IDS:
@@ -935,9 +1348,14 @@ async def cmd_bin(client, message: Message):
     if not db.antispam_ok(u_id):
         return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
     parts = (message.text or "").split()
-    if len(parts) < 2:
-        return await message.reply("Формат: /bin 123456")
-    bin_query = "".join(ch for ch in parts[1] if ch.isdigit())[:6]
+    if not parts:
+        return
+    if len(parts) == 1 and len(parts[0]) == 6 and parts[0].isdigit():
+        bin_query = parts[0]
+    elif len(parts) >= 2:
+        bin_query = "".join(ch for ch in parts[1] if ch.isdigit())[:6]
+    else:
+        return await message.reply("Формат: /bin 123456 или просто 6 цифр БИНа")
     if len(bin_query) < 6:
         return await message.reply("❌ БИН должен содержать минимум 6 цифр")
     status_msg = await message.reply(f"🔍 Запрос информации о БИН <code>{bin_query}</code>...", parse_mode=ParseMode.HTML)
@@ -954,6 +1372,8 @@ async def cmd_bin(client, message: Message):
     c_a2 = country.get("alpha2") or ""
     is_vbv = binfo.get("is_vbv")
     vbv_str = "✅ ДА (3DS подключен)" if is_vbv is True else ("❌ НЕТ (Non-VBV)" if is_vbv is False else "❓ Неизвестно")
+
+    log.log_bin(bin_query, f"{scheme} {card_type} ({level}) | {bank} [{c_a2 or '??'}] | VBV: {vbv_str}")
 
     esc = lambda s: html.escape(str(s), quote=False)
     text = (
@@ -1033,7 +1453,8 @@ async def cmd_gates(client, message: Message):
             by_vec.setdefault(g.get("vector", "?"), []).append(g)
         lines.append(f"\n<b>Общий пул:</b> {len(final)} доноров ("
                      + " | ".join(f"{k}: {len(v)}" for k, v in by_vec.items()) + ")")
-    await message.reply("\n".join(lines), parse_mode=ParseMode.HTML)
+    await message.reply("\n".join(lines), parse_mode=ParseMode.HTML,
+                        reply_markup=keyboards.gates_monitor_kb())
 
 
 @app.on_message(filters.command(["stats"]))
@@ -1057,7 +1478,8 @@ async def cmd_stats(client, message: Message):
         f"• Всего проверок: <b>{g_stats['total_checks']}</b>\n"
         f"• Всего Live-хитов: <b>{g_stats['total_hits']}</b>\n"
     )
-    await message.reply(text, parse_mode=ParseMode.HTML)
+    await message.reply(text, parse_mode=ParseMode.HTML,
+                        reply_markup=keyboards.profile_kb())
 
 
 
@@ -1104,15 +1526,372 @@ async def genkey(client, message: Message):
                         parse_mode=ParseMode.HTML)
 
 
+# --- Интерактивные callback-кнопки ---
+
+@app.on_callback_query()
+@user_only
+async def callback_router(client, callback_query: CallbackQuery):
+    u_id = callback_query.from_user.id
+    db.ensure_user(u_id, callback_query.from_user.username or "")
+    data = callback_query.data or ""
+    u = db.get_user(u_id)
+    settings = db.get_user_settings(u_id)
+    is_admin = db.is_developer(u)
+
+    try:
+        if data == "menu:main":
+            text = render_main_menu(u, settings)
+            kb = keyboards.main_menu_kb(settings["selected_gate"], settings["selected_tier"], is_admin=is_admin)
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:prices":
+            text = render_prices_menu(settings)
+            kb = keyboards.prices_menu_kb(settings["selected_tier"], settings["selected_gate"])
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data.startswith("tier:set:"):
+            tier = data.split("tier:set:")[1]
+            db.set_user_tier(u_id, tier)
+            settings["selected_tier"] = tier
+            text = render_prices_menu(settings)
+            kb = keyboards.prices_menu_kb(settings["selected_tier"], settings["selected_gate"])
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            t_disp = keyboards.get_tier_display(tier)
+            await callback_query.answer(f"✓ Выбран ценовой тир: {t_disp}")
+
+        elif data == "menu:gates":
+            text = render_gates_menu(settings)
+            kb = keyboards.gates_menu_kb(settings["selected_gate"])
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data.startswith("gate:set:"):
+            gate = data.split("gate:set:")[1]
+            db.set_user_gate(u_id, gate)
+            settings["selected_gate"] = gate
+            text = render_gates_menu(settings)
+            kb = keyboards.gates_menu_kb(settings["selected_gate"])
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            g_disp = keyboards.get_gate_display(gate)
+            await callback_query.answer(f"✓ Выбран шлюз: {g_disp}")
+
+        elif data == "menu:prompt_check":
+            text = render_prompt_check(settings)
+            kb = keyboards.check_prompt_kb(settings["selected_gate"], settings["selected_tier"])
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:profile":
+            text = render_profile(u, settings)
+            kb = keyboards.profile_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:gates_monitor":
+            text = render_gates_monitor()
+            kb = keyboards.gates_monitor_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:proxy":
+            text = render_proxy_status()
+            kb = keyboards.proxy_kb(is_admin=is_admin)
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "proxy:check":
+            await callback_query.answer("📡 Запуск проверки прокси...", show_alert=False)
+            proxies = gc.load_proxies()
+            if not proxies:
+                await callback_query.edit_message_text(
+                    "📡 <b>Прокси-пул:</b> пуст (прямое подключение)\nДобавить: <code>/addproxy host:port</code>",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=keyboards.proxy_kb(is_admin=is_admin)
+                )
+                return
+
+            PROBE_CAP = 500
+            checked, skipped = proxies[:PROBE_CAP], proxies[PROBE_CAP:]
+            await callback_query.edit_message_text(
+                f"📡 Проверяю {len(checked)} прокси — probing ipify...",
+                parse_mode=ParseMode.HTML
+            )
+            from proxy_manager import ProxyPool
+            pool = ProxyPool(checked)
+            fails_before = {e["url"]: e["fail_count"] for e in pool.entries}
+            try:
+                alive, _total = await pool.validate_all(concurrency=80)
+            except Exception as e:
+                return await callback_query.edit_message_text(
+                    f"❌ Валидация сорвалась: <code>{html.escape(type(e).__name__)}: {html.escape(str(e)[:120])}</code>",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=keyboards.proxy_kb(is_admin=is_admin)
+                )
+
+            dead_urls = {e["url"] for e in pool.entries
+                         if not e["alive"] or e["fail_count"] > fails_before.get(e["url"], 0)}
+            alive_urls = [e["url"] for e in pool.entries if e["url"] not in dead_urls]
+
+            if dead_urls:
+                _atomic_write_lines(os.path.join("data", "proxies.txt"), alive_urls + skipped)
+
+            lats = sorted(e["latency_ms"] for e in pool.entries
+                          if e["url"] not in dead_urls and e.get("latency_ms"))
+            med = lats[len(lats) // 2] if lats else 0
+            s5_alive = sum(1 for u in alive_urls if u.startswith("socks5://"))
+            s4_alive = sum(1 for u in alive_urls if u.startswith("socks4://"))
+            ht_alive = sum(1 for u in alive_urls if u.startswith("http://") or u.startswith("https://"))
+            lines = [
+                f"📡 <b>Прокси-пул:</b> {len(alive_urls)}/{len(checked)} живых",
+                f"• Протоколы: <b>SOCKS5: {s5_alive}</b> | <b>SOCKS4: {s4_alive}</b> | <b>HTTP: {ht_alive}</b>",
+                f"• Медиана отклика: <b>{med} ms</b>",
+                f"• Не ответили: <b>{len(dead_urls)}</b>" + (" — удалены из пула" if dead_urls else ""),
+            ]
+            if skipped:
+                lines.append(f"• Не проверено (лимит {PROBE_CAP}): <b>{len(skipped)}</b> — остались в пуле")
+            lines.append(f"• По пулу (3 страйка): <b>{alive}</b> живых")
+            await callback_query.edit_message_text(
+                "\n".join(lines),
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboards.proxy_kb(is_admin=is_admin)
+            )
+
+        elif data == "proxy:clear":
+            if not is_admin:
+                return await callback_query.answer("Доступно только администраторам", show_alert=True)
+            p_path = os.path.join("data", "proxies.txt")
+            _atomic_write_lines(p_path, [])
+            await callback_query.answer("🧹 Прокси-пул очищен!", show_alert=True)
+            text = render_proxy_status()
+            await callback_query.edit_message_text(
+                text, parse_mode=ParseMode.HTML,
+                reply_markup=keyboards.proxy_kb(is_admin=is_admin)
+            )
+
+        elif data == "menu:mass":
+            text = render_mass_help(settings)
+            kb = keyboards.back_to_menu_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:bin":
+            text = render_bin_help()
+            kb = keyboards.back_to_menu_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:redeem":
+            text = render_redeem_help()
+            kb = keyboards.back_to_menu_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:help":
+            text = render_help_menu()
+            kb = keyboards.back_to_menu_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        elif data == "menu:refresh":
+            u = db.get_user(u_id)
+            settings = db.get_user_settings(u_id)
+            text = render_main_menu(u, settings)
+            kb = keyboards.main_menu_kb(settings["selected_gate"], settings["selected_tier"], is_admin=is_admin)
+            try:
+                await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            except Exception:
+                pass
+            await callback_query.answer("🔄 Данные обновлены")
+
+        elif data == "menu:admin":
+            if not is_admin:
+                return await callback_query.answer("Доступно только администраторам", show_alert=True)
+            text = render_admin_panel()
+            kb = keyboards.admin_kb()
+            await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+            await callback_query.answer()
+
+        else:
+            await callback_query.answer()
+
+    except Exception as e:
+        print(f"[callback error] {type(e).__name__}: {e}")
+        try:
+            await callback_query.answer(f"Ошибка: {e}"[:60], show_alert=True)
+        except Exception:
+            pass
+
+
+# --- Прямой ввод карты без слэш-команд ---
+
+_not_command = filters.create(lambda _, __, m: bool(m.text and not m.text.strip().startswith("/")))
+
+@app.on_message(filters.text & _not_command)
+@user_only
+async def direct_card_input(client, message: Message):
+    text = (message.text or "").strip()
+    if not text:
+        return
+
+    # 6 цифр в сообщении -> BIN Lookup
+    if len(text) == 6 and text.isdigit():
+        log.log_tg(f"Direct 6-digit BIN lookup: {text}", user_id=message.from_user.id, username=message.from_user.username)
+        return await cmd_bin(client, message)
+
+    u_id = message.from_user.id
+    db.ensure_user(u_id, message.from_user.username or "")
+    u = db.get_user(u_id)
+    is_admin = bool(u_id in config.ADMIN_IDS or db.is_developer(u))
+    cards = parse_cards(text, limit=10000 if is_admin else 25, dedupe=False)
+    if not cards:
+        return
+
+    settings = db.get_user_settings(u_id)
+    selected_gate = settings.get("selected_gate", "chk")
+    selected_tier = settings.get("selected_tier", "1")
+    tier_arg = None if selected_tier in ("all", "none") else selected_tier
+
+    log.log_tg(f"Direct input: {len(cards)} card(s) -> gate: {selected_gate} (tier: {selected_tier})", user_id=u_id, username=message.from_user.username)
+
+    if len(cards) == 1:
+        if selected_gate == "hit":
+            return await message.reply(
+                "🎯 <b>Шлюз Stripe Direct (/hit):</b>\n"
+                "Для проверки по этому шлюзу требуется ссылка чекаута:\n"
+                f"<code>/hit https://checkout.stripe.com/c/pay/cs_live_... {text}</code>\n\n"
+                "Или смените шлюз на <b>Авто (/chk)</b> или <b>Store API</b> через меню 🎯 <b>Выбор шлюза</b>.",
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboards.check_prompt_kb(selected_gate, selected_tier)
+            )
+        gate_to_run = _pick_gate(None) if selected_gate == "chk" else selected_gate
+        if not gate_to_run or gate_to_run not in GATES:
+            log.log_router(f"Direct check rejected: no active live gates available")
+            return await message.reply("❌ Нет доступных шлюзов с активными целями (проверьте data/ready_gates.json или data/store_targets.txt).")
+        return await run_gate(message, gate_to_run, text, tier=tier_arg)
+    else:
+        # Несколько карт -> запускаем массовый чек через cmd_mass
+        return await cmd_mass(client, message)
+
+
+@app.on_message(filters.document)
+@user_only
+async def direct_document_input(client, message: Message):
+    caption = (message.caption or "").strip()
+    if caption.startswith("/"):
+        return
+
+    u_id = message.from_user.id
+    db.ensure_user(u_id, message.from_user.username or "")
+
+    try:
+        doc = await message.download(in_memory=True)
+        content = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
+    except Exception as e:
+        log.log_warn(f"Failed to read uploaded document: {e}")
+        return
+
+    lines = [l.strip() for l in content.splitlines() if l.strip() and not l.strip().startswith("#")]
+    if not lines:
+        return await message.reply("⚠️ Загруженный файл пуст.")
+
+    # 1. Сначала определяем прокси-файл (по имени файла или по структуре IP:PORT / SCHEME)
+    doc_name = (message.document.file_name or "").lower() if message.document else ""
+    is_proxy_named = "proxy" in doc_name or "proxies" in doc_name
+    proxy_candidates = [gc.normalize_proxy(l) for l in lines[:30] if gc.normalize_proxy(l)]
+
+    if is_proxy_named or len(proxy_candidates) >= min(len(lines), 3):
+        if u_id not in config.ADMIN_IDS:
+            return await message.reply("❌ Загрузка прокси доступна только администраторам бота.")
+        log.log_tg(f"Direct doc upload: proxy list detected ({len(lines)} lines, name={doc_name}) -> running cmd_addproxy",
+                   user_id=u_id, username=message.from_user.username)
+        return await cmd_addproxy(client, message)
+
+    # 2. Иначе проверяем, являются ли строки картами (CC MM YY CVV)
+    cards = parse_cards(content, limit=5, dedupe=False)
+    if cards:
+        log.log_tg(f"Direct doc upload: {len(cards)} card(s) detected -> running cmd_mass",
+                   user_id=u_id, username=message.from_user.username)
+        return await cmd_mass(client, message)
+
+    return await message.reply(
+        "❓ <b>Не удалось распознать тип файла:</b>\n\n"
+        "• Для добавления <b>прокси</b> отправьте файл со списком <code>ip:port</code> или добавьте слово <i>proxy</i> в имя файла.\n"
+        "• Для массового чека <b>карт</b> файл должен содержать строки формата <code>CC MM YY CVV</code>.",
+        parse_mode=ParseMode.HTML
+    )
+
+
 if __name__ == "__main__":
+    import platform
     session_file = Path(__file__).parent / "pusto_bot.session"
     if not config.BOT_TOKEN and not session_file.exists():
-        print("[!] set PUSTO_BOT_TOKEN env (from @BotFather)")
-        print(f"[*] gates loaded: {list(GATES)}")
+        log.log_error("STARTUP", "set PUSTO_BOT_TOKEN env (from @BotFather) or place session file")
+        log.log_info(f"gates loaded: {list(GATES)}")
         sys.exit(1)
-    print(f"[*] gates loaded: {list(GATES)}")
-    auth = f"token {config.BOT_TOKEN[:8]}..." if config.BOT_TOKEN else \
-        f"session {session_file.name}"
-    print(f"[*] auth: {auth}")
-    print("[*] bot is up — polling Telegram (Ctrl+C to stop)")
-    app.run()
+
+    auth = f"token {config.BOT_TOKEN[:8]}..." if config.BOT_TOKEN else f"session {session_file.name}"
+    proxies = gc.load_proxies()
+    avail = _available_gates()
+
+    from bot.gates.storegate import _targets as _st_targets
+    from bot.gates.shopify import _targets as _sp_targets
+    from bot.gates.piconfirm import _target as _pi_target
+    from bot.gates.braintreenvbv import _targets as _bt_targets
+
+    st_cnt = len(_st_targets())
+    sw_cnt = len(setup_gate.load_ready_gates())
+    sp_cnt = len(_sp_targets())
+    pi_cnt = 1 if _pi_target() else 0
+    bt_cnt = len(_bt_targets())
+
+    print("\033[1;36m" + "=" * 78 + "\033[0m")
+    print("\033[1;97m" + "  🚀 PUSTO ENGINE — REAL-TIME VERBOSE CONSOLE LOGGER ACTIVE" + "\033[0m")
+    print("\033[1;36m" + "=" * 78 + "\033[0m")
+    print(f"  \033[90mPython:\033[0m {platform.python_version()} ({sys.executable})")
+    print(f"  \033[90mOS / PID:\033[0m {platform.system()} {platform.release()} | PID: {os.getpid()}")
+    print(f"  \033[90mAuth Mode:\033[0m {auth}")
+    print(f"  \033[90mAdmins:\033[0m {list(config.ADMIN_IDS)}")
+    print(f"  \033[90mProxy Pool:\033[0m \033[1;32m{len(proxies)}\033[0m loaded ({config.PROXY_FILE})")
+    print(f"  \033[90mRegistered Gates:\033[0m {list(GATES.keys())}")
+    print(f"  \033[90mActive Target Pool:\033[0m")
+    print(f"    • \033[1;33mstoregate\033[0m:     {st_cnt} targets (data/store_targets.txt)")
+    print(f"    • \033[1;33msetupwoo\033[0m:      {sw_cnt} ready gates (data/ready_gates.json)")
+    print(f"    • \033[1;33mshopify\033[0m:       {sp_cnt} targets (data/shopify_targets.txt)")
+    print(f"    • \033[1;33mpiconfirm\033[0m:     {pi_cnt} targets")
+    print(f"    • \033[1;33mbraintreenvbv\033[0m: {bt_cnt} targets")
+    print(f"  \033[90mPriority Chain:\033[0m \033[1;36m{' -> '.join(avail) if avail else 'NONE'}\033[0m")
+    print("\033[1;36m" + "-" * 78 + "\033[0m")
+    print("  \033[1;32m[*] Telegram client polling started. Real-time detailed logs streaming below:\033[0m")
+    print("\033[1;36m" + "=" * 78 + "\033[0m")
+
+    async def _runner():
+        import proxy_manager
+        from pyrogram import idle
+        async with app:
+            async def _bg_proxy():
+                while True:
+                    await asyncio.sleep(15 * 60)
+                    try:
+                        p_list = gc.load_proxies()
+                        if p_list:
+                            pp = proxy_manager.ProxyPool(p_list)
+                            alive, total = await pp.validate_all()
+                            alive_urls = [e["url"] for e in pp.entries if e.get("alive") is True]
+                            if alive_urls and len(alive_urls) < len(p_list):
+                                _atomic_write_lines(config.PROXY_FILE, alive_urls)
+                                log.log_proxy("PRUNED", None, f"Pruned {len(p_list) - len(alive_urls)} dead proxies from pool")
+                            log.log_proxy("VALIDATE", None, f"{len(alive_urls)}/{len(p_list)} alive (15m auto-refresh)")
+                    except asyncio.CancelledError:
+                        break
+                    except Exception as e:
+                        log.log_warn(f"Proxy auto-validation warning: {e}")
+
+            bg_task = asyncio.create_task(_bg_proxy())
+            try:
+                await idle()
+            finally:
+                bg_task.cancel()
+
+    app.loop.run_until_complete(_runner())

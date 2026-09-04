@@ -467,9 +467,10 @@ async def sweep(domains: list[str], concurrency: int = 24,
     out, rows = [], []
     for d, r in zip(domains, results):
         if isinstance(r, Exception):
+            err_msg = str(r)
             r = blank(d)
             r["reason"] = "UNKNOWN"
-            r["error"] = str(r)[:160]
+            r["error"] = err_msg[:160]
         out.append(r)
         rows.append((d, "S1", r["reason"] or "ALIVE", r.get("ms"),
                      f"plat={r['platform']}" if r["alive"] else None))

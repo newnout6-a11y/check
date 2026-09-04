@@ -12,10 +12,15 @@ from . import config
 # CREATE TABLE IF NOT EXISTS — добавление колонки в новой версии молча ломало
 # dict(row) у старых баз: SELECT * возвращал набор полей без новой колонки,
 # и KeyError всплывал уже в обработчике, а не на старте.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 # Миграции: {целевая_версия: [(таблица, колонка, DDL), ...]}
-# Пусто SCHEMA_VERSION=1 — это «исходная схема», механизм готов, миграций пока нет.
-_MIGRATIONS: dict[int, list[tuple[str, str, str]]] = {}
+# Пусто SCHEMA_VERSION=1 — исходная схема, 2 — настройки выбранного шлюза и тира цены.
+_MIGRATIONS: dict[int, list[tuple[str, str, str]]] = {
+    2: [
+        ("users", "selected_gate", "TEXT DEFAULT 'chk'"),
+        ("users", "selected_tier", "TEXT DEFAULT '1'"),
+    ]
+}
 
 
 def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -72,7 +77,9 @@ def init_db():
             total_checks INTEGER DEFAULT 0,
             hits        INTEGER DEFAULT 0,
             banned      INTEGER DEFAULT 0,
-            last_cmd_ts REAL DEFAULT 0
+            last_cmd_ts REAL DEFAULT 0,
+            selected_gate TEXT DEFAULT 'chk',
+            selected_tier TEXT DEFAULT '1'
         );
         CREATE TABLE IF NOT EXISTS keys (
             key         TEXT PRIMARY KEY,
@@ -88,10 +95,37 @@ def init_db():
 
 def ensure_user(user_id: int, username: str = ""):
     with _db() as c:
-        cur = c.execute("INSERT OR IGNORE INTO users(user_id, username, credits) VALUES(?,?,?)",
-                        (user_id, username, config.START_CREDITS))
+        cur = c.execute(
+            "INSERT OR IGNORE INTO users(user_id, username, credits, selected_gate, selected_tier) "
+            "VALUES(?,?,?,'chk','1')",
+            (user_id, username, config.START_CREDITS))
         if cur.rowcount == 0:
             c.execute("UPDATE users SET username=? WHERE user_id=?", (username, user_id))
+
+
+def get_user_settings(user_id: int) -> dict:
+    """Получение сохранённых настроек шлюза и ценового тира пользователя."""
+    with _db() as c:
+        row = c.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
+        if not row:
+            return {"selected_gate": "chk", "selected_tier": "1"}
+        d = dict(row)
+        return {
+            "selected_gate": d.get("selected_gate") or "chk",
+            "selected_tier": d.get("selected_tier") or "1",
+        }
+
+
+def set_user_gate(user_id: int, gate: str):
+    """Сохранение выбранного шлюза по умолчанию."""
+    with _db() as c:
+        c.execute("UPDATE users SET selected_gate=? WHERE user_id=?", (gate, user_id))
+
+
+def set_user_tier(user_id: int, tier: str):
+    """Сохранение выбранного ценового тира по умолчанию."""
+    with _db() as c:
+        c.execute("UPDATE users SET selected_tier=? WHERE user_id=?", (tier, user_id))
 
 
 def get_user(user_id: int) -> dict:

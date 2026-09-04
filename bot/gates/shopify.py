@@ -11,6 +11,7 @@ from pathlib import Path
 from curl_cffi.requests import AsyncSession
 import gate_client as gc
 from shopify_gate import check_target, MAX_PRICE_CENTS
+import pusto_logger as log
 
 NAME = "shopify"
 COST = 2
@@ -186,19 +187,64 @@ async def gate(
         target = _pick_target(targets)
         proxy_pool = gc.load_proxies()
         proxy = gc.pick_proxy(proxy_pool, None)
+        log.log_target("shopify", target, f"tier={tier or 'default'}, max_price={max_price}c")
+        log.log_proxy("Using proxy for shopify", proxy)
         t0 = asyncio.get_event_loop().time()
         try:
             res = await check_target(target, raw, proxy, max_price)
-            lat = int((asyncio.get_event_loop().time() - t0) * 1000)
-            h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
-            h["lat_ms"] = lat
-            return (
-                res.get("status", "ERROR"),
-                f"[{res.get('amount_cents', 0)}c {res.get('currency', 'USD')}] "
-                f"{str(res.get('detail', ''))[:160]}",
-                {"proxy": proxy, "target": target, "lat_ms": lat},
-            )
         except Exception as e:
-            h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
-            h["fails"] += 1
-            return ("ERROR", f"{type(e).__name__}: {e}"[:180])
+            err_str = str(e).lower()
+            if proxy and ("proxy" in type(e).__name__.lower() or "curl: (97)" in err_str or "curl: (7)" in err_str or "curl: (28)" in err_str):
+                log.log_proxy("Proxy error in shopify, retrying with alt proxy", proxy)
+                try:
+                    from proxy_manager import ProxyPool
+                    pp = ProxyPool()
+                    pp.mark_bad(proxy)
+                except Exception:
+                    pass
+                try:
+                    alt_proxy = gc.pick_proxy(proxy_pool, None)
+                    if alt_proxy == proxy:
+                        alt_proxy = None
+                    res = await check_target(target, raw, alt_proxy, max_price)
+                    proxy = alt_proxy
+                except Exception as inner_e:
+                    h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                    h["fails"] += 1
+                    log.log_error("shopify", f"Inner retry failed: {inner_e}", exc=inner_e)
+                    return ("ERROR", f"{type(inner_e).__name__}: {inner_e}"[:180])
+            else:
+                h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                h["fails"] += 1
+                log.log_error("shopify", f"Check target failed on {target}: {e}", exc=e)
+                return ("ERROR", f"{type(e).__name__}: {e}"[:180])
+
+        lat = int((asyncio.get_event_loop().time() - t0) * 1000)
+        log.log_gate("shopify", f"Finished check on {target}: {res.get('status')} | {res.get('detail')} ({lat}ms)")
+
+        # Если check_target вернул ERROR из-за прокси — штрафуем узел и повторяем с резервным
+        det = str(res.get("detail", "")).lower()
+        if proxy and res.get("status") == "ERROR" and any(k in det for k in ("proxy", "curl: (97)", "curl: (7)", "curl: (28)", "connection closed")):
+            try:
+                from proxy_manager import ProxyPool
+                pp = ProxyPool()
+                pp.mark_bad(proxy)
+            except Exception:
+                pass
+            try:
+                alt_proxy = gc.pick_proxy(proxy_pool, None)
+                if alt_proxy == proxy:
+                    alt_proxy = None
+                res = await check_target(target, raw, alt_proxy, max_price)
+                proxy = alt_proxy
+            except Exception:
+                pass
+
+        h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+        h["lat_ms"] = lat
+        return (
+            res.get("status", "ERROR"),
+            f"[{res.get('amount_cents', 0)}c {res.get('currency', 'USD')}] "
+            f"{str(res.get('detail', ''))[:160]}",
+            {"proxy": proxy, "target": target, "lat_ms": lat},
+        )

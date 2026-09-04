@@ -7,6 +7,7 @@ from pathlib import Path
 
 import gate_client as gc
 from curl_cffi.requests import AsyncSession
+import pusto_logger as log
 
 NAME = "braintreenvbv"
 COST = 1
@@ -44,20 +45,29 @@ def _normalize(cc, mm, yy, cvv) -> str | None:
 
 
 async def gate(cc, mm, yy, cvv) -> tuple[str, str]:
+    masked = gc.mask_pan(cc)
     raw = _normalize(cc, mm, yy, cvv)
     if raw is None:
+        log.log_warn(f"[braintreenvbv] invalid card format / Luhn failed for {masked}")
         return ("INVALID", "bad card format / Luhn fail")
     targets = _targets()
     if not targets:
+        log.log_error("braintreenvbv", "no braintree targets configured (env PUSTO_BT_TARGETS / data/braintree_targets.txt)")
         return ("ERROR", "no braintree targets (env PUSTO_BT_TARGETS)")
     async with _sem:
         for target in targets:
+            log.log_target("braintreenvbv", target)
+            log.log_gate("braintreenvbv", masked, "CHECKING", f"target={target}")
             try:
                 async with AsyncSession(impersonate="chrome131", verify=False) as s:
                     r = await s.get(target, timeout=10)
                     res = await gc.braintree_vbv_check(s, r.text, raw, target)
             except Exception as e:
+                log.log_warn(f"[braintreenvbv] target {target} failed: {type(e).__name__}: {e}")
                 res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
             if res["status"] != "ERROR":
+                log.log_gate("braintreenvbv", masked, res["status"], res["detail"][:80])
                 return (res["status"], res["detail"])
+        log.log_error("braintreenvbv", f"all {len(targets)} targets failed for {masked}")
         return ("ERROR", f"all {len(targets)} targets failed")
+

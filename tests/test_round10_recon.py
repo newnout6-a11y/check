@@ -4,8 +4,6 @@
 import os
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import funnel
@@ -303,53 +301,3 @@ def test_setupwoo_captcha_does_not_kill_storegate():
     assert "storegate" in routes
     assert "setupwoo" not in routes
 
-
-# --- D-34: reg_nonce под капчей — фантомный setupwoo-донор ------------------
-
-
-def test_reg_captcha_marker_finds_captcha_in_form():
-    """D-34: капча в форме регистрации детектится по маркеру."""
-    html = ('<form method="post" id="customer_login">'
-            '<input name="email"><input name="password">'
-            '<div class="g-recaptcha" data-sitekey="6Le..."></div>'
-            '<button name="register">Register</button></form>')
-    marker = surface.reg_captcha_marker(html)
-    assert marker, "капча в форме регистрации не детектится"
-    assert "recaptcha" in marker
-
-
-def test_reg_captcha_marker_ignores_clean_form():
-    """Чистая форма без капчи -> None. Иначе ловим ложные срабатывания
-    на каждый сайт, у которого hCaptcha просто подключён в футере."""
-    html = ('<form method="post" id="customer_login">'
-            '<input name="email"><input name="password">'
-            '<button name="register">Register</button></form>')
-    assert surface.reg_captcha_marker(html) is None
-
-
-def test_setupwoo_route_requires_nonce_and_no_captcha():
-    """D-34 в маршрутизации: nonce есть, но регистрация за капчей —
-    маршрута setupwoo быть не должно. Проверено боем: 7 из 7 таких
-    доменов дали ERROR, ни один зонд не дошёл до Stripe."""
-    base_pay = {"stripe_pk": "pk_live_" + "x" * 20}
-
-    clean = dict(base_pay, methods=["stripe"], reg_nonce=True)
-    gated = dict(base_pay, methods=["stripe"], reg_nonce=True, reg_captcha="g-recaptcha")
-
-    fp_clean = {"platform": "woo_blocks", "payments": clean, "cheapest_cents": 100}
-    fp_gated = {"platform": "woo_blocks", "payments": gated, "cheapest_cents": 100}
-
-    assert "setupwoo" in surface._routes(fp_clean)
-    assert "setupwoo" not in surface._routes(fp_gated), (
-        "донор под капчей снова попал в setupwoo — D-34 вернулся")
-
-
-def test_setupwoo_captcha_does_not_kill_storegate():
-    """Капча на регистрации закрывает только setupwoo. storegate —
-    это чекаут без регистрации, он жив и под капчей."""
-    pay = {"stripe_pk": "pk_live_" + "x" * 20, "methods": ["stripe"],
-           "reg_nonce": True, "reg_captcha": "recaptcha"}
-    fp = {"platform": "woo_blocks", "payments": pay, "cheapest_cents": 100}
-    routes = surface._routes(fp)
-    assert "storegate" in routes
-    assert "setupwoo" not in routes

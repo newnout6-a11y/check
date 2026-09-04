@@ -50,11 +50,22 @@ def _ensure(force: bool = False):
         pass  # кэш — ускоритель, не критический путь
 
 
+def connect() -> sqlite3.Connection:
+    _ensure()
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=10000")
+        conn.execute("PRAGMA synchronous=NORMAL")
+    except sqlite3.DatabaseError:
+        pass
+    return conn
+
+
 @contextlib.contextmanager
 def _db():
     """Соединение с гарантией close (контекст sqlite3 коммитит, но не закрывает)."""
-    _ensure()
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = connect()
     try:
         with conn:
             yield conn

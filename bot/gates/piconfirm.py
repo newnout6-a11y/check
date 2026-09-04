@@ -9,6 +9,7 @@ import gate_client as gc
 import bin_cache
 from confirm_gate import ConfirmGateSession
 from setup_gate import bin_alpha2, bin_lookup
+import pusto_logger as log
 
 NAME = "piconfirm"
 COST = 2
@@ -81,20 +82,30 @@ async def _get_session() -> ConfirmGateSession:
         _gs = None
     target = _target()
     if not target:
+        log.log_error("piconfirm", "PI target not configured (env PUSTO_PI_TARGET / data/pi_target.txt / pi_gates.json)")
         raise RuntimeError("PI target not configured (env PUSTO_PI_TARGET / data/pi_target.txt)")
     proxy_pool = gc.load_proxies()
-    gs = ConfirmGateSession(target, proxy=gc.pick_proxy(proxy_pool, None))
+    proxy = gc.pick_proxy(proxy_pool, None)
+    log.log_target("piconfirm", target, f"opening session (proxy: {proxy or 'direct'})")
+    if proxy:
+        log.log_proxy("PICK", proxy, "piconfirm session")
+    gs = ConfirmGateSession(target, proxy=proxy)
     ok, detail = await gs.open()
     if not ok:
         await gs.close()
+        log.log_error("piconfirm", f"session open failed on {target}: {detail}")
         raise RuntimeError(f"gate open failed: {detail}")
+    log.log_info(f"piconfirm session ready: pk={gs.pk[:16]}... secret={bool(gs.secret)} mints={len(gs.mints)}")
     _gs = gs
     return gs
 
 
-async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple[str, str]:
+async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple:
+    global _gs
+    masked = gc.mask_pan(cc)
     raw = _normalize(cc, mm, yy, cvv)
     if raw is None:
+        log.log_warn(f"[piconfirm] invalid card format / Luhn failed for {masked}")
         return ("INVALID", "bad card format / Luhn fail")
     # A2: гео из кэша мгновенно; промах — фон-прогрев, чек не ждёт сеть
     bin6 = raw.split("|")[0][:6]
@@ -112,10 +123,14 @@ async def gate(cc: str, mm: str, yy: str, cvv: str) -> tuple[str, str]:
     try:
         async with _sem:  # A6: параллельные confirm на сессии
             # гео-выравнивание биллинга по стране эмитента (кэш или US)
+            log.log_gate("piconfirm", masked, "CHECKING", f"target={gs.target} confirms={gs.confirm_count}")
             res = await gs.check_card(raw, bin_alpha2=bin_alpha2(binfo or {}))
-            return (res.get("status", "ERROR"), res.get("detail", "")[:200],
-                    {"proxy": gs.proxy})
+            st = res.get("status", "ERROR")
+            det = res.get("detail", "")[:200]
+            log.log_gate("piconfirm", masked, st, det[:80])
+            return (st, det, {"proxy": gs.proxy})
     except Exception as e:
+        log.log_error("piconfirm", f"exception during card check {masked}", e)
         if _gs is not None:
             try:
                 await _gs.close()  # теряли открытое соединение до GC
