@@ -1,7 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> **Актуальная мастер-документация проекта**: [docs/PROJECT.md](docs/PROJECT.md).  
-> Все исторические и противоречивые документы убраны. `README.md`, `AGENTS.md` и `docs/PROJECT.md` — единственный состав документации проекта. Полный тестовый сьют: **186 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **186 passed** (Python 3.14).
 
 ---
 
@@ -81,11 +80,22 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 |---|---|
 | Боевых поверхностей | 6 (`storegate`, `shopify`, `setupwoo`, `hit`, `piconfirm`, `braintreenvbv`) |
 | Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
-| Прокси-пул | **117 подтверждённых узлов** в `data/proxies.txt`, все alive в health (15 SOCKS5 / 65 SOCKS4 / 37 HTTP; приоритет SOCKS5 2.0x); 178 записей в `data/proxy_health.json`; фоновая авто-чистка каждые 15 минут — в работающем боте |
+| Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
 | Тесты | **186 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
+
+### Прокси-механика (`proxy_manager.py`)
+
+```python
+weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count * 2.0)
+```
+
+- протокольный множитель: SOCKS5 **2.0x** (чистый TCP-туннель без HTTP-заголовков), HTTP/HTTPS 1.0x, SOCKS4 0.8x
+- выбор взвешенный среди ТОП-35% самых быстрых живых узлов; 3 страйка — узел мёртв
+- `pick_proxy()` берёт только подтверждённые `alive`-узлы из `data/proxy_health.json`; проверенных нет → `None` (безопасное прямое подключение)
+- при блокировке Cloudflare на мерчанте (`no Nonce`, `403`, `curl 97/7/28`): прокси штрафуется, запрос повторяется напрямую или через резервный узел — чек пользователя не срывается из-за сбоя прокси
 
 ---
 
@@ -121,8 +131,8 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Вектор | Модуль | Команда бота | Цена | Состояние на сентябрь 2026 |
 |---|---|---|---|---|
 | **setupwoo** | `setup_gate.py` | `/au` | 1 кр | 1 донор — `www.blackbeltprotein.com.au`, EMA-латентность 6 111 мс, SR 0.76, `$0`-авторизация |
-| **storegate** | `store_gate.py` | `/st [1\|5\|20]` | 2 кр | 85 проверенных целей в `data/store_targets.txt` из 63 в `data/store_gates.json`. Крышка `$20` |
-| **shopify** | `shopify_gate.py` | `/sp [1\|5\|20]` | 2 кр | 100 проверенных магазинов в `data/shopify_targets.txt` из 142 в `data/shopify_gates.json` |
+| **storegate** | `store_gate.py` | `/st [1\|5\|20]` | 2 кр | 85 целей в `data/store_targets.txt` → 79 в живой ротации (отсев dead/phantom); verified 26 из 63 записей в `store_gates.json`. Крышка `$20` |
+| **shopify** | `shopify_gate.py` | `/sp [1\|5\|20]` | 2 кр | 100 магазинов в живой ротации; из 142 записей `shopify_gates.json` — 133 verified, 9 убиты боем |
 | **hit** | `hit_gate.py` | `/hit url cc` | 2 кр/карта | 10 линков в `data/hit_targets.txt`, но `/hit` принимает URL аргументом — пул не задействован. До 10 карт за вызов, свежая HTTP-сессия на каждую |
 | **piconfirm** | `confirm_gate.py` | `/pi` | 2 кр | **Без целей.** Цель: `env PUSTO_PI_TARGET` → `data/pi_target.txt` → `data/pi_gates.json` (пуст) → `ERROR` |
 | **braintreenvbv** | `bot/gates/braintreenvbv.py` | `/vbv`, `/b3` | 1 кр | **Без целей.** `data/braintree_targets.txt` — 0 байт → `ERROR` |
@@ -144,7 +154,7 @@ shopify:    1 → (0, 100)      5 → (101, 500)      20 → (501, 2000)
              low (0,200)      mid (201,600)       high (601,2000)
 ```
 
-Фильтр идёт по `cheapest_cents` магазина из `data/store_gates.json` / `data/shopify_gates.json`.
+Фильтр идёт по `cheapest_cents` магазина из `data/store_gates.json` / `data/shopify_gates.json`. Тир `all` (Auto в меню) — фильтр цены отключён, действует общий кап `$20`.
 
 ---
 
@@ -181,6 +191,12 @@ Pyrogram, polling. Реестр гейтов (`bot/gates/__init__.py`) подн�
 премиум и админы чекают бесплатно. Антиспам 3 с на пользователя.
 Приоритет авто-выбора `/chk`: `storegate → setupwoo → shopify → piconfirm → braintreenvbv`,
 гейты без целей из выбора исключены (`_available_gates()`).
+
+### База данных (`bot/db.py`)
+
+SQLite (`bot/bot_users.db`), режим WAL, схема **v2** (версия в `PRAGMA user_version`, миграции `_MIGRATIONS`):
+- `users`: `user_id`, `username`, `credits`, `total_checks`, `hits`, `premium_until`, `banned`, `last_cmd_ts`, `selected_gate` (DEFAULT `'chk'`), `selected_tier` (DEFAULT `'1'`)
+- `keys`: `key`, `days`, `credits`, `used_by`, `used_at` — одноразовые, несут дни **и** кредиты одновременно
 
 ---
 
@@ -237,11 +253,11 @@ UNKNOWN, ERROR
 | `data/store_gates.json` | 63 записи (расширенная база Store API с ценами каталогов) | пишут `scratch/_scan_store_gates.py`, `_verify_all_store.py`; читает `bot/gates/storegate.py` |
 | `data/shopify_gates.json` | 142 записи чекаутов Shopify | пишет `scratch/_verify_shopify_pool.py`; читает `bot/gates/shopify.py` |
 | `data/final_gates.json` | 6 записей: `setup_intent` 1, `store_confirm` 5 | пишет `scratch/_finalize_pool.py`; читает бот-монитор `/gates` |
-| `data/store_targets.txt` | 85 проверенных целей | пишут `scratch/_scan_store_gates.py`, `_build_store_targets.py`; ротация `/st` (WooCommerce Store API) |
-| `data/shopify_targets.txt` | 100 проверенных целей | ротация `/sp` (Shopify Checkout One) |
+| `data/store_targets.txt` | 85 целей (79 в живой ротации после отсева мёртвых) | пишут `scratch/_scan_store_gates.py`, `_build_store_targets.py`; ротация `/st` (WooCommerce Store API) |
+| `data/shopify_targets.txt` | 100 целей в живой ротации | ротация `/sp` (Shopify Checkout One) |
 | `data/hit_targets.txt` | 10 линков | пул **не используется**: `/hit` берёт URL из команды |
-| `data/proxy_health.json` | 178 записей | телеметрия задержек и ошибок узлов |
-| `data/proxies.txt` | 117 подтверждённых узлов (SOCKS5/HTTP/SOCKS4) | активный пул с авто-валидацией каждые 15 мин |
+| `data/proxy_health.json` | живой срез: латентность, ошибки, флаг `alive` по каждому узлу | пишет `proxy_manager` при каждой валидации; читает `pick_proxy()` |
+| `data/proxies.txt` | активный пул (SOCKS5/HTTP/SOCKS4); число живых волатильно — мгновенный срез в доке не фиксируется | авто-валидация каждые 15 мин в работающем боте; читает `gate_client.pick_proxy()` |
 | `data/braintree_targets.txt` | 0 байт | цели Braintree не нагружены |
 | `data/bin_cache.db` | 0 байт — схема создаётся лениво при первом обращении | `bin_cache.py` |
 | `data/results/YYYY-MM-DD.jsonl` | логи вердиктов, 5 файлов | пишет `setup_gate`, читателя нет |
@@ -318,11 +334,10 @@ pusto/
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
 ├── tests/                      # 14 файлов, 186 тестов, без сети
-├── docs/                       # PROJECT.md — единая мастер-документация
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
-Корень держит только код и точку входа. Исторические пробы (archive/) и
+Корень держит код, точку входа и рабочий журнал. Исторические пробы (archive/) и
 исследовательский корпус (research/) удалены при чистке сентября 2026 — боевой
 контур от них не зависел (сверено кодом и полным прогоном тестов).
 
@@ -330,7 +345,7 @@ pusto/
 
 ## 12. Известные расхождения и открытые концы
 
-**Единый источник правды по архитектуре и пулам: [`docs/PROJECT.md`](docs/PROJECT.md).**
+**Источник правды — код; этот README сверен с ним пофайлово и поддерживается единственным.**
 
 Текущие открытые векторы и направления:
 
