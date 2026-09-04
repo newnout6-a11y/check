@@ -747,8 +747,8 @@ async def stripe_3ds2_authenticate(session, pk: str, source_id: str) -> dict:
         r = await session.post(
             "https://api.stripe.com/v1/3ds2/authenticate",
             data={"key": pk,
-                  "three_d_secure_2[source]": source_id,
-                  "three_d_secure_2[browser]": _json.dumps(browser)},
+                  "source": source_id,
+                  "browser": _json.dumps(browser)},
             headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/",
                      "Accept": "application/json"},
             timeout=12)

