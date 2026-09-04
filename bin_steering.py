@@ -7,6 +7,7 @@ from enum import Enum
 
 import bin_cache
 import gate_client as gc
+import pusto_logger as _log
 
 
 class ThreeDsCategory(str, Enum):
@@ -40,6 +41,18 @@ NON_VBV_BIN_PREFIXES = {
     "471563", "471527", "448528", "424604", "556735", "556888", "540156"
 }
 
+# Amex SafeKey US subprime / consumer issuers — frictionless по умолчанию.
+# SafeKey Risk Engine у этих эмитентов настроен на low-friction для небольших сумм.
+# Credit One Bank, Milestone, Indigo, Blaze, First Premier, Destiny — subprime Amex.
+AMEX_FRICTIONLESS_BIN_PREFIXES = {
+    "379363",  # Credit One Bank US — SafeKey frictionless-friendly (подтверждено боевым прогоном)
+    "372485",  # Milestone / Continental Finance US Amex
+    "375183",  # First Premier Bank US Amex
+    "371449",  # Indigo / Genesis Financial Amex
+    "378282",  # Generic Amex test / low-risk US pool
+    "340000",  # Blaze / Mid-America Bank Amex
+}
+
 
 @dataclass
 class CardProfile:
@@ -63,12 +76,13 @@ class BinSteeringEngine:
     def __init__(self):
         bin_cache.init_db()
 
-    async def evaluate_card(self, card_raw: str) -> CardProfile:
+    async def evaluate_card(self, card_raw: str, quiet: bool = False) -> CardProfile:
         parsed = gc.parse_card(card_raw)
         pan = parsed["number"]
         bin6 = pan[:6]
         
         if not gc.check_luhn(pan):
+            _log.log_steering(bin6, "INVALID", 0.0, "Luhn check failed")
             return CardProfile(
                 pan=pan, bin6=bin6, category=ThreeDsCategory.INVALID,
                 confidence_score=0.0, reason="Luhn check failed"
@@ -88,6 +102,8 @@ class BinSteeringEngine:
         category, score, reason = self._score_3ds_risk(
             bin6, scheme, card_type, level, country_a2, is_vbv
         )
+        if not quiet:
+            _log.log_steering(bin6, category.value, score, reason)
 
         return CardProfile(
             pan=pan,
@@ -114,6 +130,24 @@ class BinSteeringEngine:
                 ThreeDsCategory.DIRECT_CHECKOUT,
                 0.90,
                 f"Known Non-VBV / US prepaid / commercial BIN prefix ({bin6})"
+            )
+
+        # Эвристика 1b: Amex SafeKey subprime US — frictionless-friendly по боевым данным
+        # Credit One, First Premier, Indigo и др. subprime Amex: SafeKey Risk Engine
+        # настроен на low-friction, challenge почти не триггерится (подтверждено боевым прогоном)
+        if bin6 in AMEX_FRICTIONLESS_BIN_PREFIXES:
+            return (
+                ThreeDsCategory.DIRECT_CHECKOUT,
+                0.88,
+                f"Amex SafeKey subprime US issuer ({bin6}) — frictionless confirmed in battle"
+            )
+
+        # Эвристика 1c: Любой Amex US (не subprime пул) — SafeKey frictionless-candidate
+        if scheme == "AMERICAN EXPRESS" and country_a2 == "US":
+            return (
+                ThreeDsCategory.FRICTIONLESS_CANDIDATE,
+                0.70,
+                f"Amex SafeKey US issuer — frictionless probable, no challenge history for {bin6}"
             )
 
         # Эвристика 2: Явный флаг базы данных
@@ -173,7 +207,7 @@ class BinSteeringEngine:
             ThreeDsCategory.INVALID: []
         }
         
-        profiles = await asyncio.gather(*(self.evaluate_card(c) for c in cards))
+        profiles = await asyncio.gather(*(self.evaluate_card(c, quiet=True) for c in cards))
         for p in profiles:
             results[p.category].append(p)
             

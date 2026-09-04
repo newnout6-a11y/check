@@ -840,6 +840,10 @@ def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
         return "APPROVED@CVV", msg
     if "incorrect_cvc" in low or "invalid cvc" in low or "security code is incorrect" in low:
         return "APPROVED@CCN", msg
+    if "checkout_not_active_session" in low or "session is no longer active" in low:
+        return "SESSION_EXPIRED", msg
+    if "status of canceled" in low or "paymentintent's payment_method could not be updated" in low:
+        return "SESSION_CANCELED", msg
     if "expired" in low:
         return "EXPIRED", msg
     if "stolen" in low or "lost" in low:

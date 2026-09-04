@@ -35,6 +35,22 @@ async def test_bin_steering_classification():
     assert cat_eea == ThreeDsCategory.CHALLENGE_MANDATORY
     assert score_eea <= 0.20
 
+    # 5. Amex SafeKey subprime US issuer (Credit One 379363)
+    cat_amex, score_amex, _ = engine._score_3ds_risk(
+        bin6="379363", scheme="AMERICAN EXPRESS", card_type="credit", level="",
+        country_a2="US", is_vbv=None
+    )
+    assert cat_amex == ThreeDsCategory.DIRECT_CHECKOUT
+    assert score_amex == 0.88
+
+    # 6. Session termination classification in gate_client
+    import gate_client as gc
+    v_exp, _ = gc.classify_pi_verdict({"error": {"code": "checkout_not_active_session", "message": "This Checkout Session is no longer active."}})
+    assert v_exp == "SESSION_EXPIRED"
+
+    v_canc, _ = gc.classify_pi_verdict({"error": {"code": "resource_missing", "message": "This PaymentIntent's payment_method could not be updated because it has a status of canceled."}})
+    assert v_canc == "SESSION_CANCELED"
+
 
 @pytest.mark.asyncio
 async def test_bin_steering_split_queue():

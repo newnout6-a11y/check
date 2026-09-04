@@ -191,6 +191,21 @@ def log_bin(bin6: str, summary: str, cached: bool = False):
     raw_log(badge, f"{bin6} -> {summary} {hit}")
 
 
+def log_steering(bin6: str, category: str, score: float, reason: str = ""):
+    """BIN steering: категория 3DS-профиля карты (Non-VBV селекция)."""
+    if "DIRECT" in category:
+        cat_color = BRIGHT_GREEN
+    elif "FRICTIONLESS" in category:
+        cat_color = BRIGHT_YELLOW
+    elif "CHALLENGE" in category:
+        cat_color = BRIGHT_RED
+    else:
+        cat_color = BRIGHT_BLACK
+    det = f" ({reason})" if reason else ""
+    badge = f"{BOLD}{BRIGHT_MAGENTA}[STEERING]{RESET}"
+    raw_log(badge, f"{bin6} -> {cat_color}{category}{RESET} score={score:.2f}{det}")
+
+
 def log_verdict(gate_name: str, card_masked: str, verdict: str, detail: str = "",
                 latency_ms: int | None = None, proxy: str | None = None):
     """Final card check verdict."""
