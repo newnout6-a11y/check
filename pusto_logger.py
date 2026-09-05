@@ -145,7 +145,11 @@ def log_gate(gate_name: str, card_or_msg: str, step_or_level: str = "INFO", deta
         )
     else:
         msg = card_or_msg
-        color = BRIGHT_YELLOW if step_or_level == "INFO" else (BRIGHT_RED if step_or_level == "ERROR" else BRIGHT_CYAN)
+        color = BRIGHT_RED if step_or_level == "ERROR" else (
+            BRIGHT_YELLOW if step_or_level == "WARN" else (
+                BRIGHT_CYAN if step_or_level == "DEBUG" else BRIGHT_WHITE
+            )
+        )
     badge = f"{BOLD}{color}[GATE:{gate_name.upper()}]{RESET}"
     raw_log(badge, msg)
 
@@ -206,10 +210,14 @@ def log_steering(bin6: str, category: str, score: float, reason: str = ""):
     raw_log(badge, f"{bin6} -> {cat_color}{category}{RESET} score={score:.2f}{det}")
 
 
+def is_hit_verdict(verdict: str) -> bool:
+    return "APPROVED" in verdict or "3DS_FRICTIONLESS" in verdict
+
+
 def log_verdict(gate_name: str, card_masked: str, verdict: str, detail: str = "",
                 latency_ms: int | None = None, proxy: str | None = None):
     """Final card check verdict."""
-    is_hit = "APPROVED" in verdict or "3DS" in verdict
+    is_hit = is_hit_verdict(verdict)
     is_declined = "DECLINED" in verdict
     v_color = BOLD + (GREEN if is_hit else (RED if is_declined else YELLOW))
     lat_str = f" ({latency_ms}ms)" if latency_ms is not None else ""

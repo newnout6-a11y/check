@@ -263,4 +263,6 @@ def test_verdicts_still_closed_taxonomy():
     """Правки раунда не должны были протащить сырые вердикты."""
     assert config.coerce_verdict("DECLINED@SOMETHING_NEW") == "DECLINED"
     assert config.coerce_verdict("TOTAL_GARBAGE") == "UNKNOWN"
-    assert len(config.VERDICTS) == 24
+    assert len(config.VERDICTS) == 26
+    assert "SESSION_EXPIRED" in config.VERDICTS
+    assert "SESSION_CANCELED" in config.VERDICTS

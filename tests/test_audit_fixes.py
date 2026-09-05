@@ -10,6 +10,7 @@ import gate_client as gc
 import bin_cache
 import proxy_manager
 import surface
+import config
 
 
 def test_parse_card_mixed_delimiters():
@@ -191,4 +192,81 @@ async def test_proxy_upload_dead_filtering():
     assert "1.1.1.1" in alive_urls[0]
     assert len(dead_urls) == 1
     assert "2.2.2.2" in list(dead_urls)[0]
+
+
+def test_coerce_verdict_store_technical_statuses():
+    """Технические сбои витрины/цели (AUD-007) обязаны сводиться к ERROR (возврат кредита)."""
+    tech_statuses = [
+        "GUEST_CHECKOUT_DISABLED", "CAPTCHA_CHECKOUT", "NO_PM_SLUG",
+        "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
+        "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED"
+    ]
+    for st in tech_statuses:
+        assert config.coerce_verdict(st) == "ERROR", f"{st} did not coerce to ERROR"
+
+
+def test_normalize_proxy_negative_cards_and_junk():
+    """Карточные строки и мусор не должны распознаваться как прокси (AUD-041)."""
+    negative_cases = [
+        "4111111111111111|12|28|123",
+        "5175461780694255:09:2029:260",
+        "4111111111111111",
+        "just some random words",
+        "http://",
+        "socks5://",
+        "not_a_host:not_a_port",
+        "123456:7890",
+    ]
+    for c in negative_cases:
+        assert gc.normalize_proxy(c) is None, f"{c} was unexpectedly normalized"
+
+
+@pytest.mark.asyncio
+async def test_hit_gate_proxy_and_effective_a2():
+    """hit_gate принимает прокси и не затирает эффективное гео дефолтным US (AUD-016, AUD-017)."""
+    import inspect
+    import hit_gate
+    sess = hit_gate.CsHitSession("https://checkout.stripe.com/c/pay/cs_live_123#fid123", proxy="http://1.2.3.4:8080")
+    assert sess.proxy == "http://1.2.3.4:8080"
+
+    sig = inspect.signature(sess.check_card)
+    assert sig.parameters["bin_alpha2"].default == ""
+
+
+def test_session_expired_canceled_in_verdicts():
+    """SESSION_EXPIRED и SESSION_CANCELED присутствуют в VERDICTS и VERDICT_ICONS (AUD-008)."""
+    assert "SESSION_EXPIRED" in config.VERDICTS
+    assert "SESSION_CANCELED" in config.VERDICTS
+    assert config.VERDICT_ICONS.get("SESSION_EXPIRED") == "⌛"
+    assert config.VERDICT_ICONS.get("SESSION_CANCELED") == "🚫"
+
+
+def test_parse_card_no_random_cvc():
+    """parse_card не генерирует случайный CVC если он не был передан (AUD-011)."""
+    c = gc.parse_card("4111111111111111|12|28")
+    assert c is not None
+    assert c["cvc"] == ""
+
+
+def test_logger_verdict_3ds_not_hit():
+    """3DS_REQUIRED и 3DS_REDIRECT не должны помечаться как HIT (AUD-002)."""
+    import pusto_logger
+    assert pusto_logger.is_hit_verdict("3DS_FRICTIONLESS") is True
+    assert pusto_logger.is_hit_verdict("APPROVED") is True
+    assert pusto_logger.is_hit_verdict("APPROVED@PAID") is True
+    assert pusto_logger.is_hit_verdict("3DS_REQUIRED") is False
+    assert pusto_logger.is_hit_verdict("3DS_REDIRECT") is False
+
+
+def test_bot_card_fields_validation():
+    """_card_fields отклоняет невалидные месяцы и годы (AUD-046)."""
+    from bot.main import _card_fields
+    assert _card_fields("4111111111111111|13|2028|123") is None
+    assert _card_fields("4111111111111111|00|2028|123") is None
+    assert _card_fields("4111111111111111|12|2019|123") is None
+    assert _card_fields("4111111111111111|12|2060|123") is None
+    valid = _card_fields("4111111111111111|12|2028|123")
+    assert valid is not None
+    assert valid[1] == "12" and valid[2] == "2028"
+
 

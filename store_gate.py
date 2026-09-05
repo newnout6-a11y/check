@@ -16,22 +16,11 @@ from curl_cffi.requests import AsyncSession
 
 import config
 import gate_client as gc
-from setup_gate import bin_lookup  # A1: единая кэшированная реализация (дубль убран)
+from setup_gate import bin_lookup, bin_summary  # A1: единая кэшированная реализация (дубль убран)
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 MAX_PRICE_CENTS = 2000  # $20 крышка: под $2 работали только 2 сайта из 44 (прогон 2026-08-27)
-
-
-def bin_summary(binfo: dict) -> str:
-    if not binfo:
-        return "BIN n/a"
-    scheme = binfo.get("scheme") or "?"
-    ftype = binfo.get("type") or "?"
-    country = ((binfo.get("country") or {}).get("alpha2")
-               or (binfo.get("country") or {}).get("name") or "?")
-    bank = (binfo.get("bank") or {}).get("name") or "?"
-    return f"{scheme}/{ftype}/{country} {bank}"
 
 
 async def check_target(root: str, card_raw: str, proxy: str | None,
@@ -93,7 +82,7 @@ async def main():
     print("=" * 80)
 
     for t in targets:
-        for card_raw in cards:
+        for i, card_raw in enumerate(cards):
             try:
                 res = await check_target(t, card_raw, args.proxy, args.max_price)
             except Exception as e:
@@ -104,6 +93,8 @@ async def main():
                 if res.get("amount_cents") else ""
             print(f"{icon} [{res['status']:16}] {t} <- {res['card']}{paid}")
             print(f"     BIN: {res.get('bin')} | {res['detail']}")
+            if i < len(cards) - 1:
+                await asyncio.sleep(1.5)
 
 
 if __name__ == "__main__":

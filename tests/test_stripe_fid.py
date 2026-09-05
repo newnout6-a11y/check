@@ -47,3 +47,32 @@ def test_roundtrip_encode_decode():
 def test_empty_or_invalid():
     assert decode_fragment("") == {}
     assert decode_fragment(None) == {}
+
+
+def test_decode_corrupt_base64():
+    """Тест на битый base64 -> возврат словаря с ошибкой (AUD-052)."""
+    res = decode_fragment("invalid!!!base64===padding")
+    assert "error" in res or res == {}
+
+
+def test_decode_corrupt_json():
+    """Тест на валидный base64, но битый JSON после XOR -> возврат словаря с ошибкой."""
+    import base64
+    # 20 байт мусора
+    garbage_b64 = base64.b64encode(b"not a valid json payload").decode()
+    res = decode_fragment(garbage_b64)
+    assert "error" in res
+
+
+def test_roundtrip_utf8_payload():
+    """Тест на не-ASCII символы в полезной нагрузке (AUD-022)."""
+    sample = {
+        "apiKey": "pk_live_test_utf8",
+        "description": "Тестовая подписка на магазин — äöü / 100€",
+        "locale": "ru"
+    }
+    encoded = encode_fragment(sample)
+    decoded = decode_fragment(encoded)
+    assert decoded["apiKey"] == sample["apiKey"]
+    assert decoded["description"] == sample["description"]
+    assert decoded["locale"] == sample["locale"]

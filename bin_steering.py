@@ -124,6 +124,14 @@ class BinSteeringEngine:
         self, bin6: str, scheme: str, card_type: str, level: str,
         country_a2: str, is_vbv: bool | None
     ) -> tuple[ThreeDsCategory, float, str]:
+        # Эвристика 0: EEA регион (Европа) -> жесткий SCA челлендж по директиве PSD2 (AUD-019)
+        if country_a2 in EEA_COUNTRIES:
+            return (
+                ThreeDsCategory.CHALLENGE_MANDATORY,
+                0.10,
+                f"EEA country ({country_a2}) requires mandatory PSD2 SCA challenge"
+            )
+
         # Эвристика 1: Прямое совпадение с пулом Non-VBV префиксов
         if bin6 in NON_VBV_BIN_PREFIXES or bin6[:4] in {"4854", "4143", "5262", "4403"}:
             return (
@@ -158,14 +166,6 @@ class BinSteeringEngine:
                 "Database reports VBV: not enrolled"
             )
 
-        # Эвристика 3: EEA регион (Европа) -> жесткий SCA челлендж
-        if country_a2 in EEA_COUNTRIES:
-            return (
-                ThreeDsCategory.CHALLENGE_MANDATORY,
-                0.10,
-                f"EEA country ({country_a2}) requires mandatory PSD2 SCA challenge"
-            )
-
         # Эвристика 4: США корпоративные и коммерческие карты (Corporate / Purchasing / Business)
         is_commercial = any(k in level for k in ("corporate", "business", "purchasing", "commercial"))
         if country_a2 == "US" and is_commercial:
@@ -180,18 +180,18 @@ class BinSteeringEngine:
             return (
                 ThreeDsCategory.DIRECT_CHECKOUT,
                 0.75,
-                "US Prepaid card with high rate of 3DS exemption"
+                "US Prepaid debit card typically exempt from 3DS"
             )
 
-        # Эвристика 6: Обычные карты США / Канады / Австралии -> кандидаты на Frictionless
-        if country_a2 in ("US", "CA", "AU", "NZ", "MX", "BR"):
+        # Эвристика 6: США кредитные карты (Standard / Classic / Gold / Platinum)
+        if country_a2 == "US":
             return (
                 ThreeDsCategory.FRICTIONLESS_CANDIDATE,
                 0.60,
-                f"Non-EEA issuer ({country_a2}) supports 3DS2 frictionless evaluation"
+                f"US {card_type.capitalize()} card ({level or 'standard'}) — frictionless candidate"
             )
 
-        # Дефолт для остальных стран
+        # Default fallback
         return (
             ThreeDsCategory.CHALLENGE_MANDATORY,
             0.30,
@@ -207,7 +207,12 @@ class BinSteeringEngine:
             ThreeDsCategory.INVALID: []
         }
         
-        profiles = await asyncio.gather(*(self.evaluate_card(c, quiet=True) for c in cards))
+        sem = asyncio.Semaphore(10)
+        async def _eval_sem(c):
+            async with sem:
+                return await self.evaluate_card(c, quiet=True)
+
+        profiles = await asyncio.gather(*(_eval_sem(c) for c in cards))
         for p in profiles:
             results[p.category].append(p)
             

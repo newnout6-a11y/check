@@ -4,7 +4,7 @@
 
 # --- Stripe (первоисточник — менять ЗДЕСЬ) ---
 STRIPE_API_VERSION = "2026-03-25.dahlia"
-STRIPE_JS_BUILD = "eb42eea6af"
+STRIPE_JS_BUILD = "fe705f067f"
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------
@@ -52,6 +52,7 @@ VERDICTS = [
     "INVALID", "EXPIRED", "WRONG_CVC", "RESTRICTED",
     "TEST_MODE", "RATE_LIMITED", "RETRY", "PI_MINTED", "PI_PENDING",
     "3DS_REQUIRED", "3DS_FRICTIONLESS", "3DS_CHALLENGE", "3DS_REDIRECT",
+    "SESSION_EXPIRED", "SESSION_CANCELED",
     "UNKNOWN", "ERROR",
 ]
 HIT_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@CVV", "APPROVED@CCN"}
@@ -63,7 +64,9 @@ VERDICT_ICONS = {
     "TEST_MODE": "🧪", "RATE_LIMITED": "🐢", "RETRY": "🔁", "PI_MINTED": "🪙",
     "PI_PENDING": "🧾",
     "3DS_REQUIRED": "🔒", "3DS_FRICTIONLESS": "✅", "3DS_CHALLENGE": "🔐",
-    "3DS_REDIRECT": "↪️", "UNKNOWN": "❔",
+    "3DS_REDIRECT": "↪️",
+    "SESSION_EXPIRED": "⌛", "SESSION_CANCELED": "🚫",
+    "UNKNOWN": "❔",
     "ERROR": "💥",
 }
 
@@ -71,12 +74,16 @@ VERDICT_ICONS = {
 def coerce_verdict(verdict: str) -> str:
     """Страховка таксономии: вердикт вне VERDICTS сводится к ближайшему классу.
 
-    Порядок: точное совпадение → базовый класс по префиксу (DECLINED@{ЧТО-ТО}
-    → DECLINED) → UNKNOWN. Сырая строка наружу не выходит НИКОГДА: она остаётся
-    без иконки, не попадает в статистику хитов и, главное, != "ERROR", из-за чего
-    кредит за проверку не возвращался.
+    Порядок: технические сбои витрины/цели -> ERROR (возврат кредита + фолл-троу)
+    -> точное совпадение -> базовый класс по префиксу (DECLINED@{ЧТО-ТО}
+    -> DECLINED) -> UNKNOWN.
     """
     v = (verdict or "").strip()
+    # Сбои витрины/цели (не свойство карты) обязаны быть ERROR
+    if v in ("GUEST_CHECKOUT_DISABLED", "CAPTCHA_CHECKOUT", "NO_PM_SLUG",
+             "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
+             "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED"):
+        return "ERROR"
     if v in VERDICTS:
         return v
     base = v.split("@", 1)[0].strip()

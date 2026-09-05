@@ -54,7 +54,7 @@ def build_browser_telemetry(country_code: str = "US", user_agent: str | None = N
     tz_offset = random.choice(tz_pool)
     
     width, height = random.choice(COMMON_SCREEN_RESOLUTIONS)
-    ua = user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    ua = user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     
     lang = "en-US"
     if cc in ("DE", "AT"):
@@ -78,7 +78,17 @@ def build_browser_telemetry(country_code: str = "US", user_agent: str | None = N
         "browserScreenWidth": str(width),
         "browserTZ": str(tz_offset),
         "browserUserAgent": ua,
-        "browserAcceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+        "browserAcceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        # Совместимость с числовыми / не-EMVCo ключами
+        "timeZoneOffset": tz_offset,
+        "language": lang.split(",")[0],
+        "colorDepth": 24,
+        "screenHeight": height,
+        "screenWidth": width,
+        "userAgent": ua,
+        "javaEnabled": False,
+        "javascriptEnabled": True,
+        "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     }
 
 
@@ -114,11 +124,21 @@ async def execute_3ds_method(
 
         # Если ACS требует прямой сабмит собранных фингерпринтов
         if device_fp_url and r.status_code == 200:
+            import hashlib
+            h = hashlib.sha256(server_trans_id.encode()).hexdigest()
+            canvas_hash = h[:16]
+            gpus = [
+                "Google Inc. (NVIDIA)~ANGLE (NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0)",
+                "Google Inc. (NVIDIA)~ANGLE (NVIDIA GeForce RTX 4070 Direct3D11 vs_5_0 ps_5_0)",
+                "Google Inc. (Intel)~ANGLE (Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0)",
+                "Google Inc. (AMD)~ANGLE (AMD Radeon RX 6700 XT Direct3D11 vs_5_0 ps_5_0)",
+            ]
+            gpu_choice = gpus[int(h[16:18], 16) % len(gpus)]
             fp_payload = {
                 "threeDSServerTransID": server_trans_id,
                 "deviceFpResult": json.dumps({
-                    "canvas": "b901a88ef01b52ec",
-                    "webgl": "Google Inc. (NVIDIA)~ANGLE (NVIDIA GeForce RTX 3060)",
+                    "canvas": canvas_hash,
+                    "webgl": gpu_choice,
                     "platform": "Win32",
                     "hardwareConcurrency": 8,
                     "deviceMemory": 16

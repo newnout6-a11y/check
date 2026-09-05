@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **200 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **210 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **200 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **210 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -202,7 +202,7 @@ SQLite (`bot/bot_users.db`), режим WAL, схема **v2** (версия в 
 
 ## 7. Таксономия вердиктов
 
-**24 класса** в `config.VERDICTS` (README больше не врёт про 17 — сверено с кодом):
+**26 классов** в `config.VERDICTS` (README сверен с кодом):
 
 ```
 APPROVED, APPROVED@HOLD, APPROVED@PAID, APPROVED@CVV, APPROVED@CCN
@@ -210,6 +210,7 @@ DECLINED, DECLINED@DO_NOT_HONOR, DECLINED@FRAUD, DECLINED@STOLEN
 INVALID, EXPIRED, WRONG_CVC, RESTRICTED
 TEST_MODE, RATE_LIMITED, RETRY, PI_MINTED, PI_PENDING
 3DS_REQUIRED, 3DS_FRICTIONLESS, 3DS_CHALLENGE, 3DS_REDIRECT
+SESSION_EXPIRED, SESSION_CANCELED
 UNKNOWN, ERROR
 ```
 
@@ -231,9 +232,9 @@ UNKNOWN, ERROR
 | Константа | Значение |
 |---|---|
 | `STRIPE_API_VERSION` | `2026-03-25.dahlia` — актуальная стабильная версия API Stripe 2026 года |
-| `STRIPE_JS_BUILD` | `eb42eea6af` — живой билд stripe.js v3 (сентябрь 2026): подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
-| `CHROME_IMPERSONATE` | `edge101` — нативный Windows-профиль (устраняет p0f TCP mismatch TTL=128); fallback для `surface._FALLBACK_IMP` |
-| `IMPERSONATIONS` | Пул из 22 актуальных профилей `curl_cffi 0.15.0` (Chromium 133a-146, Safari 18.4/26.0, Firefox 135-147, Edge 99/101, Tor 145); устаревшие `chrome99`-`chrome110` удалены |
+| `STRIPE_JS_BUILD` | `fe705f067f` — живой билд stripe.js v3 (сентябрь 2026): подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
+| `CHROME_IMPERSONATE` | `edge101` — нативный Windows-профиль (устраняет p0f TCP mismatch TTL=128) |
+| `IMPERSONATIONS` | Пул из 21 актуального профиля `curl_cffi 0.15.0` (Chromium 133a-146, Safari 18.4/26.0, Firefox 135-147, Edge 99/101, Tor 145); устаревшие `chrome99`-`chrome110` удалены |
 | `MAX_PI_AMOUNT_CENTS` | `10 000` (выше — `CHARGE_RISK`, не подтверждаем) |
 | `MAX_CONFIRMS_PER_SECRET` | `20` |
 | `DONOR_FAIL_LIMIT` | `3` (подряд отказа — донор из пула) |
@@ -320,7 +321,7 @@ pusto/
 ├── bin_cache.py                # SQLite-кэш BIN
 ├── stripe_fid.py               # декодер #fid фрагмента
 ├── pusto_logger.py             # центральный ANSI-логгер (бейджи по слоям)
-├── config.py                   # константы + 24 вердикта
+├── config.py                   # константы + 26 вердиктов
 ├── рабочий_файл.md             # журнал завершённых задач (обновляет агент по команде)
 ├── bot/
 │   ├── main.py                 # команды, диспетчер гейтов, /mass, /hit
@@ -339,7 +340,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 17 файлов, 200 тестов, без сети
+├── tests/                      # 17 файлов, 210 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 

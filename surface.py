@@ -162,8 +162,6 @@ _VISIBLE_CAPTCHA = (
 # chrome116 и старше + все safari/firefox133/edge/tor → 200.
 # firefox120 падает с EXC (нестабилен) — исключён.
 IMPERSONATIONS = _cfg.IMPERSONATIONS
-# Последняя надежда — если и она даёт 429, значит режут по IP, не по отпечатку.
-_FALLBACK_IMP = _cfg.CHROME_IMPERSONATE
 _THROTTLE_CODES = (403, 429, 503)
 
 
@@ -214,11 +212,9 @@ def captcha_blocked(html: str) -> bool:
 
 def _card_method_slug(methods: list[str]) -> str | None:
     """Есть ли в списке слаг, способный принять карту. None — если только кошельки."""
-    wallet = ("applepay", "googlepay", "klarna", "afterpay", "affirm", "paypal",
-              "ppcp", "ideal", "bancontact", "sepa", "alipay", "wechat", "multibanco")
     for m in methods:
         if "stripe" in m or "woocommerce_payments" == m or m.endswith("_cc") or "card" in m:
-            if not any(w in m.lower() for w in wallet):
+            if not gc._PM_WALLET_RX.search(m):
                 return m
     return None
 

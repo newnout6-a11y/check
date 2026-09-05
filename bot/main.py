@@ -173,6 +173,23 @@ _YY_RE = re.compile(r"\d{2,4}")
 _CVV_RE = re.compile(r"\d{3,4}")
 
 
+def _valid_month(mm_str: str) -> bool:
+    try:
+        return 1 <= int(mm_str) <= 12
+    except (ValueError, TypeError):
+        return False
+
+
+def _valid_year(yy_str: str) -> bool:
+    try:
+        y = int(yy_str)
+        if len(yy_str) == 2:
+            y += 2000
+        return 2020 <= y <= 2050
+    except (ValueError, TypeError):
+        return False
+
+
 def _card_fields(text: str) -> list[str] | None:
     """CC|MM|YY|CVV / CC MM YY CVV / 4-блочный PAN + MM YY CVV -> [cc, mm, yy, cvv]."""
     parts = text.replace("|", " ").replace(":", " ").replace("/", " ").split()
@@ -181,7 +198,9 @@ def _card_fields(text: str) -> list[str] | None:
     if (len(parts) == 4
             and _PAN_RE.fullmatch(parts[0])
             and _MM_RE.fullmatch(parts[1])
+            and _valid_month(parts[1])
             and _YY_RE.fullmatch(parts[2])
+            and _valid_year(parts[2])
             and _CVV_RE.fullmatch(parts[3])):
         return parts
     return None
@@ -207,13 +226,19 @@ def _collect_cards(chunk: str, out: list[list[str]], limit: int,
     while i < len(toks) and len(out) < limit:
         if (i + 3 < len(toks)
                 and _PAN_RE.fullmatch(toks[i]) and _MM_RE.fullmatch(toks[i + 1])
-                and _YY_RE.fullmatch(toks[i + 2]) and _CVV_RE.fullmatch(toks[i + 3])):
+                and _valid_month(toks[i + 1])
+                and _YY_RE.fullmatch(toks[i + 2])
+                and _valid_year(toks[i + 2])
+                and _CVV_RE.fullmatch(toks[i + 3])):
             _add([toks[i], toks[i + 1], toks[i + 2], toks[i + 3]])
             i += 4
             continue
         if (i + 6 < len(toks)
                 and all(re.fullmatch(r"\d{4}", t) for t in toks[i:i + 4])
-                and _MM_RE.fullmatch(toks[i + 4]) and _YY_RE.fullmatch(toks[i + 5])
+                and _MM_RE.fullmatch(toks[i + 4])
+                and _valid_month(toks[i + 4])
+                and _YY_RE.fullmatch(toks[i + 5])
+                and _valid_year(toks[i + 5])
                 and _CVV_RE.fullmatch(toks[i + 6])):
             _add(["".join(toks[i:i + 4]), toks[i + 4], toks[i + 5], toks[i + 6]])
             i += 7
@@ -1358,8 +1383,8 @@ async def cmd_bin(client, message: Message):
         return await message.reply("Формат: /bin 123456 или просто 6 цифр БИНа")
     if len(bin_query) < 6:
         return await message.reply("❌ БИН должен содержать минимум 6 цифр")
-    status_msg = await message.reply(f"🔍 Запрос информации о БИН <code>{bin_query}</code>...", parse_mode=ParseMode.HTML)
-    binfo = await gc.bin_lookup_enriched(bin_query)
+    import bin_cache
+    binfo = await bin_cache.cached_lookup(bin_query, gc.bin_lookup_enriched)
     if not binfo or not binfo.get("scheme"):
         binfo = await setup_gate.bin_lookup(bin_query)
 

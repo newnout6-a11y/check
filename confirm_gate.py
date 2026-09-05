@@ -178,7 +178,7 @@ class ConfirmGateSession:
         pm_id = tok_data["id"]
         log.log_stripe("TOKENIZE_OK", pm_id, detail=pan_masked)
 
-        if self.confirm_count >= MAX_CONFIRMS_PER_SECRET:
+        if not self.secret or self.confirm_count >= MAX_CONFIRMS_PER_SECRET:
             log.log_stripe("BUDGET_EXHAUSTED", f"count={self.confirm_count}/{MAX_CONFIRMS_PER_SECRET}", "REFRESHING")
             if not await self._refresh_secret():
                 return {"card": card_raw, "status": "ERROR",
@@ -197,6 +197,11 @@ class ConfirmGateSession:
             self.confirm_count += 1
             if not gc.pi_secret_alive(resp) and not await self._refresh_secret():
                 pass  # следующий вызов упрётся в бюджет и вернёт ERROR
+        elif verdict in ("APPROVED", "APPROVED@PAID", "APPROVED@HOLD"):
+            # Сессия успешно оплачена — этот PI больше нельзя использовать для других карт.
+            self.secret = ""
+            self.confirm_count = 0
+            await self._refresh_secret()
         elif verdict == "RETRY":
             return {"card": card_raw, "status": "RETRY",
                     "detail": detail, "retry_next_gate": True}
@@ -216,7 +221,7 @@ class ConfirmGateSession:
             src = sdk.get("source") or sdk.get("three_d_secure_source") or ""
             if src:
                 log.log_stripe("3DS_AUTH", src[:25], "START")
-                ares = await gc.stripe_3ds2_authenticate(self.s, self.pk, src)
+                ares = await gc.stripe_3ds2_authenticate(self.s, self.pk, src, country_code=bin_alpha2 or "US")
                 ts = ares.get("transStatus")
                 log.log_stripe("3DS_AUTH", src[:25], f"transStatus={ts}")
                 if ts == "Y":

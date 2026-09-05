@@ -318,6 +318,12 @@ def write_back(fps: list[dict]) -> int:
     n = domains_store.upsert(good, source="recon", priority=1)
     if dead:
         domains_store.upsert(dead, source="recon", priority=3)
+    for fp in fps:
+        d = fp.get("domain")
+        if not d:
+            continue
+        res = "READY" if (fp.get("alive") and fp.get("routes")) else (fp.get("reason") or "DEAD")
+        domains_store.mark_scanned(d, res)
     return n
 
 

@@ -7,6 +7,23 @@ import pytest
 import bin_steering
 from bin_steering import ThreeDsCategory, BinSteeringEngine
 import frictionless_engine
+import bin_cache
+
+
+@pytest.fixture(autouse=True)
+def mock_bin_lookup(monkeypatch):
+    """Гарантирует 100% офлайн исполнение без обращения к сети и прогретой базе (AUD-050)."""
+    mock_data = {
+        "448528": {"scheme": "VISA", "type": "credit", "level": "corporate", "country": {"alpha2": "US"}, "bank": {"name": "JPMORGAN CHASE"}},
+        "440393": {"scheme": "VISA", "type": "debit", "level": "classic", "country": {"alpha2": "US"}, "bank": {"name": "THE BANCORP BANK"}},
+        "517546": {"scheme": "MASTERCARD", "type": "debit", "level": "standard", "country": {"alpha2": "US"}, "bank": {"name": "BANK OF AMERICA"}},
+        "453927": {"scheme": "VISA", "type": "credit", "level": "classic", "country": {"alpha2": "QA"}, "bank": {"name": "QATAR NATIONAL BANK"}},
+        "379363": {"scheme": "AMERICAN EXPRESS", "type": "credit", "level": "", "country": {"alpha2": "US"}, "bank": {"name": "CREDIT ONE BANK"}},
+    }
+    async def _mock_cached(bin_num, fetch_fn=None):
+        return mock_data.get(bin_num, {})
+
+    monkeypatch.setattr(bin_cache, "cached_lookup", _mock_cached)
 
 
 @pytest.mark.asyncio

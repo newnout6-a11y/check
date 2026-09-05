@@ -159,6 +159,9 @@ def _premium_on(conn: sqlite3.Connection, user_id: int) -> bool:
 def spend_credit(user_id: int, gate: str) -> bool:
     """Премиум чекает без кредитов; разработчик — безлимитно."""
     with _db() as c:
+        row_b = c.execute("SELECT banned FROM users WHERE user_id=?", (user_id,)).fetchone()
+        if row_b and row_b["banned"]:
+            return False
         if user_id in config.ADMIN_IDS:
             c.execute("UPDATE users SET total_checks = total_checks + 1 WHERE user_id=?", (user_id,))
             return True
@@ -222,16 +225,20 @@ def add_hit(user_id: int):
 
 def redeem_key(user_id: int, key: str) -> str:
     """Активация /key: premium-дни или кредиты. Возвращает текст результата."""
+    k = key.strip()
     with _db() as c:
-        row = c.execute("SELECT * FROM keys WHERE key=? AND used_by IS NULL",
-                        (key.strip(),)).fetchone()
-        if not row:
+        row = c.execute("SELECT * FROM keys WHERE key=?", (k,)).fetchone()
+        if not row or row["used_by"] is not None:
             return "❌ Неверный или уже активированный ключ."
         if not row["days"] and not row["credits"]:
             # пустой ключ не помечается used — не сгорает впустую
             return "❌ Пустой ключ (0 дней / 0 кредитов) — попросите админа перевыпустить."
-        c.execute("UPDATE keys SET used_by=?, used_at=? WHERE key=?",
-                  (user_id, int(time.time()), key.strip()))
+        # Атомарный захват: UPDATE с условием used_by IS NULL гарантирует,
+        # что параллельный запрос не сможет повторно активировать ключ (AUD-042)
+        cur = c.execute("UPDATE keys SET used_by=?, used_at=? WHERE key=? AND used_by IS NULL",
+                        (user_id, int(time.time()), k))
+        if cur.rowcount != 1:
+            return "❌ Неверный или уже активированный ключ."
         # ключ может нести И дни, И кредиты (/genkey 10 30) — начисляем оба,
         # раньше credits-ветка была недостижима при непустом days
         msgs = []

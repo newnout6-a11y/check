@@ -92,12 +92,31 @@ CREATE INDEX IF NOT EXISTS idx_scans_ts ON scans(ts);
 """
 
 
-def connect() -> sqlite3.Connection:
+class ManagedConnection:
+    """Обертка sqlite3 соединения, гарантирующая закрытие дескриптора при выходе из with (AUD-034)."""
+    def __init__(self, conn: sqlite3.Connection):
+        self._conn = conn
+
+    def __enter__(self) -> sqlite3.Connection:
+        self._conn.__enter__()
+        return self._conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            return self._conn.__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            self._conn.close()
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+
+def connect():
     os.makedirs("data", exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.row_factory = sqlite3.Row
-    return conn
+    return ManagedConnection(conn)
 
 
 def init_db():

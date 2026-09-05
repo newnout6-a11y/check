@@ -99,12 +99,13 @@ def encode_fragment(data: dict[str, Any]) -> str:
     Точная инверсия алгоритма Stripe (module 3950).
     """
     json_str = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+    utf8_bytes = json_str.encode("utf-8")
     
     # Stripe паддит строку пробелами до кратности 3 перед btoa
-    pad_len = (3 - len(json_str) % 3) % 3
-    padded_str = json_str + (" " * pad_len)
+    pad_len = (3 - len(utf8_bytes) % 3) % 3
+    padded_bytes = utf8_bytes + (b" " * pad_len)
     
-    xored_bytes = bytes(ord(c) ^ 5 for c in padded_str)
+    xored_bytes = bytes(b ^ 5 for b in padded_bytes)
     b64_encoded = base64.b64encode(xored_bytes).decode("ascii")
     return urllib.parse.quote(b64_encoded, safe="")
 
