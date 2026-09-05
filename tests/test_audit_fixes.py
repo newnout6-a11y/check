@@ -270,3 +270,37 @@ def test_bot_card_fields_validation():
     assert valid[1] == "12" and valid[2] == "2028"
 
 
+def test_refundable_verdicts_cover_session_death():
+    """SESSION_EXPIRED/SESSION_CANCELED refundable: смерть цели — не свойство карты.
+
+    Кредит при мёртвом линке/доноре обязан возвращаться так же, как при ERROR
+    (хвост AUD-008: таксономия была, экономика — нет)."""
+    assert config.is_refundable("ERROR") is True
+    assert config.is_refundable("SESSION_EXPIRED") is True
+    assert config.is_refundable("SESSION_CANCELED") is True
+    # честные результаты карты кредитом не компенсируются
+    assert config.is_refundable("DECLINED") is False
+    assert config.is_refundable("3DS_CHALLENGE") is False
+    assert config.is_refundable("UNKNOWN") is False
+
+
+def test_coerce_charge_risk_is_error():
+    """CHARGE_RISK — свойство цели (PI дороже капа), не карты: сводится к ERROR."""
+    assert config.coerce_verdict("CHARGE_RISK") == "ERROR"
+
+
+def test_stripe_constants_current():
+    """Живые константы сентября 2026: API 2026-08-26.dahlia, соль fe705f067f."""
+    assert config.STRIPE_API_VERSION == "2026-08-26.dahlia"
+    assert config.STRIPE_JS_BUILD == "fe705f067f"
+
+
+def test_hit_gate_session_accepts_proxy_attribute():
+    """CsHitSession хранит прокси из конструктора (бот-/hit больше не direct)."""
+    import hit_gate
+    sess = hit_gate.CsHitSession("https://checkout.stripe.com/c/pay/cs_live_x#fidy", proxy="socks5://1.2.3.4:1080")
+    assert sess.proxy == "socks5://1.2.3.4:1080"
+    direct = hit_gate.CsHitSession("https://checkout.stripe.com/c/pay/cs_live_x#fidy")
+    assert direct.proxy is None
+
+

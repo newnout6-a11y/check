@@ -940,14 +940,14 @@ async def run_gate(message: Message, gate_name: str, argline: str,
             log.log_error(gate_name, f"Exception during gate call: {e}", exc=e)
         latency_ms = int((asyncio.get_event_loop().time() - t0) * 1000)
         log.log_verdict(gate_name, masked, verdict, detail=str(detail), latency_ms=latency_ms, proxy=gate_extra.get("proxy"))
-        if verdict == "ERROR":
-            db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
-            log.log_billing(u_id, f"refunded {cost} credits for {gate_name} (error)", balance=db.get_user(u_id).get("credits"))
+        if engine_cfg.is_refundable(verdict):
+            db.refund_credit(u_id, gate_name)  # сбой движка/смерть цели — кредит возвращается
+            log.log_billing(u_id, f"refunded {cost} credits for {gate_name} ({verdict})", balance=db.get_user(u_id).get("credits"))
         try:
             binfo = await asyncio.wait_for(binfo_task, timeout=4)
         except Exception:
             binfo = {}
-        if verdict != "ERROR":
+        if not engine_cfg.is_refundable(verdict):
             break
         nxt = _pick_gate(None, exclude=tried)
         if not nxt:
@@ -1112,6 +1112,11 @@ async def cmd_hit(client, message: Message):
             f"❌ Недостаточно кредитов: {len(good_cards)} карт × {meta_cost} = {len(good_cards) * meta_cost}")
     status_msg = await message.reply(f"⚡ /hit · {len(good_cards)} карт · бью по линку со свежими сессиями...")
     log.log_hit(f"User {u_id} started /hit: {len(good_cards)} cards on {target_url}")
+    # Прокси на прогон: бот-/hit больше не светит IP оператора (AUD-016, бот-путь).
+    # Взрыв прокси на open НЕ объявляет линк мёртвым — один ретрай direct.
+    hit_proxy = gc.pick_proxy(gc.load_proxies(), None)
+    if hit_proxy:
+        log.log_proxy("Using proxy for /hit", hit_proxy)
     link_dead = None
     for idx, f in enumerate(good_cards, 1):
         if link_dead:
@@ -1135,8 +1140,15 @@ async def cmd_hit(client, message: Message):
             # стоял снаружи, и исключение в нём оставляло gs неопределённым для
             # finally (NameError) при уже списанном кредите и без возврата.
             log.log_hit(f"[{idx}/{len(good_cards)}] Checking card {_safe_pan(f[0])}...")
-            gs = hit_engine.CsHitSession(target_url)
+            gs = hit_engine.CsHitSession(target_url, proxy=hit_proxy)
             ok, detail = await gs.open()
+            if not ok and hit_proxy:
+                # прокси мог упасть сам по себе — не хороним линк, пробуем direct
+                log.log_proxy("/hit open failed via proxy, retrying direct", hit_proxy, str(detail)[:60])
+                await gs.close()
+                hit_proxy = None
+                gs = hit_engine.CsHitSession(target_url)
+                ok, detail = await gs.open()
             if not ok:
                 db.refund_credit(u_id, "hit")
                 link_dead = detail[:80]
@@ -1160,8 +1172,12 @@ async def cmd_hit(client, message: Message):
         detail = str(res.get("detail", ""))
         amount = res.get("amount_cents") or 0
         currency = res.get("currency") or ""
-        if verdict == "ERROR":
+        if engine_cfg.is_refundable(verdict):
+            # ERROR и смерть сессии (SESSION_EXPIRED/CANCELED) — кредит возвращается;
+            # мёртвый линк останавливает очередь: следующие карты не сжигаются
             db.refund_credit(u_id, "hit")
+            if verdict in ("SESSION_EXPIRED", "SESSION_CANCELED"):
+                link_dead = detail[:60]
         else:
             price_s = formatter.fmt_price(amount, currency)
             detail = f"[{price_s}] {detail}" if price_s else detail
@@ -1317,9 +1333,9 @@ async def cmd_mass(client, message: Message):
                 verdict, detail = "ERROR", f"{type(e).__name__}: {e}"[:100]
                 log.log_error(f"mass:{gate_name}", f"Error checking {_safe_pan(card_parts[0])}: {e}", exc=e)
             log.log_verdict(gate_name, _safe_pan(card_parts[0]), verdict, detail=str(detail)[:60])
-            if verdict == "ERROR":
+            if engine_cfg.is_refundable(verdict):
                 try:
-                    db.refund_credit(u_id, gate_name)  # сбой движка — кредит возвращается
+                    db.refund_credit(u_id, gate_name)  # сбой движка/смерть цели — кредит возвращается
                 except Exception:
                     pass  # неудавшийся возврат не должен ронять отчёт
             return {"card": _safe_pan(card_parts[0]),

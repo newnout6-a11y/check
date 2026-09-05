@@ -140,7 +140,9 @@ def log_gate(gate_name: str, card_or_msg: str, step_or_level: str = "INFO", deta
         step_str = f" [{step_or_level}]" if step_or_level else ""
         det_str = f" -> {detail}" if detail else ""
         msg = f"{card_str}{step_str}{det_str}".strip()
-        color = BRIGHT_GREEN if ("APPROV" in step_or_level or "3DS" in step_or_level) else (
+        # зелёный — только реальные хиты (APPROV* / 3DS_FRICTIONLESS); прочие
+        # 3DS-статусы (CHALLENGE/REQUIRED/REDIRECT) — нейтральный жёлтый, не хит
+        color = BRIGHT_GREEN if ("APPROV" in step_or_level or "3DS_FRICTIONLESS" in step_or_level) else (
             BRIGHT_RED if ("DECLIN" in step_or_level or "FAIL" in step_or_level or "ERR" in step_or_level) else BRIGHT_YELLOW
         )
     else:

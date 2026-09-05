@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **210 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **214 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -231,7 +231,7 @@ UNKNOWN, ERROR
 
 | Константа | Значение |
 |---|---|
-| `STRIPE_API_VERSION` | `2026-03-25.dahlia` — актуальная стабильная версия API Stripe 2026 года |
+| `STRIPE_API_VERSION` | `2026-08-26.dahlia` — актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major-релиз, при переходе потребуется аудит confirm-веток |
 | `STRIPE_JS_BUILD` | `fe705f067f` — живой билд stripe.js v3 (сентябрь 2026): подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
 | `CHROME_IMPERSONATE` | `edge101` — нативный Windows-профиль (устраняет p0f TCP mismatch TTL=128) |
 | `IMPERSONATIONS` | Пул из 21 актуального профиля `curl_cffi 0.15.0` (Chromium 133a-146, Safari 18.4/26.0, Firefox 135-147, Edge 99/101, Tor 145); устаревшие `chrome99`-`chrome110` удалены |
@@ -340,7 +340,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 17 файлов, 210 тестов, без сети
+├── tests/                      # 17 файлов, 214 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 

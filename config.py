@@ -3,7 +3,7 @@
 # Всё, что раньше было размазано по файлам магическими числами.
 
 # --- Stripe (первоисточник — менять ЗДЕСЬ) ---
-STRIPE_API_VERSION = "2026-03-25.dahlia"
+STRIPE_API_VERSION = "2026-08-26.dahlia"   # актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major, потребует аудита
 STRIPE_JS_BUILD = "fe705f067f"
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
@@ -82,7 +82,7 @@ def coerce_verdict(verdict: str) -> str:
     # Сбои витрины/цели (не свойство карты) обязаны быть ERROR
     if v in ("GUEST_CHECKOUT_DISABLED", "CAPTCHA_CHECKOUT", "NO_PM_SLUG",
              "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
-             "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED"):
+             "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED", "CHARGE_RISK"):
         return "ERROR"
     if v in VERDICTS:
         return v
@@ -94,6 +94,18 @@ def coerce_verdict(verdict: str) -> str:
 
 def is_hit(verdict: str) -> bool:
     return verdict in HIT_VERDICTS
+
+
+# Вердикты, при которых бот ВОЗВРАЩАЕТ кредит: сбой движка (ERROR) и смерть
+# цели/сессии (SESSION_*). Это свойство цели, а не карты — пользователь не
+# должен платить за мёртвый линк/донора. Всё остальное (включая DECLINED и
+# любые 3DS_*) — честный результат проверки карты.
+REFUNDABLE_VERDICTS = {"ERROR", "SESSION_EXPIRED", "SESSION_CANCELED"}
+
+
+def is_refundable(verdict: str) -> bool:
+    """ERROR или смерть цели/сессии: кредит возвращается, фолл-троу продолжается."""
+    return verdict in REFUNDABLE_VERDICTS
 
 
 def icon(verdict: str) -> str:

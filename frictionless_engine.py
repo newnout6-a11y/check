@@ -134,14 +134,19 @@ async def execute_3ds_method(
                 "Google Inc. (AMD)~ANGLE (AMD Radeon RX 6700 XT Direct3D11 vs_5_0 ps_5_0)",
             ]
             gpu_choice = gpus[int(h[16:18], 16) % len(gpus)]
+            # железо тоже варьируется от транзакции к транзакции: константный
+            # профиль (8 ядер / 16 ГБ) на всех GPU-вариантах — готовый
+            # корреляционный якорь для ACS (хвост AUD-021)
+            cores = (4, 8, 12, 16)
+            mems = (8, 16, 32)
             fp_payload = {
                 "threeDSServerTransID": server_trans_id,
                 "deviceFpResult": json.dumps({
                     "canvas": canvas_hash,
                     "webgl": gpu_choice,
                     "platform": "Win32",
-                    "hardwareConcurrency": 8,
-                    "deviceMemory": 16
+                    "hardwareConcurrency": cores[int(h[18:20], 16) % len(cores)],
+                    "deviceMemory": mems[int(h[20:22], 16) % len(mems)]
                 })
             }
             await session.post(
