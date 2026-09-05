@@ -262,6 +262,19 @@ class CsHitSession:
                 if sdk_type == "stripe_3ds2_challenge" or "acs_url" in stripe_js:
                     return "3DS_CHALLENGE", "3DS2 challenge required (OTP/SMS)"
 
+                # Stripe Radar bot challenge (hCaptcha Enterprise): НЕ 3DS и не
+                # свойство карты — антифрод Stripe до аутентификации эмитентом.
+                # Возводим ДО fingerprint-попытки: у этого sdk нет
+                # three_ds_method_url и source, frictionless-движок тут делает
+                # только пустые запросы. CAPTCHA_CHECKOUT в coerce-списке:
+                # кредит возвращается, фолл-троу к следующему гейту срабатывает.
+                if sdk_type == "intent_confirmation_challenge":
+                    sk = str(sdk.get("site_key") or stripe_js.get("site_key") or "")
+                    sk_note = f"sitekey={sk[:8]}… " if sk else ""
+                    _log.log_stripe("RADAR_CHALLENGE", self.cs[:14], "hCaptcha", sk_note.strip())
+                    return "CAPTCHA_CHECKOUT", (f"Stripe Radar bot challenge (hCaptcha, {sk_note}"
+                                                f"rqdata attached) — антифрод цели, не 3DS; карта не проверялась эмитентом")
+
                 # Исполняем Frictionless Engine (3DS-Method iframe emulation + aligned browser telemetry)
                 if self.s is not None:
                     target_cc = (profile.country_a2 if profile else "") or self.customer_country or "US"
@@ -277,7 +290,7 @@ class CsHitSession:
                         return "3DS_CHALLENGE", "3DS2 challenge (transStatus=C, enrolled)"
                 
                 # Fallback по типу SDK
-                if sdk_type in ("stripe_3ds2_fingerprint", "intent_confirmation_challenge"):
+                if sdk_type == "stripe_3ds2_fingerprint":
                     return "3DS_CHALLENGE", f"3DS2 enrolled ({sdk_type})"
                 return "3DS_REQUIRED", f"3DS SDK action (type={sdk_type or na_type})"
             

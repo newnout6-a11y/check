@@ -98,6 +98,35 @@ async def test_classify_3ds2_fingerprint_fallback():
     assert "3DS2 enrolled" in detail
 
 @pytest.mark.asyncio
+async def test_classify_radar_bot_challenge():
+    """intent_confirmation_challenge — Stripe Radar hCaptcha, не 3DS (не enrolled)."""
+    session = CsHitSession("https://checkout.stripe.com/c/pay/cs_live_test#fid")
+    
+    resp = {
+        "payment_intent": {
+            "status": "requires_action",
+            "next_action": {
+                "type": "use_stripe_sdk",
+                "use_stripe_sdk": {
+                    "type": "intent_confirmation_challenge",
+                    "site_key": "c7faac4c-1cd7-4b1b-b2d4-42ba98d09c7a",
+                    "rqdata": "mock_rqdata_blob",
+                }
+            }
+        }
+    }
+    verdict, detail = await session._classify_and_resolve_3ds(resp)
+    assert verdict == "CAPTCHA_CHECKOUT"
+    assert "Radar" in detail
+    assert "hCaptcha" in detail
+    # sitekey виден в детале для диагностики цели
+    assert "c7faac4c" in detail
+    # и coerce ведёт себя как техстатус цели: ERROR-класс -> refund + фолл-троу
+    import config
+    assert config.coerce_verdict(verdict) == "ERROR"
+
+
+@pytest.mark.asyncio
 async def test_classify_3ds1_redirect():
     session = CsHitSession("https://checkout.stripe.com/c/pay/cs_live_test#fid")
     
