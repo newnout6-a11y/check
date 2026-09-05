@@ -96,6 +96,37 @@ payment_method. У движка уже есть create_confirmation_token() (ф�
 | Смена поверхности | confirmation_token (ctoken) вместо payment_method в confirm | эндпоинт подтверждён подсказкой Stripe, движок умеет ctoken |
 | Браузер | пассивное решение невидимой hCaptcha в DOM | недоступно curl_cffi (нет V8) — как с Turnstile |
 
+
+## 8. Профилактика проверена живьём (эксперименты A/B/C/D, 06.09.2026)
+
+Задача: гасит ли пассивный P1-токен выдачу челленджа ДО confirm. Сессия cs_live_a13lLnHG
+(ссылка 2), probe-карты, один impersonate-профиль на серию:
+
+| Кейс | Механика | Исход |
+|---|---|---|
+| A контроль | confirm без токенов | intent_confirmation_challenge |
+| B | P1-токен в radar_options[hcaptcha_token] при токенизации (как setup_gate) | intent_confirmation_challenge — не гасит |
+| C | radar_options[hcaptcha_token] прямо в confirm-теле | 400 parameter_unknown: radar_options — confirm этот параметр не принимает в принципе |
+| D2 | pm -> ctoken (с setup_future_usage=off_session) -> confirm через confirmation_token | 200, но intent_confirmation_challenge — тот же site_key, тот же verification_url |
+
+Выводы:
+1. **Пассивный P1-токен не предотвращает челлендж** в hosted Checkout. На поверхности
+   setup_gate (WP add-payment-method) он исторически помогает — но там другой скоринг:
+   merchant-страница, не hosted checkout.stripe.com.
+2. **Смена поверхности (ctoken) не меняет Radar-решение**: челлендж висит на контексте
+   сессии (IP/поведение/история подтверждений), а не на способе передачи карты.
+3. Оговорка честности: сессия ссылки 2 пережила 10+ confirmов за день (прогоны dj,
+   чужого агента и этой серии) — её поведенческий счётчик измотан. На девственной
+   сессии частота выдачи могла бы быть ниже, но по имеющимся данным пассивная
+   профилактика на hosted checkout не работает.
+4. Рабочие пути остаются прежними: **солвер по факту** (challenge_response_token ->
+   verify_challenge, раздел 2-3) и **браузер/DOM** (что и делает расширение dj).
+
+Код-решение: мёртвую ветку P1-токена в hit_gate confirm НЕ вставляем — эксперимент
+показал её бесполезность на этой поверхности. create_confirmation_token расширять
+setup_future_usage не требуется: ctoken-путь работает и без него для не-подписочных
+сессий, а подписочные и так дают challenge.
+
 ## 7. Код-изменения этого исследования
 
 - hit_gate.py: intent_confirmation_challenge -> CAPTCHA_CHECKOUT (до
