@@ -25,6 +25,16 @@ import pusto_logger as _log
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 
+def _amount_mismatch(status_code: int, err: dict) -> bool:
+    """checkout_amount_mismatch живёт в error.code, error.decline_code ИЛИ в хвосте
+    error.message (живой кейс 06.09.2026: code=None, message='...subscription.
+    checkout_amount_mismatch' — каскад фикса №6 его не видел и падал в DECLINED)."""
+    if status_code not in (400, 402, 409):
+        return False
+    src = " ".join(str(err.get(k) or "") for k in ("decline_code", "code", "message"))
+    return "amount_mismatch" in src
+
+
 class CsHitSession:
     """Одна cs_live-сессия:fid -> pk -> PI; несколько карт, пока PI жив."""
 
@@ -191,9 +201,7 @@ class CsHitSession:
             return {"status": "ERROR", "detail": f"confirm: {type(e).__name__}: {e}"[:150]}
         self.confirms += 1
         err = resp.get("error") or {}
-        if (r.status_code in (400, 402, 409)
-                and str(err.get("decline_code") or err.get("code") or "")
-                    .find("amount_mismatch") >= 0):
+        if _amount_mismatch(getattr(r, "status_code", 0), err):
             try:
                 rg = await self.s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
                                       params={"key": self.pk},
@@ -218,6 +226,20 @@ class CsHitSession:
                     self.confirms += 1
             except Exception:
                 pass
+            # mismatch повторился и после пересчёта — подписочный прейлист дрейфует
+            # быстрее, чем мы подтверждаем. Это свойство цели, не карты: честный
+            # ERROR (возврат кредита), а не DECLINED эмитентом.
+            err2 = resp.get("error") or {}
+            if _amount_mismatch(getattr(r, "status_code", 0), err2):
+                _log.log_stripe("AMOUNT_DRIFT", self.cs[:14], "mismatch x2", "invoice proration unstable")
+                return {"status": "ERROR",
+                        "detail": ("подписочный инвойс дрейфует: amount_mismatch повторился "
+                                   f"после пересчёта ({self.amount}{self.currency}) — цель "
+                                   "нестабильна, карта эмитентом не проверялась"),
+                        "amount_cents": self.amount, "currency": self.currency,
+                        "steering_category": profile.category.value,
+                        "confidence": profile.confidence_score,
+                        "reason": profile.reason}
         verdict, detail = await self._classify_and_resolve_3ds(resp, profile)
         return {"status": verdict, "detail": detail[:250],
                 "amount_cents": self.amount, "currency": self.currency,
