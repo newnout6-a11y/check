@@ -34,68 +34,77 @@ def parse_tier(token: str) -> tuple[int, int] | None:
     return PRICE_TIERS.get(str(token).strip().lower())
 
 
-def _cheapest_map() -> dict[str, int]:
-    """domain -> cheapest_cents from data/shopify_gates.json."""
+_cache_gates: dict = {"mtime": 0.0, "data": []}
+_cache_targets: dict = {"mtime": 0.0, "data": []}
+
+
+def _load_gates() -> list[dict]:
     p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_gates.json")
     try:
-        with open(p, encoding="utf-8") as f:
-            gates = json.load(f)
-        return {
-            g["domain"]: int(g["cheapest_cents"])
-            for g in gates
-            if g.get("domain") and g.get("cheapest_cents") is not None
-        }
+        mt = os.path.getmtime(p)
+        if mt != _cache_gates["mtime"] or not _cache_gates["data"]:
+            with open(p, encoding="utf-8") as f:
+                _cache_gates["data"] = json.load(f)
+            _cache_gates["mtime"] = mt
+        return _cache_gates["data"]
     except Exception:
-        return {}
+        return []
+
+
+def _load_targets_raw() -> list[str]:
+    t = os.environ.get("PUSTO_SHOPIFY_TARGETS", "")
+    if t:
+        return [x.strip().rstrip("/") for x in t.split(",") if x.strip()]
+    p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_targets.txt")
+    if not os.path.exists(p):
+        return []
+    try:
+        mt = os.path.getmtime(p)
+        if mt != _cache_targets["mtime"] or not _cache_targets["data"]:
+            with open(p, encoding="utf-8") as f:
+                _cache_targets["data"] = [ln.strip().rstrip("/") for ln in f if ln.strip().startswith("http")]
+            _cache_targets["mtime"] = mt
+        return list(_cache_targets["data"])
+    except Exception:
+        return []
+
+
+def _cheapest_map() -> dict[str, int]:
+    """domain -> cheapest_cents from data/shopify_gates.json."""
+    return {
+        g["domain"]: int(g["cheapest_cents"])
+        for g in _load_gates()
+        if g.get("domain") and g.get("cheapest_cents") is not None
+    }
 
 
 def _dead_domains() -> set[str]:
     """Return dead/blocked domains from data/shopify_gates.json.
     verified=False — боевая смерть по probe-верификации (нет записей без флага
     после полного прогона пула; отсутствие флага = не проверялся, не отсекается)."""
-    p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_gates.json")
-    try:
-        with open(p, encoding="utf-8") as f:
-            gates = json.load(f)
-        return {
-            g.get("domain")
-            for g in gates
-            if g.get("dead_surface") or g.get("phantom") or g.get("blocked")
-            or g.get("verified") is False
-        } - {None}
-    except Exception:
-        return set()
+    return {
+        g.get("domain")
+        for g in _load_gates()
+        if g.get("dead_surface") or g.get("phantom") or g.get("blocked")
+        or g.get("verified") is False
+    } - {None}
 
 
 def _unchecked_domains() -> set[str]:
     """Витринные кандидаты без боевой верификации (needs_live_check).
 
     Флаг — запрос на проверку, а не приговор: магазин, уже прошедший боевой
-    прогон (verified=True), остаётся в ротации. Раньше needs_live_check отсекал
-    всё подряд, и 20 верифицированных магазинов (tavily-sweep, раунд 6.3)
-    выпадали из пула: 63 живых → 43 в ротации."""
-    p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_gates.json")
-    try:
-        with open(p, encoding="utf-8") as f:
-            gates = json.load(f)
-        return {g.get("domain") for g in gates
-                if g.get("needs_live_check") and not g.get("verified")} - {None}
-    except Exception:
-        return set()
+    прогон (verified=True), остаётся в ротации."""
+    return {
+        g.get("domain")
+        for g in _load_gates()
+        if g.get("needs_live_check") and not g.get("verified")
+    } - {None}
 
 
 def _targets(tier: tuple[int, int] | None = None) -> list[str]:
     """Load Shopify targets from env or data/shopify_targets.txt, filtering by tier and health."""
-    t = os.environ.get("PUSTO_SHOPIFY_TARGETS", "")
-    if t:
-        targets = [x.strip().rstrip("/") for x in t.split(",") if x.strip()]
-    else:
-        p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "shopify_targets.txt")
-        if not os.path.exists(p):
-            return []
-        with open(p, encoding="utf-8") as f:
-            targets = [ln.strip().rstrip("/") for ln in f if ln.strip().startswith("http")]
-
+    targets = _load_targets_raw()
     dead = _dead_domains()
     if dead:
         targets = [
@@ -103,8 +112,6 @@ def _targets(tier: tuple[int, int] | None = None) -> list[str]:
             if t2.replace("https://", "").replace("http://", "").rstrip("/") not in dead
         ]
 
-    # needs_live_check: витринные кандидаты (tavily-sweep) без боевой верификации —
-    # в ротацию не пускаем, пока _verify_shopify_pool.py не прогонит probe-карту
     unchecked = _unchecked_domains()
     if unchecked:
         targets = [
@@ -123,25 +130,72 @@ def _targets(tier: tuple[int, int] | None = None) -> list[str]:
     return targets
 
 
-def _pick_target(targets: list[str]) -> str:
-    """Select target with weight inversely proportional to measured latency (1/lat_ms)."""
+COOLDOWN_SEC = 15.0       # анти-долбёжка: минимум 15с паузы на мерчанта
+QUARANTINE_SEC = 300.0    # 5 минут карантина при серии сбоев
+MAX_FAILS = 2             # 2 сбоя подряд -> карантин
+
+_in_flight: set[str] = set()
+_last_used: dict[str, float] = {}
+_fails: dict[str, int] = {}
+_quarantined_until: dict[str, float] = {}
+_decks: dict[str, list[str]] = {}
+
+
+def _pick_target(targets: list[str], tier_key: str = "default") -> str:
+    """Smart anti-hammering rotator:
+    1. Circuit-breaker: excludes quarantined targets (fails >= 2, 300s quarantine).
+    2. In-flight exclusion: targets currently executing are skipped for concurrent requests.
+    3. Cooldown: targets used within COOLDOWN_SEC (15s) are deprioritized.
+    4. Shuffle-bag: targets are consumed from a shuffled deck to guarantee 100% even coverage.
+    """
     if not targets:
         raise RuntimeError("No Shopify targets available")
-    known = [
-        (t, _health[t]["lat_ms"])
-        for t in targets
-        if t in _health and _health[t].get("lat_ms")
-    ]
-    if not known:
-        return random.choice(targets)
 
-    lats = sorted(l for _, l in known)
-    med = lats[len(lats) // 2]
-    weights = []
-    for t in targets:
-        lat = dict(known).get(t)
-        weights.append(1.0 / max(lat, 100) if lat else 1.0 / max(med, 100))
-    return random.choices(targets, weights=weights, k=1)[0]
+    import time
+    now = time.monotonic()
+
+    # 1. Фильтруем карантин (сбойные мерчанты)
+    active = [t for t in targets if _quarantined_until.get(t, 0) <= now]
+    if not active:
+        active = targets
+
+    # 2. Фильтруем in-flight (прямо сейчас занятые параллельным чеком)
+    available = [t for t in active if t not in _in_flight]
+    if not available:
+        available = active
+
+    # 3. Фильтруем cooldown (остывание мерчанта)
+    ready = [t for t in available if now - _last_used.get(t, 0) >= COOLDOWN_SEC]
+    candidates = ready if ready else available
+
+    # 4. Shuffle-bag (колода без повторов)
+    deck = _decks.get(tier_key, [])
+    valid_deck = [t for t in deck if t in candidates]
+    if not valid_deck:
+        shuffled = list(candidates)
+        random.shuffle(shuffled)
+        valid_deck = shuffled
+
+    chosen = valid_deck.pop(0)
+    _decks[tier_key] = valid_deck
+    _in_flight.add(chosen)
+    _last_used[chosen] = now
+    return chosen
+
+
+def _release_target(target: str, success: bool = True):
+    """Release in-flight lock, update cooldown and failure counter."""
+    import time
+    _in_flight.discard(target)
+    now = time.monotonic()
+    _last_used[target] = now
+    if success:
+        _fails[target] = 0
+    else:
+        f = _fails.get(target, 0) + 1
+        _fails[target] = f
+        if f >= MAX_FAILS:
+            _quarantined_until[target] = now + QUARANTINE_SEC
 
 
 def _normalize(cc: str, mm: str, yy: str, cvv: str) -> str | None:
@@ -184,18 +238,49 @@ async def gate(
 
     max_price = t_window[1] if t_window else MAX_PRICE_CENTS
     async with _sem:
-        target = _pick_target(targets)
-        proxy_pool = gc.load_proxies()
-        proxy = gc.pick_proxy(proxy_pool, None)
-        log.log_target("shopify", target, f"tier={tier or 'default'}, max_price={max_price}c")
-        log.log_proxy("Using proxy for shopify", proxy)
-        t0 = asyncio.get_event_loop().time()
+        target = _pick_target(targets, tier_key=str(tier or "default"))
+        is_success = False
         try:
-            res = await check_target(target, raw, proxy, max_price)
-        except Exception as e:
-            err_str = str(e).lower()
-            if proxy and ("proxy" in type(e).__name__.lower() or "curl: (97)" in err_str or "curl: (7)" in err_str or "curl: (28)" in err_str):
-                log.log_proxy("Proxy error in shopify, retrying with alt proxy", proxy)
+            proxy_pool = gc.load_proxies()
+            proxy = gc.pick_proxy(proxy_pool, None)
+            log.log_target("shopify", target, f"tier={tier or 'default'}, max_price={max_price}c")
+            log.log_proxy("Using proxy for shopify", proxy)
+            t0 = asyncio.get_event_loop().time()
+            try:
+                res = await check_target(target, raw, proxy, max_price)
+            except Exception as e:
+                err_str = str(e).lower()
+                if proxy and ("proxy" in type(e).__name__.lower() or "curl: (97)" in err_str or "curl: (7)" in err_str or "curl: (28)" in err_str):
+                    log.log_proxy("Proxy error in shopify, retrying with alt proxy", proxy)
+                    try:
+                        from proxy_manager import ProxyPool
+                        pp = ProxyPool()
+                        pp.mark_bad(proxy)
+                    except Exception:
+                        pass
+                    try:
+                        alt_proxy = gc.pick_proxy(proxy_pool, None)
+                        if alt_proxy == proxy:
+                            alt_proxy = None
+                        res = await check_target(target, raw, alt_proxy, max_price)
+                        proxy = alt_proxy
+                    except Exception as inner_e:
+                        h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                        h["fails"] += 1
+                        log.log_error("shopify", f"Inner retry failed: {inner_e}", exc=inner_e)
+                        return ("ERROR", f"{type(inner_e).__name__}: {inner_e}"[:180])
+                else:
+                    h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                    h["fails"] += 1
+                    log.log_error("shopify", f"Check target failed on {target}: {e}", exc=e)
+                    return ("ERROR", f"{type(e).__name__}: {e}"[:180])
+
+            lat = int((asyncio.get_event_loop().time() - t0) * 1000)
+            log.log_gate("shopify", f"Finished check on {target}: {res.get('status')} | {res.get('detail')} ({lat}ms)")
+
+            # Если check_target вернул ERROR из-за прокси — штрафуем узел и повторяем с резервным
+            det = str(res.get("detail", "")).lower()
+            if proxy and res.get("status") == "ERROR" and any(k in det for k in ("proxy", "curl: (97)", "curl: (7)", "curl: (28)", "connection closed")):
                 try:
                     from proxy_manager import ProxyPool
                     pp = ProxyPool()
@@ -208,43 +293,24 @@ async def gate(
                         alt_proxy = None
                     res = await check_target(target, raw, alt_proxy, max_price)
                     proxy = alt_proxy
-                except Exception as inner_e:
-                    h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
-                    h["fails"] += 1
-                    log.log_error("shopify", f"Inner retry failed: {inner_e}", exc=inner_e)
-                    return ("ERROR", f"{type(inner_e).__name__}: {inner_e}"[:180])
+                except Exception:
+                    pass
+
+            status = res.get("status", "ERROR")
+            # Настоящий ответ эмитента (DECLINED, APPROVED, INVALID и т.д.) = успех связности мерчанта
+            is_success = status not in ("ERROR", "UNKNOWN")
+            h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+            h["lat_ms"] = lat
+            if is_success:
+                h["fails"] = 0
             else:
-                h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
                 h["fails"] += 1
-                log.log_error("shopify", f"Check target failed on {target}: {e}", exc=e)
-                return ("ERROR", f"{type(e).__name__}: {e}"[:180])
 
-        lat = int((asyncio.get_event_loop().time() - t0) * 1000)
-        log.log_gate("shopify", f"Finished check on {target}: {res.get('status')} | {res.get('detail')} ({lat}ms)")
-
-        # Если check_target вернул ERROR из-за прокси — штрафуем узел и повторяем с резервным
-        det = str(res.get("detail", "")).lower()
-        if proxy and res.get("status") == "ERROR" and any(k in det for k in ("proxy", "curl: (97)", "curl: (7)", "curl: (28)", "connection closed")):
-            try:
-                from proxy_manager import ProxyPool
-                pp = ProxyPool()
-                pp.mark_bad(proxy)
-            except Exception:
-                pass
-            try:
-                alt_proxy = gc.pick_proxy(proxy_pool, None)
-                if alt_proxy == proxy:
-                    alt_proxy = None
-                res = await check_target(target, raw, alt_proxy, max_price)
-                proxy = alt_proxy
-            except Exception:
-                pass
-
-        h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
-        h["lat_ms"] = lat
-        return (
-            res.get("status", "ERROR"),
-            f"[{res.get('amount_cents', 0)}c {res.get('currency', 'USD')}] "
-            f"{str(res.get('detail', ''))[:160]}",
-            {"proxy": proxy, "target": target, "lat_ms": lat},
-        )
+            return (
+                status,
+                f"[{res.get('amount_cents', 0)}c {res.get('currency', 'USD')}] "
+                f"{str(res.get('detail', ''))[:160]}",
+                {"proxy": proxy, "target": target, "lat_ms": lat},
+            )
+        finally:
+            _release_target(target, success=is_success)

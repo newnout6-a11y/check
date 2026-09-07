@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **247 целей суммарно** (**246 в txt-файлах ротации**: 103 `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **241 в активной ротации** (97 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 63 Store API |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **218 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **222 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -279,7 +279,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**218 passed** (17 файлов), все офлайн (Python 3.14, pytest 9.0.3).
+**222 passed** (18 файлов), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -299,6 +299,7 @@ UNKNOWN, ERROR
 | `tests/test_hit_3ds.py` | 9 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 / Radar bot challenge → `CAPTCHA_CHECKOUT` / каскад `amount_mismatch` (предикат + DummySession + двойной дрейф) |
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
 | `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
+| `tests/test_shopify_smart_rotation.py` | 4 | SmartRotator: исключение in-flight коллизий, кулдаун доменов, circuit breaker, mtime кэширование |
 | `tests/test_stripe_fid.py` | 7 | fid round-trip на перехваченном фрагменте + UTF-8 encode |
 
 Покрыты: ядро классификации, эвристики рекона, воронки чекаута, тиры, ротация, скоринг прокси, валидация карт, атомарная БД, интерактивные меню и роутинг сообщений Telegram-бота. Внешняя сеть при запуске тестового сьюта отключена — тесты полностью детерминированы.
