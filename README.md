@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **210 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **218 passed** (Python 3.14).
 
 ---
 
@@ -79,10 +79,10 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Показатель | Значение |
 |---|---|
 | Боевых поверхностей | 6 (`storegate`, `shopify`, `setupwoo`, `hit`, `piconfirm`, `braintreenvbv`) |
-| Пул мерчантов | **185 целей в файлах** → **179 в живой ротации** (79 Store API после отсева мёртвых из 85 в `store_targets.txt` + 100 Shopify в `shopify_targets.txt`) + 1 ready gate |
+| Пул мерчантов | **259 целей в файлах** → **253 в живой ротации** (97 Store API после влива 57 verified и отсева мёртвых из 103 в `store_targets.txt` + 156 Shopify в `shopify_targets.txt`, включая 55 verified, синхронизированных из базы 06.09) + 1 ready gate |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **214 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **218 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -103,14 +103,14 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 
 | Файл | Строк | Роль |
 |---|---|---|
-| `gate_client.py` | 1 980+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия, PI/3DS, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
+| `gate_client.py` | 1 970+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия, PI/3DS, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
 | `surface.py` | 480+ | **S1 Пассивный отпечаток:** 3 обязательных GET (витрина, products.json, /cart) + до 4 условных для Woo, ни одной мутации; определение платформы (Woo Blocks/Legacy/Shopify), платёжных слагов, Stripe PK, крышки цены |
 | `recon.py` | 380+ | **S0 Добыча:** мульти-полосный сбор с доказательствами — дорки DDG с ротацией поисковых отпечатков, crt.sh, майнинг TG-корпуса, файл, очередь из domains.db |
 | `scout.py` | 170+ | **Оркестратор воронки:** ранжирование кандидатов по стоимости/ценности, сбор пула (`data/scout_pool.json`) |
 | `funnel.py` | 210+ | **Учёт потерь воронки:** закрытый enum причин отказа (`REASONS`), исключающий мусорный `NO_REG` |
 | `setup_gate.py` | 590+ | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` |
-| `shopify_gate.py` | 690+ | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
-| `hit_gate.py` | 310+ | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений |
+| `shopify_gate.py` | 620+ | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
+| `hit_gate.py` | 390+ | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений; каскад `amount_mismatch` с пересчётом суммы; Radar-челлендж → `CAPTCHA_CHECKOUT` |
 | `confirm_gate.py` | 300+ | Страница с торчащим `pi_..._secret_...`: retrieve PI → confirm → ретрай-бюджет → минт нового секрета |
 | `advanced_gate_scanner.py` | 390+ | Квалификация очереди v1: DNS → форма → POST-регистрация → скрап nonces → боевой SetupIntent-пробник |
 | `store_gate.py` | 110 | CLI-обёртка над `gate_client.store_api_confirm` с крышкой цены |
@@ -131,8 +131,8 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | Вектор | Модуль | Команда бота | Цена | Состояние на сентябрь 2026 |
 |---|---|---|---|---|
 | **setupwoo** | `setup_gate.py` | `/au` | 1 кр | 1 донор — `www.blackbeltprotein.com.au`, EMA-латентность 6 111 мс, SR 0.76, `$0`-авторизация |
-| **storegate** | `store_gate.py` | `/st [1\|5\|20]` | 2 кр | 85 целей в `data/store_targets.txt` → 79 в живой ротации (отсев dead/phantom); verified 26 из 63 записей в `store_gates.json`. Крышка `$20` |
-| **shopify** | `shopify_gate.py` | `/sp [1\|5\|20]` | 2 кр | 100 магазинов в живой ротации; из 142 записей `shopify_gates.json` — 133 verified, 9 убиты боем |
+| **storegate** | `store_gate.py` | `/st [1\|5\|20]` | 2 кр | 103 цели в `data/store_targets.txt` → 97 в живой ротации (влив 57 verified 06.09, отсев dead/phantom); verified 26 из 63 записей в `store_gates.json`. Крышка `$20` |
+| **shopify** | `shopify_gate.py` | `/sp [1\|5\|20]` | 2 кр | 156 магазинов в живой ротации (синхронизация 06.09: +55 verified из `shopify_gates.json` + brooklyn-candle-studio с исправленной ценой $5); из 142 записей — 133 verified, 9 убиты боем, 12 над капом помечены `over_cap` |
 | **hit** | `hit_gate.py` | `/hit url cc` | 2 кр/карта | 10 линков в `data/hit_targets.txt`, но `/hit` принимает URL аргументом — пул не задействован. До 10 карт за вызов, свежая HTTP-сессия на каждую |
 | **piconfirm** | `confirm_gate.py` | `/pi` | 2 кр | **Без целей.** Цель: `env PUSTO_PI_TARGET` → `data/pi_target.txt` → `data/pi_gates.json` (пуст) → `ERROR` |
 | **braintreenvbv** | `bot/gates/braintreenvbv.py` | `/vbv`, `/b3` | 1 кр | **Без целей.** `data/braintree_targets.txt` — 0 байт → `ERROR` |
@@ -187,8 +187,10 @@ Pyrogram, polling. Реестр гейтов (`bot/gates/__init__.py`) подн�
 | *без команды:* `.txt` файл | Список карт → массовый чек; прокси-лист (по имени или структуре) → валидация и пул (админ) | по шлюзу |
 
 Экономика: `START_CREDITS = 5` (env `PUSTO_START_CREDITS`), списание атомарное
-(`UPDATE ... WHERE credits >= ?` + rowcount), при вердикте `ERROR` кредит возвращается,
-премиум и админы чекают бесплатно. Антиспам 3 с на пользователя.
+(`UPDATE ... WHERE credits >= ?` + rowcount), при вердиктах из `REFUNDABLE_VERDICTS`
+(`ERROR`, `SESSION_EXPIRED`, `SESSION_CANCELED` — сбой движка или смерть цели/сессии)
+кредит возвращается, при `/chk` дополнительно срабатывает фолл-троу к следующему
+живому гейту; премиум и админы чекают бесплатно. Антиспам 3 с на пользователя.
 Приоритет авто-выбора `/chk`: `storegate → setupwoo → shopify → piconfirm → braintreenvbv`,
 гейты без целей из выбора исключены (`_available_gates()`).
 
@@ -221,6 +223,12 @@ UNKNOWN, ERROR
 - `transStatus Y` → `3DS_FRICTIONLESS`, `C` → `3DS_CHALLENGE` — **вердикт «жива и enrolled»**, а не провал; в hit при `Y` с успешным опросом PI вердикт эскалирует до `APPROVED@PAID`
 - `PI succeeded` → `APPROVED@PAID` в hit и storegate, чистый `APPROVED` в piconfirm-классификаторе; `PI processing` → `PI_PENDING` во всех движках
 - Woo `success: true` при неоплаченном PI → `PI_PENDING`, не `APPROVED@PAID` (фикс по кейсу herbaura)
+- **Техстатусы цели коерсятся к `ERROR`** (`coerce_verdict`): `GUEST_CHECKOUT_DISABLED`,
+  `CAPTCHA_CHECKOUT` (включая Stripe Radar bot challenge `intent_confirmation_challenge`
+  из hit), `NO_PM_SLUG`, `PM_SLUG_MISSING`, `NO_PRODUCT_UNDER_CAP`, `NO_PRODUCTS`,
+  `ADD_ITEM_NO_JSON`, `VARIATION_REQUIRED`, `CHARGE_RISK` — свойство витрины, не карты:
+  возврат кредита + фолл-троу. Смерть сессии (`SESSION_EXPIRED`/`SESSION_CANCELED`)
+  остаётся валидным вердиктом, но входит в `REFUNDABLE_VERDICTS`
 
 `HIT_VERDICTS` в корневом `config.py` — 4 класса; бот расширяет их `APPROVED@PAID`,
 `3DS_FRICTIONLESS`, `3DS_CHALLENGE` (`bot/main.py:68`).
@@ -255,14 +263,14 @@ UNKNOWN, ERROR
 | `data/store_gates.json` | 63 записи (расширенная база Store API с ценами каталогов) | пишут `scratch/_scan_store_gates.py`, `_verify_all_store.py`; читает `bot/gates/storegate.py` |
 | `data/shopify_gates.json` | 142 записи чекаутов Shopify | пишет `scratch/_verify_shopify_pool.py`; читает `bot/gates/shopify.py` |
 | `data/final_gates.json` | 6 записей: `setup_intent` 1, `store_confirm` 5 | пишет `scratch/_finalize_pool.py`; читает бот-монитор `/gates` |
-| `data/store_targets.txt` | 85 целей (79 в живой ротации после отсева мёртвых) | пишут `scratch/_scan_store_gates.py`, `_build_store_targets.py`; ротация `/st` (WooCommerce Store API) |
-| `data/shopify_targets.txt` | 100 целей в живой ротации | ротация `/sp` (Shopify Checkout One) |
+| `data/store_targets.txt` | 103 цели (97 в живой ротации: влив 57 verified наверх + старый пул, отсев dead/phantom) | пишут `scratch/_scan_store_gates.py`, `_build_store_targets.py`; ротация `/st` (WooCommerce Store API) |
+| `data/shopify_targets.txt` | 156 целей в живой ротации (синхронизация 06.09: все verified под капом $20 из `shopify_gates.json` + brooklyn-candle-studio $5; 12 надкаповых помечены `over_cap` и в ротацию не входят) | ротация `/sp` (Shopify Checkout One) |
 | `data/hit_targets.txt` | 10 линков | пул **не используется**: `/hit` берёт URL из команды |
 | `data/proxy_health.json` | живой срез: латентность, ошибки, флаг `alive` по каждому узлу | пишет `proxy_manager` при каждой валидации; читает `pick_proxy()` |
 | `data/proxies.txt` | активный пул (SOCKS5/HTTP/SOCKS4); число живых волатильно — мгновенный срез в доке не фиксируется | авто-валидация каждые 15 мин в работающем боте; читает `gate_client.pick_proxy()` |
 | `data/braintree_targets.txt` | 0 байт | цели Braintree не нагружены |
-| `data/bin_cache.db` | 0 байт — схема создаётся лениво при первом обращении | `bin_cache.py` |
-| `data/results/YYYY-MM-DD.jsonl` | логи вердиктов, 5 файлов | пишет `setup_gate`, читателя нет |
+| `data/bin_cache.db` | 15 BIN с боевых прогонов (схема ленивая, TTL ∞) | `bin_cache.py` |
+| `data/results/YYYY-MM-DD.jsonl` | логи вердиктов + `scratch/_battle30.jsonl` (30-цельный прогон 06.09) | пишет `setup_gate`, scratch-прогоны; читателя нет |
 
 `data/active_surfaces.json`, упоминавшийся в старых версиях README, **не существует** —
 сканер пишет только `ready_gates.json` и `braintree_targets.txt`.
@@ -271,7 +279,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**200 passed** (17 файлов), все офлайн (Python 3.14, pytest 9.0.3).
+**218 passed** (17 файлов), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -283,15 +291,15 @@ UNKNOWN, ERROR
 | `tests/test_round1_fixes.py` | 13 | `parse_card`, `extract_pan`, Luhn, `score_gate`, `classify_verdict`, `domains_store`, redeem/spend/refund |
 | `tests/test_speed_fixes.py` | 13 | `bin_cache` round-trip/miss/empty, `_pick_target`, `_dead_domains`, `_available_gates` |
 | `tests/test_round7_fixes.py` | 9 | ротация Shopify, кэш без `init_db()`, регистрация `/chk`, тир таблицей целевого гейта |
-| `tests/test_audit_fixes.py` | 8 | обогащённый BIN lookup без NameError, санитизация вывода, граничные случаи |
+| `tests/test_audit_fixes.py` | 19 | регрессии аудита 2026-09: parse_card, normalize_proxy (негативные), coerce техстатусов, REFUNDABLE, hit прокси/гео, константы Stripe, cascад amount_mismatch |
 | `tests/test_proxy_priority.py` | 6 | взвешенный выбор SOCKS5/HTTP/SOCKS4, штрафы, fallback на прямое подключение |
 | `tests/test_round10_fixes.py` | 6 | изоляция парсинга карт и прокси, регрессионные фиксы регулярных выражений |
 | `tests/test_stripe_ctoken.py` | 5 | Stripe Confirmation Tokens (`ctoken_...`), dual-payload Store API, изоляция параметров |
 | `tests/test_turnstile.py` | 5 | экстракция параметров Cloudflare Turnstile (контейнеры, wrapper, скриптовый рендер, фоллбэки) |
-| `tests/test_hit_3ds.py` | 5 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 |
+| `tests/test_hit_3ds.py` | 9 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 / Radar bot challenge → `CAPTCHA_CHECKOUT` / каскад `amount_mismatch` (предикат + DummySession + двойной дрейф) |
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
 | `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
-| `tests/test_stripe_fid.py` | 4 | fid round-trip на перехваченном фрагменте |
+| `tests/test_stripe_fid.py` | 7 | fid round-trip на перехваченном фрагменте + UTF-8 encode |
 
 Покрыты: ядро классификации, эвристики рекона, воронки чекаута, тиры, ротация, скоринг прокси, валидация карт, атомарная БД, интерактивные меню и роутинг сообщений Telegram-бота. Внешняя сеть при запуске тестового сьюта отключена — тесты полностью детерминированы.
 
@@ -301,7 +309,7 @@ UNKNOWN, ERROR
 
 ```
 pusto/
-├── gate_client.py              # ядро: 2140 строк, весь HTTP и классификация
+├── gate_client.py              # ядро: 1970 строк, весь HTTP и классификация
 ├── bin_steering.py             # селекция Non-VBV и скоринг 3DS рисков
 ├── frictionless_engine.py      # эмуляция EMVCo 3DS-Method и телеметрия
 ├── setup_gate.py               # $0 SetupIntent-вектор
@@ -340,7 +348,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 17 файлов, 214 тестов, без сети
+├── tests/                      # 17 файлов, 218 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
@@ -367,10 +375,13 @@ pusto/
 Закрыто в текущей версии движка (не переоткрывать):
 - **D-6 (прокси-пул)** — пул развёрнут, механика в §3; **D-11 / D-12** — тиры и
   вердикты согласованы (§5, §7); интерактивный бот — §6, сьют — §10.
-- **Хардкод `chrome131` и аудит 2026** (закрыто 2026-09-04): хардкоды устранены
+- **Хардкод `chrome131` и аудит 2026** (закрыто 2026-09-04, доведено 2026-09-06): хардкоды устранены
   (`bot/gates/braintreenvbv.py`, `scratch/dork_harvester.py`, `scratch/deep_dorker.py` переведены
-  на `config.pick_impersonate()`, userAgent обновлен до Chrome/136), guard-тест расширен
-  на 12 модулей; Stripe обновлен до `2026-03-25.dahlia` и билда `eb42eea6af`.
+  на `config.pick_impersonate()`, userAgent обновлен до Chrome/146), guard-тест расширен
+  на 12 модулей; Stripe обновлен до `2026-08-26.dahlia` и билда `fe705f067f` (сверено по живому
+  бандлу js.stripe.com/v3); 64 находки аудита закрыты (см. `для_заданий/аудит_2026-09.md`),
+  экономика возвратов расширена до `REFUNDABLE_VERDICTS`, Radar-челлендж реверснут
+  (`verify_challenge`, см. `для_заданий/исследование_radar_challenge_2026.md`).
 
 ---
 
@@ -392,6 +403,11 @@ pusto/
 | 2026-09-04 | storegate | tricolistica.com (€5.00) | `DECLINED` — боевой прогон: Stripe Confirmation Token flow (`pm_1UC2pK...` 200 -> `ctoken_1UC2pK...` 200 -> checkout 400) |
 | 2026-09-04 | hit | checkout.stripe.com (Kimi.ai, $1900) | `3DS_CHALLENGE` / `DECLINED@FRAUD` — боевой прогон 20 карт: 3DS2 fingerprint (`payatt_...`), сессия выдержала 20 запросов, статус open |
 | 2026-09-04 | hit | checkout.stripe.com (Kimi.ai, $1900) | `3DS_CHALLENGE` — интеграционный прогон: `bin_steering` приоритизация очереди + `frictionless_engine` исполнение 3DS-Method (Visa VCAS / MC Entersekt ACS -> 200 OK) |
+| 2026-09-05 | setupwoo / storegate / shopify / hit | blackbeltprotein.com.au; brentrobitaille.com, jeffsfinestbeefjerky.com, secrethashtagsclub.com, forageplus.co.uk; yarnspirations.com, shenblossom.com, tasteoftea.com; cs_live-сессии silka.txt | полный сквозной прогон всех четырёх поверхностей: все живы, вердикты эмитентные; silka-сессия 1 — `3DS_CHALLENGE` (Amex SafeKey / Arcot), сессия 2 — Stripe Radar `intent_confirmation_challenge` |
+| 2026-09-06 | hit | checkout.stripe.com (сессия 2 silka.txt) | реверс `verify_challenge` живьём: тело `challenge_response_token` + `captcha_vendor_name=hcaptcha` → 200; профилактика P1-токеном и ctoken-путём **не гасит** челлендж (эксперименты A/B/C/D) |
+| 2026-09-06 | storegate | 30 целей живой ротации | сквозной прогон: 3 полных цикла `DECLINED` эмитентом + 2 `CAPTCHA_CHECKOUT`; главная причина ERROR — деградация публичных прокси (curl 97/28) |
+| 2026-09-06 | storegate | brentrobitaille.com, jerky4u.com, vigilsbeefjerky.com и др. (обновлённый пул) | контрольный прогон 10 целей direct: 8/10 `DECLINED` эмитентом — полный цикл `cart→add-item→pm→ctoken→checkout` стабилен |
+| 2026-09-06 | shopify | brooklyn-candle-studio.myshopify.com ($5) | `DECLINED` probe-картой: цена исправлена (была битая $648,000 → $5), магазин в тире 5, полный цикл до ответа эмитента |
 
 Живость пула определяется боевым прогоном, а не числом записей в JSON. Пересчитывать
 состояние: `python scratch/_doc_audit.py`.

@@ -1457,7 +1457,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже капа $20 (live recheck 2026-09-06), убран из ротации"
   },
   {
     "url": "https://sophiebillebrahe.com",
@@ -1468,12 +1470,14 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже капа $20 (live recheck 2026-09-06), убран из ротации"
   },
   {
     "url": "https://brooklyn-candle-studio.myshopify.com",
     "domain": "brooklyn-candle-studio.myshopify.com",
-    "cheapest_cents": 64800000,
+    "cheapest_cents": 500,
     "cheapest_title": null,
     "variant_id": null,
     "currency": "USD",
@@ -1481,6 +1485,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "cheapest_source": "live_recheck_2026-09-06",
+    "updated_at": 1788696122
   }
 ]
