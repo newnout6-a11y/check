@@ -195,7 +195,7 @@ def _release_target(target: str, success: bool = True):
         f = _fails.get(target, 0) + 1
         _fails[target] = f
         if f >= MAX_FAILS:
-            _quarantined_until[target] = now + QUARANTINE_SEC
+            _quarantined_until[target] = max(_quarantined_until.get(target, 0), now + QUARANTINE_SEC)
 
 
 def _normalize(cc: str, mm: str, yy: str, cvv: str) -> str | None:
@@ -237,21 +237,62 @@ async def gate(
         )
 
     max_price = t_window[1] if t_window else MAX_PRICE_CENTS
-    async with _sem:
-        target = _pick_target(targets, tier_key=str(tier or "default"))
-        is_success = False
-        try:
-            proxy_pool = gc.load_proxies()
-            proxy = gc.pick_proxy(proxy_pool, None)
-            log.log_target("shopify", target, f"tier={tier or 'default'}, max_price={max_price}c")
-            log.log_proxy("Using proxy for shopify", proxy)
-            t0 = asyncio.get_event_loop().time()
+    max_merchant_fallbacks = 2
+    last_res = None
+    last_target = None
+    last_lat = 0
+    last_proxy = None
+
+    for attempt in range(max_merchant_fallbacks + 1):
+        async with _sem:
+            target = _pick_target(targets, tier_key=str(tier or "default"))
+            is_success = False
+            last_target = target
             try:
-                res = await check_target(target, raw, proxy, max_price)
-            except Exception as e:
-                err_str = str(e).lower()
-                if proxy and ("proxy" in type(e).__name__.lower() or "curl: (97)" in err_str or "curl: (7)" in err_str or "curl: (28)" in err_str):
-                    log.log_proxy("Proxy error in shopify, retrying with alt proxy", proxy)
+                proxy_pool = gc.load_proxies()
+                proxy = gc.pick_proxy(proxy_pool, None)
+                last_proxy = proxy
+                log.log_target("shopify", target, f"tier={tier or 'default'}, max_price={max_price}c, attempt={attempt+1}")
+                log.log_proxy("Using proxy for shopify", proxy)
+                t0 = asyncio.get_event_loop().time()
+                try:
+                    res = await check_target(target, raw, proxy, max_price)
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if proxy and ("proxy" in type(e).__name__.lower() or "curl: (97)" in err_str or "curl: (7)" in err_str or "curl: (28)" in err_str):
+                        log.log_proxy("Proxy error in shopify, retrying with alt proxy", proxy)
+                        try:
+                            from proxy_manager import ProxyPool
+                            pp = ProxyPool()
+                            pp.mark_bad(proxy)
+                        except Exception:
+                            pass
+                        try:
+                            alt_proxy = gc.pick_proxy(proxy_pool, None)
+                            if alt_proxy == proxy:
+                                alt_proxy = None
+                            res = await check_target(target, raw, alt_proxy, max_price)
+                            proxy = alt_proxy
+                            last_proxy = proxy
+                        except Exception as inner_e:
+                            h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                            h["fails"] += 1
+                            log.log_error("shopify", f"Inner retry failed: {inner_e}", exc=inner_e)
+                            return ("ERROR", f"{type(inner_e).__name__}: {inner_e}"[:180])
+                    else:
+                        h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                        h["fails"] += 1
+                        log.log_error("shopify", f"Check target failed on {target}: {e}", exc=e)
+                        return ("ERROR", f"{type(e).__name__}: {e}"[:180])
+
+                lat = int((asyncio.get_event_loop().time() - t0) * 1000)
+                last_lat = lat
+                last_res = res
+                log.log_gate("shopify", f"Finished check on {target}: {res.get('status')} | {res.get('detail')} ({lat}ms)")
+
+                # Если check_target вернул ERROR из-за прокси — штрафуем узел и повторяем с резервным
+                det = str(res.get("detail", "")).lower()
+                if proxy and res.get("status") == "ERROR" and any(k in det for k in ("proxy", "curl: (97)", "curl: (7)", "curl: (28)", "connection closed")):
                     try:
                         from proxy_manager import ProxyPool
                         pp = ProxyPool()
@@ -264,53 +305,45 @@ async def gate(
                             alt_proxy = None
                         res = await check_target(target, raw, alt_proxy, max_price)
                         proxy = alt_proxy
-                    except Exception as inner_e:
-                        h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
-                        h["fails"] += 1
-                        log.log_error("shopify", f"Inner retry failed: {inner_e}", exc=inner_e)
-                        return ("ERROR", f"{type(inner_e).__name__}: {inner_e}"[:180])
+                        last_proxy = proxy
+                        last_res = res
+                    except Exception:
+                        pass
+                    det = str(res.get("detail", "")).lower()
+
+                # Out of stock check: merchant item removed from display or no item under cap
+                if res.get("status") == "ERROR" and any(k in det for k in ("no available product", "out of stock", "no product found")):
+                    import time
+                    now = time.monotonic()
+                    _quarantined_until[target] = now + 86400.0  # 24h quarantine for depleted merchant
+                    log.log_gate("shopify", f"Target {target} out of stock under {max_price}c, quarantined 24h")
+                    if attempt < max_merchant_fallbacks and len(targets) > 1:
+                        continue
+
+                status = res.get("status", "ERROR")
+                # Настоящий ответ эмитента (DECLINED, APPROVED, INVALID и т.д.) = успех связности мерчанта
+                is_success = status not in ("ERROR", "UNKNOWN")
+                h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
+                h["lat_ms"] = lat
+                if is_success:
+                    h["fails"] = 0
                 else:
-                    h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
                     h["fails"] += 1
-                    log.log_error("shopify", f"Check target failed on {target}: {e}", exc=e)
-                    return ("ERROR", f"{type(e).__name__}: {e}"[:180])
 
-            lat = int((asyncio.get_event_loop().time() - t0) * 1000)
-            log.log_gate("shopify", f"Finished check on {target}: {res.get('status')} | {res.get('detail')} ({lat}ms)")
+                return (
+                    status,
+                    f"[{res.get('amount_cents', 0)}c {res.get('currency', 'USD')}] "
+                    f"{str(res.get('detail', ''))[:160]}",
+                    {"proxy": proxy, "target": target, "lat_ms": lat},
+                )
+            finally:
+                _release_target(target, success=is_success)
 
-            # Если check_target вернул ERROR из-за прокси — штрафуем узел и повторяем с резервным
-            det = str(res.get("detail", "")).lower()
-            if proxy and res.get("status") == "ERROR" and any(k in det for k in ("proxy", "curl: (97)", "curl: (7)", "curl: (28)", "connection closed")):
-                try:
-                    from proxy_manager import ProxyPool
-                    pp = ProxyPool()
-                    pp.mark_bad(proxy)
-                except Exception:
-                    pass
-                try:
-                    alt_proxy = gc.pick_proxy(proxy_pool, None)
-                    if alt_proxy == proxy:
-                        alt_proxy = None
-                    res = await check_target(target, raw, alt_proxy, max_price)
-                    proxy = alt_proxy
-                except Exception:
-                    pass
-
-            status = res.get("status", "ERROR")
-            # Настоящий ответ эмитента (DECLINED, APPROVED, INVALID и т.д.) = успех связности мерчанта
-            is_success = status not in ("ERROR", "UNKNOWN")
-            h = _health.setdefault(target, {"lat_ms": None, "fails": 0})
-            h["lat_ms"] = lat
-            if is_success:
-                h["fails"] = 0
-            else:
-                h["fails"] += 1
-
-            return (
-                status,
-                f"[{res.get('amount_cents', 0)}c {res.get('currency', 'USD')}] "
-                f"{str(res.get('detail', ''))[:160]}",
-                {"proxy": proxy, "target": target, "lat_ms": lat},
-            )
-        finally:
-            _release_target(target, success=is_success)
+    if last_res:
+        return (
+            last_res.get("status", "ERROR"),
+            f"[{last_res.get('amount_cents', 0)}c {last_res.get('currency', 'USD')}] "
+            f"{str(last_res.get('detail', ''))[:160]}",
+            {"proxy": last_proxy, "target": last_target, "lat_ms": last_lat},
+        )
+    return ("ERROR", f"No available Shopify targets with in-stock products under {max_price}c cap")
