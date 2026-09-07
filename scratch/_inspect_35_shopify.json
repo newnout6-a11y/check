@@ -1,0 +1,317 @@
+[
+  {
+    "domain": "beehouse.com",
+    "url": "https://beehouse.com",
+    "status": "OK",
+    "cheapest_cents": 1400,
+    "currency": "USD",
+    "cheapest_title": "Pennsylvania Wildflower Raw Honey 12 oz (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "camamusoap.com",
+    "url": "https://camamusoap.com",
+    "status": "OK",
+    "cheapest_cents": 450,
+    "currency": "USD",
+    "cheapest_title": "Velvet Moca Lip Balm (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "coastwoodcommercial.co.nz",
+    "url": "https://coastwoodcommercial.co.nz",
+    "status": "OK",
+    "cheapest_cents": 8900,
+    "currency": "NZD",
+    "cheapest_title": "Wooden Boards (Chopping Board)",
+    "err": null
+  },
+  {
+    "domain": "coffeebeandirect.com",
+    "url": "https://coffeebeandirect.com",
+    "status": "OK",
+    "cheapest_cents": 1895,
+    "currency": "USD",
+    "cheapest_title": "Espresso Subscription (1 lb / Whole Bean)",
+    "err": null
+  },
+  {
+    "domain": "comebackvinyl.com",
+    "url": "https://comebackvinyl.com",
+    "status": "OK",
+    "cheapest_cents": 1499,
+    "currency": "USD",
+    "cheapest_title": "PRE-ORDER: Olivia Rodrigo - \"Stupid Song / Stupid Song (Piano Version)\" (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "communitycoffee.com",
+    "url": "https://communitycoffee.com",
+    "status": "OK",
+    "cheapest_cents": 329,
+    "currency": "USD",
+    "cheapest_title": "Lactose Free Coffee Creamer (11 oz.)",
+    "err": null
+  },
+  {
+    "domain": "donkeylabel.com",
+    "url": "https://donkeylabel.com",
+    "status": "OK",
+    "cheapest_cents": 1000,
+    "currency": "USD",
+    "cheapest_title": "Werkhorse Sock - PWER - (Pre-Order) (S/M)",
+    "err": null
+  },
+  {
+    "domain": "ecodunia.com",
+    "url": "https://ecodunia.com",
+    "status": "OK",
+    "cheapest_cents": 3600,
+    "currency": "USD",
+    "cheapest_title": "Round Wave Band Stackable Ring | Tosha (7)",
+    "err": null
+  },
+  {
+    "domain": "emberycandles.com",
+    "url": "https://emberycandles.com",
+    "status": "OK",
+    "cheapest_cents": 640,
+    "currency": "USD",
+    "cheapest_title": "Cotton + Sandalwood Car Diffuser | 8 ml Hanging Car Air Freshener (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "fallsriversoap.com",
+    "url": "https://fallsriversoap.com",
+    "status": "OK",
+    "cheapest_cents": 625,
+    "currency": "USD",
+    "cheapest_title": "Wooden Soap Saver, Hand Craft, 100% Natural Pine Wooden Holder (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "farmfreshnuts.com",
+    "url": "https://farmfreshnuts.com",
+    "status": "OK",
+    "cheapest_cents": 1419,
+    "currency": "USD",
+    "cheapest_title": "Raw Shelled Sunflower Seeds (2.5 LB)",
+    "err": null
+  },
+  {
+    "domain": "gobuyplants.com",
+    "url": "https://gobuyplants.com",
+    "status": "OK",
+    "cheapest_cents": 4775,
+    "currency": "USD",
+    "cheapest_title": "Liriope Variegata (1 GALLON)",
+    "err": null
+  },
+  {
+    "domain": "greenbottleherbs.com",
+    "url": "https://greenbottleherbs.com",
+    "status": "OK",
+    "cheapest_cents": 1400,
+    "currency": "USD",
+    "cheapest_title": "Plumeria Stick (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "kaffico.com",
+    "url": "https://kaffico.com",
+    "status": "OK",
+    "cheapest_cents": 3200,
+    "currency": "USD",
+    "cheapest_title": "Rich Hazelnut Coffee Pods (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "livelyroot.com",
+    "url": "https://livelyroot.com",
+    "status": "OK",
+    "cheapest_cents": 500,
+    "currency": "USD",
+    "cheapest_title": "Valentine's Day Plant Pick (Happy VDAY)",
+    "err": null
+  },
+  {
+    "domain": "mealswithmilton.com",
+    "url": "https://mealswithmilton.com",
+    "status": "HTTP_404",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "mountainmadnesssoap.com",
+    "url": "https://mountainmadnesssoap.com",
+    "status": "OK",
+    "cheapest_cents": 150,
+    "currency": "USD",
+    "cheapest_title": "Mini Matchbook (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "oliveoillovers.com",
+    "url": "https://oliveoillovers.com",
+    "status": "ERR_DNSError",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": "Failed to perform, curl: (6) Could not resolve host: oliveoillovers.com. See https://curl.se/libcurl/c/libcurl-errors.html first for more details."
+  },
+  {
+    "domain": "plantsbymail.com",
+    "url": "https://plantsbymail.com",
+    "status": "OK",
+    "cheapest_cents": 399,
+    "currency": "USD",
+    "cheapest_title": "Slow Release Granular Fertilizer (15-9-12) – 0.5 lb (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "puritycoffee.com",
+    "url": "https://puritycoffee.com",
+    "status": "OK",
+    "cheapest_cents": 1100,
+    "currency": "USD",
+    "cheapest_title": "Aponte Inga Medium Roast Whole Bean 4oz Bag (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "republicoftea.com",
+    "url": "https://republicoftea.com",
+    "status": "ERR_DNSError",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": "Failed to perform, curl: (6) Could not resolve host: republicoftea.com. See https://curl.se/libcurl/c/libcurl-errors.html first for more details."
+  },
+  {
+    "domain": "rootssea.com",
+    "url": "https://rootssea.com",
+    "status": "HTTP_503",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "rustedacresoaps.com",
+    "url": "https://rustedacresoaps.com",
+    "status": "HTTP_503",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "shoptreehaus.com",
+    "url": "https://shoptreehaus.com",
+    "status": "OK",
+    "cheapest_cents": 500,
+    "currency": "USD",
+    "cheapest_title": "Lavender Bergamot Lip Balm (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "springhillnursery.com",
+    "url": "https://springhillnursery.com",
+    "status": "HTTP_503",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "thebeancoffeecompany.com",
+    "url": "https://thebeancoffeecompany.com",
+    "status": "HTTP_503",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "theexoteas.com",
+    "url": "https://theexoteas.com",
+    "status": "OK",
+    "cheapest_cents": 27600,
+    "currency": "USD",
+    "cheapest_title": "Exoteas 'Swan' Signature Chai (200gm Vacuum Pack / in)",
+    "err": null
+  },
+  {
+    "domain": "themaplefarmer.com",
+    "url": "https://themaplefarmer.com",
+    "status": "HTTP_503",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "thesill.com",
+    "url": "https://thesill.com",
+    "status": "HTTP_503",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "cheapest_title": null,
+    "err": null
+  },
+  {
+    "domain": "torquemotors.co.uk",
+    "url": "https://torquemotors.co.uk",
+    "status": "OK",
+    "cheapest_cents": 1299,
+    "currency": "GBP",
+    "cheapest_title": "Honda civic seat belt buckle Type R EP3 2003 (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "torreycandleco.com",
+    "url": "https://torreycandleco.com",
+    "status": "OK",
+    "cheapest_cents": 2400,
+    "currency": "USD",
+    "cheapest_title": "Storm Watch — Hand-Poured Soy Candle (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "watersandstone.com",
+    "url": "https://watersandstone.com",
+    "status": "OK",
+    "cheapest_cents": 2500,
+    "currency": "USD",
+    "cheapest_title": "Water Sand Stone Gift Card ($25.00)",
+    "err": null
+  },
+  {
+    "domain": "weareknitters.com",
+    "url": "https://weareknitters.com",
+    "status": "OK",
+    "cheapest_cents": 649,
+    "currency": "USD",
+    "cheapest_title": "Bamboo Lace Peach - Last Units (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "wildroothoney.com",
+    "url": "https://wildroothoney.com",
+    "status": "OK",
+    "cheapest_cents": 2200,
+    "currency": "USD",
+    "cheapest_title": "Wildroot Honey - Strawberry Vanilla Creamed Honey | 12oz (Default Title)",
+    "err": null
+  },
+  {
+    "domain": "wonena.com",
+    "url": "https://wonena.com",
+    "status": "OK",
+    "cheapest_cents": 800,
+    "currency": "USD",
+    "cheapest_title": "California Lemon Organic Soap (Default Title)",
+    "err": null
+  }
+]

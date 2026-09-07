@@ -79,7 +79,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Показатель | Значение |
 |---|---|
 | Боевых поверхностей | 6 (`storegate`, `shopify`, `setupwoo`, `hit`, `piconfirm`, `braintreenvbv`) |
-| Пул мерчантов | **259 целей в файлах** → **253 в живой ротации** (97 Store API после влива 57 verified и отсева мёртвых из 103 в `store_targets.txt` + 156 Shopify в `shopify_targets.txt`, включая 55 verified, синхронизированных из базы 06.09) + 1 ready gate |
+| Пул мерчантов | **247 целей суммарно** (**246 в txt-файлах ротации**: 103 `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **241 в активной ротации** (97 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 63 Store API |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
 | Тесты | **218 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
@@ -132,7 +132,7 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 |---|---|---|---|---|
 | **setupwoo** | `setup_gate.py` | `/au` | 1 кр | 1 донор — `www.blackbeltprotein.com.au`, EMA-латентность 6 111 мс, SR 0.76, `$0`-авторизация |
 | **storegate** | `store_gate.py` | `/st [1\|5\|20]` | 2 кр | 103 цели в `data/store_targets.txt` → 97 в живой ротации (влив 57 verified 06.09, отсев dead/phantom); verified 26 из 63 записей в `store_gates.json`. Крышка `$20` |
-| **shopify** | `shopify_gate.py` | `/sp [1\|5\|20]` | 2 кр | 156 магазинов в живой ротации (синхронизация 06.09: +55 verified из `shopify_gates.json` + brooklyn-candle-studio с исправленной ценой $5); из 142 записей — 133 verified, 9 убиты боем, 12 над капом помечены `over_cap` |
+| **shopify** | `shopify_gate.py` | `/sp [1\|5\|20]` | 2 кр | **143 магазина в живой ротации** (100% верифицированы боем под капом $20; полная паспортизация 07.09: 177 записей в `shopify_gates.json` — 143 в ротации, 20 над капом `over_cap`, 14 отсеяно/мёртвых) |
 | **hit** | `hit_gate.py` | `/hit url cc` | 2 кр/карта | 10 линков в `data/hit_targets.txt`, но `/hit` принимает URL аргументом — пул не задействован. До 10 карт за вызов, свежая HTTP-сессия на каждую |
 | **piconfirm** | `confirm_gate.py` | `/pi` | 2 кр | **Без целей.** Цель: `env PUSTO_PI_TARGET` → `data/pi_target.txt` → `data/pi_gates.json` (пуст) → `ERROR` |
 | **braintreenvbv** | `bot/gates/braintreenvbv.py` | `/vbv`, `/b3` | 1 кр | **Без целей.** `data/braintree_targets.txt` — 0 байт → `ERROR` |
@@ -261,10 +261,10 @@ UNKNOWN, ERROR
 | `data/harvested_domains.txt`, `dork_harvested.txt` | по 992 строки — txt-экспорт пула из domains.db | пишут `harvest_donors` и доркеры через `unified_harvester`; читает сканер как fallback при пустой db |
 | `data/ready_gates.json` | 1 запись (setupwoo-донор) | пишут сканер и `setup_gate` (EMA success_rate/латентность, captcha-флаг, выброс при 3 фейлах); читает `setup_gate` |
 | `data/store_gates.json` | 63 записи (расширенная база Store API с ценами каталогов) | пишут `scratch/_scan_store_gates.py`, `_verify_all_store.py`; читает `bot/gates/storegate.py` |
-| `data/shopify_gates.json` | 142 записи чекаутов Shopify | пишет `scratch/_verify_shopify_pool.py`; читает `bot/gates/shopify.py` |
+| `data/shopify_gates.json` | **177 записей** чекаутов Shopify (143 verified под капом $20, 20 над капом `over_cap`, 14 dead/недоступных; паспортизация 07.09) | пишет `scratch/_sync_shopify_catalog.py`, `_verify_shopify_pool.py`; читает `bot/gates/shopify.py` |
 | `data/final_gates.json` | 6 записей: `setup_intent` 1, `store_confirm` 5 | пишет `scratch/_finalize_pool.py`; читает бот-монитор `/gates` |
 | `data/store_targets.txt` | 103 цели (97 в живой ротации: влив 57 verified наверх + старый пул, отсев dead/phantom) | пишут `scratch/_scan_store_gates.py`, `_build_store_targets.py`; ротация `/st` (WooCommerce Store API) |
-| `data/shopify_targets.txt` | 156 целей в живой ротации (синхронизация 06.09: все verified под капом $20 из `shopify_gates.json` + brooklyn-candle-studio $5; 12 надкаповых помечены `over_cap` и в ротацию не входят) | ротация `/sp` (Shopify Checkout One) |
+| `data/shopify_targets.txt` | **143 цели в живой ротации** (полная синхронизация 07.09: только подтверждённые боем магазины под капом $20, 100% соответствие `shopify_gates.json`, тиры 1: 21, 5: 64, 20: 58) | ротация `/sp` (Shopify Checkout One) |
 | `data/hit_targets.txt` | 10 линков | пул **не используется**: `/hit` берёт URL из команды |
 | `data/proxy_health.json` | живой срез: латентность, ошибки, флаг `alive` по каждому узлу | пишет `proxy_manager` при каждой валидации; читает `pick_proxy()` |
 | `data/proxies.txt` | активный пул (SOCKS5/HTTP/SOCKS4); число живых волатильно — мгновенный срез в доке не фиксируется | авто-валидация каждые 15 мин в работающем боте; читает `gate_client.pick_proxy()` |
@@ -408,6 +408,7 @@ pusto/
 | 2026-09-06 | storegate | 30 целей живой ротации | сквозной прогон: 3 полных цикла `DECLINED` эмитентом + 2 `CAPTCHA_CHECKOUT`; главная причина ERROR — деградация публичных прокси (curl 97/28) |
 | 2026-09-06 | storegate | brentrobitaille.com, jerky4u.com, vigilsbeefjerky.com и др. (обновлённый пул) | контрольный прогон 10 целей direct: 8/10 `DECLINED` эмитентом — полный цикл `cart→add-item→pm→ctoken→checkout` стабилен |
 | 2026-09-06 | shopify | brooklyn-candle-studio.myshopify.com ($5) | `DECLINED` probe-картой: цена исправлена (была битая $648,000 → $5), магазин в тире 5, полный цикл до ответа эмитента |
+| 2026-09-07 | shopify | republicoftea.com ($0.75) | `DECLINED` probe-картой: полный цикл чекаута, $0.75 в тире 1, эмитентный отказ |
 
 Живость пула определяется боевым прогоном, а не числом записей в JSON. Пересчитывать
 состояние: `python scratch/_doc_audit.py`.

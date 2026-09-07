@@ -650,7 +650,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://simply-country-ranch.myshopify.com",
@@ -663,7 +664,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://artisaire.myshopify.com",
@@ -764,7 +766,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://terrebleu.myshopify.com",
@@ -825,7 +828,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://treadlightly.myshopify.com",
@@ -851,7 +855,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://puravidabracelets.myshopify.com",
@@ -910,7 +915,8 @@
     "currency": "USD",
     "verified": false,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://littleflowersoap.myshopify.com",
@@ -947,7 +953,8 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://stopkillerrobots.myshopify.com",
@@ -971,7 +978,8 @@
     "currency": "USD",
     "verified": false,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://koss.com",
@@ -1015,7 +1023,8 @@
     "currency": "USD",
     "verified": false,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DEAD"
+    "last_live_verdict": "DEAD",
+    "dead_surface": true
   },
   {
     "url": "https://hstbmerch.myshopify.com",
@@ -1343,7 +1352,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (2100c)"
   },
   {
     "url": "https://manitobah.myshopify.com",
@@ -1354,7 +1365,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (3000c)"
   },
   {
     "url": "https://charlie-hustle-2.myshopify.com",
@@ -1367,7 +1380,9 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (3800c)"
   },
   {
     "url": "https://pangaia.com",
@@ -1378,7 +1393,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (3900c)"
   },
   {
     "url": "https://aimeleondore.com",
@@ -1389,7 +1406,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (4000c)"
   },
   {
     "url": "https://mvmt.myshopify.com",
@@ -1400,7 +1419,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (4800c)"
   },
   {
     "url": "https://ugmonk.myshopify.com",
@@ -1411,7 +1432,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (5000c)"
   },
   {
     "url": "https://kith.com",
@@ -1422,7 +1445,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (7100c)"
   },
   {
     "url": "https://velasca.myshopify.com",
@@ -1433,7 +1458,9 @@
     "currency": "USD",
     "verified": true,
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (7200c)"
   },
   {
     "url": "https://math-giraffe-shop.myshopify.com",
@@ -1446,7 +1473,9 @@
     "needs_live_check": true,
     "source": "tavily-sweep-2026-08-29",
     "last_live_check": "2026-08-29",
-    "last_live_verdict": "DECLINED"
+    "last_live_verdict": "DECLINED",
+    "over_cap": true,
+    "over_cap_note": "каталог дороже $20 капа (8000c)"
   },
   {
     "url": "https://camillebrinch.myshopify.com",
@@ -1459,7 +1488,7 @@
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED",
     "over_cap": true,
-    "over_cap_note": "каталог дороже капа $20 (live recheck 2026-09-06), убран из ротации"
+    "over_cap_note": "каталог дороже $20 (14900c, live recheck 2026-09-06), исключён из ротации"
   },
   {
     "url": "https://sophiebillebrahe.com",
@@ -1472,7 +1501,7 @@
     "last_live_check": "2026-08-29",
     "last_live_verdict": "DECLINED",
     "over_cap": true,
-    "over_cap_note": "каталог дороже капа $20 (live recheck 2026-09-06), убран из ротации"
+    "over_cap_note": "каталог дороже $20 (70000c, live recheck 2026-09-06), исключён из ротации"
   },
   {
     "url": "https://brooklyn-candle-studio.myshopify.com",
@@ -1488,5 +1517,380 @@
     "last_live_verdict": "DECLINED",
     "cheapest_source": "live_recheck_2026-09-06",
     "updated_at": 1788696122
+  },
+  {
+    "url": "https://beehouse.com",
+    "domain": "beehouse.com",
+    "cheapest_cents": 1400,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Pennsylvania Wildflower Raw Honey 12 oz",
+    "verified": true
+  },
+  {
+    "url": "https://camamusoap.com",
+    "domain": "camamusoap.com",
+    "cheapest_cents": 450,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "UNKNOWN",
+    "cheapest_product": "Velvet Moca Lip Balm",
+    "verified": true
+  },
+  {
+    "url": "https://coastwoodcommercial.co.nz",
+    "domain": "coastwoodcommercial.co.nz",
+    "cheapest_cents": 8900,
+    "currency": "NZD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_8900c",
+    "cheapest_product": "Wooden Boards",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (8900c)"
+  },
+  {
+    "url": "https://coffeebeandirect.com",
+    "domain": "coffeebeandirect.com",
+    "cheapest_cents": 1895,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "ERROR",
+    "cheapest_product": "Espresso Subscription",
+    "verified": false,
+    "dead_surface": true,
+    "note": "CHECK_FAIL: ERROR"
+  },
+  {
+    "url": "https://comebackvinyl.com",
+    "domain": "comebackvinyl.com",
+    "cheapest_cents": 1499,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "PRE-ORDER: Olivia Rodrigo - \"Stupid Song / Stupid Song (Piano Version)\"",
+    "verified": true
+  },
+  {
+    "url": "https://communitycoffee.com",
+    "domain": "communitycoffee.com",
+    "cheapest_cents": 329,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Lactose Free Coffee Creamer",
+    "verified": true
+  },
+  {
+    "url": "https://donkeylabel.com",
+    "domain": "donkeylabel.com",
+    "cheapest_cents": 1000,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Werkhorse Sock - PWER - (Pre-Order)",
+    "verified": true
+  },
+  {
+    "url": "https://ecodunia.com",
+    "domain": "ecodunia.com",
+    "cheapest_cents": 3600,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_3600c",
+    "cheapest_product": "Round Wave Band Stackable Ring | Tosha",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (3600c)"
+  },
+  {
+    "url": "https://emberycandles.com",
+    "domain": "emberycandles.com",
+    "cheapest_cents": 640,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Cotton + Sandalwood Car Diffuser | 8 ml Hanging Car Air Freshener",
+    "verified": true
+  },
+  {
+    "url": "https://fallsriversoap.com",
+    "domain": "fallsriversoap.com",
+    "cheapest_cents": 625,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Wooden Soap Saver, Hand Craft, 100% Natural Pine Wooden Holder",
+    "verified": true
+  },
+  {
+    "url": "https://farmfreshnuts.com",
+    "domain": "farmfreshnuts.com",
+    "cheapest_cents": 1419,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Raw Shelled Sunflower Seeds",
+    "verified": true
+  },
+  {
+    "url": "https://gobuyplants.com",
+    "domain": "gobuyplants.com",
+    "cheapest_cents": 4775,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_4775c",
+    "cheapest_product": "Liriope Variegata",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (4775c)"
+  },
+  {
+    "url": "https://greenbottleherbs.com",
+    "domain": "greenbottleherbs.com",
+    "cheapest_cents": 1400,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Plumeria Stick",
+    "verified": true
+  },
+  {
+    "url": "https://kaffico.com",
+    "domain": "kaffico.com",
+    "cheapest_cents": 3200,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_3200c",
+    "cheapest_product": "Rich Hazelnut Coffee Pods",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (3200c)"
+  },
+  {
+    "url": "https://livelyroot.com",
+    "domain": "livelyroot.com",
+    "cheapest_cents": 500,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Valentine's Day Plant Pick",
+    "verified": true
+  },
+  {
+    "url": "https://mealswithmilton.com",
+    "domain": "mealswithmilton.com",
+    "cheapest_cents": null,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "NO_PRODUCTS",
+    "verified": false,
+    "dead_surface": true,
+    "note": "NO_PRODUCTS"
+  },
+  {
+    "url": "https://mountainmadnesssoap.com",
+    "domain": "mountainmadnesssoap.com",
+    "cheapest_cents": 150,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Mini Matchbook",
+    "verified": true
+  },
+  {
+    "url": "https://oliveoillovers.com",
+    "domain": "oliveoillovers.com",
+    "cheapest_cents": 695,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "ERROR",
+    "cheapest_product": "Othrys Farms Oregano",
+    "verified": false,
+    "dead_surface": true,
+    "note": "CHECK_FAIL: ERROR"
+  },
+  {
+    "url": "https://plantsbymail.com",
+    "domain": "plantsbymail.com",
+    "cheapest_cents": 399,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "ERROR",
+    "cheapest_product": "Slow Release Granular Fertilizer (15-9-12) – 0.5 lb",
+    "verified": false,
+    "dead_surface": true,
+    "note": "CHECK_FAIL: ERROR"
+  },
+  {
+    "url": "https://puritycoffee.com",
+    "domain": "puritycoffee.com",
+    "cheapest_cents": 1100,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Aponte Inga Medium Roast Whole Bean 4oz Bag",
+    "verified": true
+  },
+  {
+    "url": "https://republicoftea.com",
+    "domain": "republicoftea.com",
+    "cheapest_cents": 75,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "S'mores Herbal Tea Single Overwrap",
+    "verified": true
+  },
+  {
+    "url": "https://rootssea.com",
+    "domain": "rootssea.com",
+    "cheapest_cents": 1800,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "UNKNOWN",
+    "cheapest_product": "Mini Opihi Seashell Charm No. 18",
+    "verified": true
+  },
+  {
+    "url": "https://rustedacresoaps.com",
+    "domain": "rustedacresoaps.com",
+    "cheapest_cents": 550,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Fruity Cereal Bubble Bath Scoops",
+    "verified": true
+  },
+  {
+    "url": "https://shoptreehaus.com",
+    "domain": "shoptreehaus.com",
+    "cheapest_cents": 500,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Lavender Bergamot Lip Balm",
+    "verified": true
+  },
+  {
+    "url": "https://springhillnursery.com",
+    "domain": "springhillnursery.com",
+    "cheapest_cents": 1049,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Prairie Blue Eyes Daylily",
+    "verified": true
+  },
+  {
+    "url": "https://thebeancoffeecompany.com",
+    "domain": "thebeancoffeecompany.com",
+    "cheapest_cents": 1995,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Organic South American Blend",
+    "verified": true
+  },
+  {
+    "url": "https://theexoteas.com",
+    "domain": "theexoteas.com",
+    "cheapest_cents": 27600,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_27600c",
+    "cheapest_product": "Exoteas 'Swan' Signature Chai",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (27600c)"
+  },
+  {
+    "url": "https://themaplefarmer.com",
+    "domain": "themaplefarmer.com",
+    "cheapest_cents": 2000,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "ERROR",
+    "cheapest_product": "Pure Maple Syrup – Subscription",
+    "verified": false,
+    "dead_surface": true,
+    "note": "CHECK_FAIL: ERROR"
+  },
+  {
+    "url": "https://thesill.com",
+    "domain": "thesill.com",
+    "cheapest_cents": 1500,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Moisture Meter",
+    "verified": true
+  },
+  {
+    "url": "https://torquemotors.co.uk",
+    "domain": "torquemotors.co.uk",
+    "cheapest_cents": 1299,
+    "currency": "GBP",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Honda civic seat belt buckle Type R EP3 2003",
+    "verified": true
+  },
+  {
+    "url": "https://torreycandleco.com",
+    "domain": "torreycandleco.com",
+    "cheapest_cents": 2400,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_2400c",
+    "cheapest_product": "Storm Watch — Hand-Poured Soy Candle",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (2400c)"
+  },
+  {
+    "url": "https://watersandstone.com",
+    "domain": "watersandstone.com",
+    "cheapest_cents": 2500,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_2500c",
+    "cheapest_product": "Water Sand Stone Gift Card",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (2500c)"
+  },
+  {
+    "url": "https://weareknitters.com",
+    "domain": "weareknitters.com",
+    "cheapest_cents": 649,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "Bamboo Lace Peach - Last Units",
+    "verified": true
+  },
+  {
+    "url": "https://wildroothoney.com",
+    "domain": "wildroothoney.com",
+    "cheapest_cents": 2200,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "OVER_CAP_2200c",
+    "cheapest_product": "Wildroot Honey - Strawberry Vanilla Creamed Honey | 12oz",
+    "verified": true,
+    "over_cap": true,
+    "note": "catalogue over $20 cap (2200c)"
+  },
+  {
+    "url": "https://wonena.com",
+    "domain": "wonena.com",
+    "cheapest_cents": 800,
+    "currency": "USD",
+    "last_live_check": "2026-09-07",
+    "last_live_verdict": "DECLINED",
+    "cheapest_product": "California Lemon Organic Soap",
+    "verified": true
   }
 ]
