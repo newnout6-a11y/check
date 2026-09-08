@@ -252,6 +252,7 @@ async def test_bot_gate_auto_rotates_on_out_of_stock_store():
     bg_shopify._in_flight.clear()
     bg_shopify._last_used.clear()
     bg_shopify._decks.clear()
+    bg_shopify._decks["default"] = list(targets)
     bg_shopify._quarantined_until.clear()
     bg_shopify._fails.clear()
 

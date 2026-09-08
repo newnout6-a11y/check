@@ -304,3 +304,104 @@ def test_hit_gate_session_accepts_proxy_attribute():
     assert direct.proxy is None
 
 
+def test_approved_paid_in_hit_verdicts():
+    """APPROVED@PAID is a canonical hit across all surfaces."""
+    assert "APPROVED@PAID" in config.HIT_VERDICTS
+    assert config.is_hit("APPROVED@PAID") is True
+
+
+def test_coerce_verdict_merchant_stock_and_checkpoint():
+    """Stock and checkpoint technical failures coerce to ERROR for proper refund & fallback."""
+    for st in ("OUT_OF_STOCK", "CART_EMPTY", "CHECKPOINT_DENIED"):
+        assert config.coerce_verdict(st) == "ERROR"
+
+
+def test_classify_verdict_extensions():
+    """classify_verdict handles wrong_cvc, restricted_card, and pickup_card."""
+    assert gc.classify_verdict("wrong_cvc") == "WRONG_CVC"
+    assert gc.classify_verdict("cvv_mismatch") == "WRONG_CVC"
+    assert gc.classify_verdict("restricted_card") == "RESTRICTED"
+    assert gc.classify_verdict("pickup_card") == "DECLINED@STOLEN"
+
+
+def test_classify_pi_verdict_extensions():
+    """classify_pi_verdict handles wrong_cvc, restricted_card, and pickup_card."""
+    v1, _ = gc.classify_pi_verdict({"error": {"code": "wrong_cvc", "message": "wrong cvc"}})
+    assert v1 == "WRONG_CVC"
+
+    v2, _ = gc.classify_pi_verdict({"error": {"decline_code": "restricted_card", "message": "restricted"}})
+    assert v2 == "RESTRICTED"
+
+    v3, _ = gc.classify_pi_verdict({"error": {"decline_code": "pickup_card", "message": "pickup"}})
+    assert v3 == "DECLINED@STOLEN"
+
+
+def test_classify_shopify_verdict_restricted():
+    """classify_shopify_verdict handles restricted_card."""
+    import shopify_gate as sg
+    v, _ = sg.classify_shopify_verdict({"error": "restricted_card"})
+    assert v == "RESTRICTED"
+
+
+def test_formatter_shopify_translations():
+    """All standard Shopify messages translate to clean Russian text."""
+    from bot.utils.formatter import translate_detail
+    cases = [
+        ("Order placed / payment completed on Shopify", "Заказ оформлен / платеж успешно завершен (Shopify)."),
+        ("Order is processing on Shopify (pollDelay in receipt)", "Заказ в обработке на стороне Shopify (ожидание подтверждения)."),
+        ("3DS / OTP Challenge required by issuer", "Требуется 3DS / OTP код от банка-эмитента."),
+        ("Insufficient funds (Live card, CVV valid)", "Недостаточно средств на карте (Live, CVV валиден)."),
+        ("Incorrect CVC (Live card, PAN/expiry valid)", "Неверный CVC код (Live, номер и срок валидны)."),
+        ("Wrong security code", "Неверный CVC/CVV код карты."),
+        ("Card expired", "Срок действия карты истек."),
+        ("Lost or stolen card", "Карта числится утерянной или украденной."),
+        ("Declined by anti-fraud filters", "Отклонено антифрод-фильтрами эмитента."),
+        ("Declined: Do Not Honor", "Отказ эмитента без объяснения причин (Do Not Honor)."),
+        ("Invalid card number / Luhn failure", "Неверный номер карты / ошибка проверки Луна."),
+        ("Rate limited by store/gateway", "Превышен лимит запросов к шлюзу/магазину."),
+        ("Turnstile / Cloudflare bot protection checkpoint", "Сработала защита Cloudflare / Turnstile (капча на чек-ауте)."),
+        ("Card declined by Shopify Payments / Issuer", "Карта отклонена шлюзом Shopify Payments / эмитентом."),
+        ("Failed to tokenize card on deposit.us.shopifycs.com", "Ошибка токенизации карты в Shopify Card Vault."),
+        ("No available product found under 2000c cap", "Нет доступных товаров под лимитом цены."),
+    ]
+    for eng, ru in cases:
+        assert translate_detail(eng) == ru
+
+
+def test_formatter_store_api_translations():
+    """Store API status and error messages translate to clean Russian text."""
+    from bot.utils.formatter import translate_detail
+    cases = [
+        ("order 1234 paid (PI succeeded)", "Заказ успешно оплачен (PaymentIntent подтвержден)."),
+        ("order 1234 3DS required (PI=requires_action)", "Требуется 3DS подтверждение от банка-эмитента."),
+        ("order 1234 authorized (PI requires_capture)", "Авторизовано (холд средств без списания)."),
+        ("order 1234 PI requires valid payment method", "Требуется способ оплаты (карта отклонена)."),
+        ("order 1234 placed, PI=processing — payment NOT confirmed", "Заказ создан, но платеж не подтвержден банком."),
+        ("pk_live not found on storefront", "Публичный ключ Stripe (pk_live) не найден на витрине."),
+        ("Store API: cart HTTP 403", "Ошибка доступа к корзине Store API (HTTP 403)."),
+        ("Store API: no Nonce header", "Store API не вернул токен мутации (Nonce)."),
+        ("Store API: no products visible", "В каталоге магазина нет видимых товаров."),
+        ("NO_PRODUCTS: no priced products", "В каталоге магазина нет товаров с ценой."),
+        ("GUEST_CHECKOUT_DISABLED", "Гостевой чекаут отключен администратором магазина."),
+        ("CAPTCHA_CHECKOUT", "Чек-аут защищен капчей (Turnstile/hCaptcha/reCAPTCHA)."),
+    ]
+    for eng, ru in cases:
+        assert translate_detail(eng) == ru
+
+
+def test_formatter_mass_classification():
+    """format_mass properly counts sub-declined as fails and APPROVED@PAID as hits."""
+    from bot.utils.formatter import format_mass
+    results = [
+        {"card": "4111111111111111", "status": "APPROVED@PAID", "detail": "Paid"},
+        {"card": "4111111111111112", "status": "DECLINED@FRAUD", "detail": "Fraud"},
+        {"card": "4111111111111113", "status": "DECLINED@DO_NOT_HONOR", "detail": "DNH"},
+        {"card": "4111111111111114", "status": "DECLINED", "detail": "Declined"},
+        {"card": "4111111111111115", "status": "RATE_LIMITED", "detail": "429"},
+    ]
+    out = format_mass(results, header=True)
+    assert "✅ 1" in out
+    assert "❌ 3" in out
+    assert "⚠️ 1" in out
+
+

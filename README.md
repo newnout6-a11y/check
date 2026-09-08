@@ -226,12 +226,12 @@ UNKNOWN, ERROR
 - **Техстатусы цели коерсятся к `ERROR`** (`coerce_verdict`): `GUEST_CHECKOUT_DISABLED`,
   `CAPTCHA_CHECKOUT` (включая Stripe Radar bot challenge `intent_confirmation_challenge`
   из hit), `NO_PM_SLUG`, `PM_SLUG_MISSING`, `NO_PRODUCT_UNDER_CAP`, `NO_PRODUCTS`,
-  `ADD_ITEM_NO_JSON`, `VARIATION_REQUIRED`, `CHARGE_RISK` — свойство витрины, не карты:
-  возврат кредита + фолл-троу. Смерть сессии (`SESSION_EXPIRED`/`SESSION_CANCELED`)
+  `ADD_ITEM_NO_JSON`, `VARIATION_REQUIRED`, `CHARGE_RISK`, `OUT_OF_STOCK`, `CART_EMPTY`,
+  `CHECKPOINT_DENIED` — свойство витрины, не карты: возврат кредита + фолл-троу. Смерть сессии (`SESSION_EXPIRED`/`SESSION_CANCELED`)
   остаётся валидным вердиктом, но входит в `REFUNDABLE_VERDICTS`
 
-`HIT_VERDICTS` в корневом `config.py` — 4 класса; бот расширяет их `APPROVED@PAID`,
-`3DS_FRICTIONLESS`, `3DS_CHALLENGE` (`bot/main.py:68`).
+`HIT_VERDICTS` в корневом `config.py` — 5 классов (`APPROVED`, `APPROVED@HOLD`, `APPROVED@PAID`,
+`APPROVED@CVV`, `APPROVED@CCN`); бот дополнительно учитывает `3DS_FRICTIONLESS`, `3DS_CHALLENGE` (`bot/main.py:68`).
 
 ---
 
@@ -279,15 +279,15 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**230 passed** (19 файлов), все офлайн (Python 3.14, pytest 9.0.3).
+**238 passed** (19 файлов), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
 | `tests/test_round10_funnel.py` | 32 | воронка чекаута, корзина, токенизация, обработка ошибок шлюзов |
 | `tests/test_round10_recon.py` | 30 | рекон доменов, обнаружение Store API/Shopify/UPE, эвристики |
+| `tests/test_audit_fixes.py` | 27 | регрессии аудита 2026-09: parse_card, normalize_proxy, coerce техстатусов, REFUNDABLE, hit прокси/гео, константы Stripe, каскад amount_mismatch, таксономия (APPROVED@PAID в HIT_VERDICTS, WRONG_CVC/RESTRICTED), переводы и форматирование результатов |
 | `tests/test_round9_fixes.py` | 21 | `coerce_verdict`, статусы SetupIntent, `card_rejection`, тиры, фолл-троу гейтов, WAL/`user_version`, антиспам, откат счётчика, атомная запись |
 | `tests/test_shopify.py` | 21 | `_normalize_card`, 12 ветвей `classify_shopify_verdict`, тиры, реестр гейтов |
-| `tests/test_audit_fixes.py` | 19 | регрессии аудита 2026-09: parse_card, normalize_proxy (негативные), coerce техстатусов, REFUNDABLE, hit прокси/гео, константы Stripe, cascад amount_mismatch |
 | `tests/test_bot_interactive.py` | 13 | интерактивные inline-меню бота, переключение шлюзов и тиров цены, фильтрация ввода |
 | `tests/test_round1_fixes.py` | 13 | `parse_card`, `extract_pan`, Luhn, `score_gate`, `classify_verdict`, `domains_store`, redeem/spend/refund |
 | `tests/test_speed_fixes.py` | 13 | `bin_cache` round-trip/miss/empty, `_pick_target`, `_dead_domains`, `_available_gates` |

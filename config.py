@@ -55,7 +55,7 @@ VERDICTS = [
     "SESSION_EXPIRED", "SESSION_CANCELED",
     "UNKNOWN", "ERROR",
 ]
-HIT_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@CVV", "APPROVED@CCN"}
+HIT_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@PAID", "APPROVED@CVV", "APPROVED@CCN"}
 VERDICT_ICONS = {
     "APPROVED": "✅", "APPROVED@HOLD": "🟡", "APPROVED@PAID": "💰",
     "APPROVED@CVV": "✅", "APPROVED@CCN": "✅",
@@ -82,7 +82,8 @@ def coerce_verdict(verdict: str) -> str:
     # Сбои витрины/цели (не свойство карты) обязаны быть ERROR
     if v in ("GUEST_CHECKOUT_DISABLED", "CAPTCHA_CHECKOUT", "NO_PM_SLUG",
              "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
-             "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED", "CHARGE_RISK"):
+             "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED", "CHARGE_RISK",
+             "OUT_OF_STOCK", "CART_EMPTY", "CHECKPOINT_DENIED"):
         return "ERROR"
     if v in VERDICTS:
         return v

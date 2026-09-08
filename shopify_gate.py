@@ -309,6 +309,9 @@ def classify_shopify_verdict(raw_data: Any, context_str: str = "") -> tuple[str,
     if "do_not_honor" in text or "do not honor" in text or "generic_decline" in text:
         return "DECLINED@DO_NOT_HONOR", "Declined: Do Not Honor"
 
+    if "restricted_card" in text or "restricted" in text:
+        return "RESTRICTED", "Card restricted or blocked by issuer"
+
     if any(k in text for k in ["invalid_number", "incorrect_number", "invalid card number", "luhn"]):
         return "INVALID", "Invalid card number / Luhn failure"
 

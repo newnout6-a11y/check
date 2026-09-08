@@ -870,18 +870,22 @@ def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
         return "APPROVED@CVV", msg
     if "incorrect_cvc" in low or "invalid cvc" in low or "security code is incorrect" in low:
         return "APPROVED@CCN", msg
+    if "wrong_cvc" in low or "cvv_mismatch" in low or "wrong security code" in low:
+        return "WRONG_CVC", msg
     if "checkout_not_active_session" in low or "session is no longer active" in low:
         return "SESSION_EXPIRED", msg
     if "status of canceled" in low or "paymentintent's payment_method could not be updated" in low:
         return "SESSION_CANCELED", msg
     if "expired" in low:
         return "EXPIRED", msg
-    if "stolen" in low or "lost" in low:
+    if "stolen" in low or "lost" in low or "pickup_card" in low:
         return "DECLINED@STOLEN", msg
     if "fraud" in low or "risk" in low:
         return "DECLINED@FRAUD", msg
     if "do_not_honor" in low or "do not honor" in low:
         return "DECLINED@DO_NOT_HONOR", msg
+    if "restricted_card" in low:
+        return "RESTRICTED", msg
     if "incorrect_number" in low or "invalid_number" in low or "incorrect number" in low:
         return "INVALID", msg
     if "processing_error" in low or "try again" in low or "processing error" in low:
@@ -1057,14 +1061,18 @@ def classify_verdict(err_msg: str) -> str:
         return "APPROVED@CVV"
     if "incorrect_cvc" in raw_err or "security code is incorrect" in raw_err or "invalid cvc" in raw_err:
         return "APPROVED@CCN"
+    if "wrong_cvc" in raw_err or "cvv_mismatch" in raw_err or "wrong security code" in raw_err:
+        return "WRONG_CVC"
     if "expired" in raw_err:
         return "EXPIRED"
-    if "stolen" in raw_err or "lost" in raw_err:
+    if "stolen" in raw_err or "lost" in raw_err or "pickup_card" in raw_err:
         return "DECLINED@STOLEN"
     if "fraud" in raw_err or "risk" in raw_err:
         return "DECLINED@FRAUD"
     if "do_not_honor" in raw_err or "do not honor" in raw_err:
         return "DECLINED@DO_NOT_HONOR"
+    if "restricted_card" in raw_err:
+        return "RESTRICTED"
     if "incorrect_number" in raw_err or "invalid_number" in raw_err or "incorrect card number" in raw_err:
         return "INVALID"
     if "try again" in raw_err or "processing error" in raw_err:

@@ -83,6 +83,29 @@ DETAIL_TRANSLATIONS = {
     "no store targets": "Нет доступных Store-API целей.",
     "all targets failed": "Все доноры в ротации вернули ошибку.",
     "antispam cooldown": "Слишком частые запросы — подождите пару секунд.",
+
+    # Shopify и Store API отказы и статусы
+    "order placed / payment completed on shopify": "Заказ оформлен / платеж успешно завершен (Shopify).",
+    "order is processing on shopify (polldelay in receipt)": "Заказ в обработке на стороне Shopify (ожидание подтверждения).",
+    "3ds / otp challenge required by issuer": "Требуется 3DS / OTP код от банка-эмитента.",
+    "insufficient funds (live card, cvv valid)": "Недостаточно средств на карте (Live, CVV валиден).",
+    "incorrect cvc (live card, pan/expiry valid)": "Неверный CVC код (Live, номер и срок валидны).",
+    "wrong security code": "Неверный CVC/CVV код карты.",
+    "card expired": "Срок действия карты истек.",
+    "lost or stolen card": "Карта числится утерянной или украденной.",
+    "declined by anti-fraud filters": "Отклонено антифрод-фильтрами эмитента.",
+    "declined: do not honor": "Отказ эмитента без объяснения причин (Do Not Honor).",
+    "invalid card number / luhn failure": "Неверный номер карты / ошибка проверки Луна.",
+    "rate limited by store/gateway": "Превышен лимит запросов к шлюзу/магазину.",
+    "turnstile / cloudflare bot protection checkpoint": "Сработала защита Cloudflare / Turnstile (капча на чек-ауте).",
+    "card declined by shopify payments / issuer": "Карта отклонена шлюзом Shopify Payments / эмитентом.",
+    "failed to tokenize card on deposit.us.shopifycs.com": "Ошибка токенизации карты в Shopify Card Vault.",
+    "pk_live not found on storefront": "Публичный ключ Stripe (pk_live) не найден на витрине.",
+    "guest_checkout_disabled": "Гостевой чекаут отключен администратором магазина.",
+    "captcha_checkout": "Чек-аут защищен капчей (Turnstile/hCaptcha/reCAPTCHA).",
+    "store api: no nonce header": "Store API не вернул токен мутации (Nonce).",
+    "store api: no products visible": "В каталоге магазина нет видимых товаров.",
+    "no_products: no priced products": "В каталоге магазина нет товаров с ценой.",
 }
 
 SUBSTRING_PATTERNS = [
@@ -105,6 +128,18 @@ SUBSTRING_PATTERNS = [
     (r"(?i)tarjeta\s+ha\s+sido\s+rechazada", "Карта отклонена банком-эмитентом."),
     (r"(?i)carta\s+è\s+stata\s+rifiutata|carta.{0,20}rifiutata", "Карта отклонена банком-эмитентом."),
     (r"(?i)fehler\s+bei\s+der\s+zahlungsabwicklung", "Ошибка при обработке платежа."),
+    # Store API & Shopify динамические паттерны
+    (r"(?i)order\s+\S+\s+paid\s+\(pi\s+succeeded\)", "Заказ успешно оплачен (PaymentIntent подтвержден)."),
+    (r"(?i)order\s+\S+\s+3ds\s+required", "Требуется 3DS подтверждение от банка-эмитента."),
+    (r"(?i)order\s+\S+\s+authorized\s+\(pi\s+requires_capture\)", "Авторизовано (холд средств без списания)."),
+    (r"(?i)order\s+\S+\s+pi\s+requires\s+valid\s+payment\s+method", "Требуется способ оплаты (карта отклонена)."),
+    (r"(?i)order\s+\S+\s+placed,\s*pi.*payment\s+not\s+confirmed", "Заказ создан, но платеж не подтвержден банком."),
+    (r"(?i)no_product_under_cap|no\s+available\s+product\s+found\s+under", "Нет доступных товаров под лимитом цены."),
+    (r"(?i)store\s+api:\s*cart\s+http\s*(\d+)", r"Ошибка доступа к корзине Store API (HTTP \1)."),
+    (r"(?i)stripe\s+radar\s+bot\s+challenge", "Сработала защита Stripe Radar (bot challenge hCaptcha)."),
+    (r"(?i)use_stripe_sdk", "Требуется подтверждение через Stripe 3DS SDK."),
+    (r"(?i)card\s+restricted|restricted_card", "Ограничения на карте / карта заблокирована банком."),
+    (r"(?i)card\s+declined\s+by\s+shopify", "Карта отклонена шлюзом Shopify Payments / эмитентом."),
 ]
 
 
@@ -116,7 +151,7 @@ def translate_detail(detail: str) -> str:
     # Сохраняем префикс цены/валюты, если он есть (например, [100c USD])
     prefix = ""
     clean_detail = detail.strip()
-    m_pref = re.match(r"^(\[\d+c\s+[A-Za-z]{0,3}\]\s*)(.*)$", clean_detail)
+    m_pref = re.match(r"^(\[\d+c\s*[A-Za-z]{0,3}\]\s*)(.*)$", clean_detail)
     if m_pref:
         prefix = m_pref.group(1)
         clean_detail = m_pref.group(2).strip()
@@ -130,7 +165,10 @@ def translate_detail(detail: str) -> str:
 
     # Поиск по регулярным паттернам
     for pat, ru_text in SUBSTRING_PATTERNS:
-        if re.search(pat, clean_detail):
+        m = re.search(pat, clean_detail)
+        if m:
+            if "\\" in ru_text:
+                return f"{prefix}{re.sub(pat, ru_text, clean_detail)}"
             return f"{prefix}{ru_text}"
 
     return detail
@@ -268,9 +306,9 @@ def format_mass(results: list[dict], header: bool = True) -> str:
     lines = []
     if header:
         hits = sum(1 for r in results if config.is_hit(r["status"]))
+        fails = sum(1 for r in results if r["status"].startswith("DECLINED"))
         warns = sum(1 for r in results
-                    if r["status"] not in config.HIT_VERDICTS and r["status"] != "DECLINED")
-        fails = sum(1 for r in results if r["status"] == "DECLINED")
+                    if not config.is_hit(r["status"]) and not r["status"].startswith("DECLINED"))
         lines += ["━━━ РЕЗУЛЬТАТЫ МАССОВОЙ ПРОВЕРКИ ━━━",
                   f"Всего: {len(results)} | ✅ {hits} | ❌ {fails} | ⚠️ {warns}"]
     for r in results:
