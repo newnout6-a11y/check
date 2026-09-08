@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import random
+import sys
 import time
 
 from curl_cffi.requests import AsyncSession
@@ -195,6 +196,9 @@ async def maybe_pool(explicit_proxy: str | None) -> tuple[ProxyPool | None, str 
 
 
 if __name__ == "__main__":
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print("Usage: python proxy_manager.py [--help]")
+        sys.exit(0)
     async def _main():
         pp, _ = await maybe_pool(None)
         if pp:

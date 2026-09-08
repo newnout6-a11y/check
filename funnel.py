@@ -9,9 +9,12 @@
 # ДЕЙСТВИЕ: CF_CHALLENGE → нужен прокси; PM_SLUG_MISSING → чинить код, не домен;
 # NOT_WOO → проверить Shopify-ветку.
 import os
+import sys
 import sqlite3
 import time
 from collections import Counter
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 DB_PATH = os.path.join("data", "domains.db")
 
@@ -225,5 +228,12 @@ def reset():
 
 
 if __name__ == "__main__":
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print("Usage: python funnel.py [--reset]")
+        sys.exit(0)
+    if "--reset" in sys.argv:
+        reset()
+        print("[*] Scans table reset.")
+        sys.exit(0)
     init_db()
     print(report())

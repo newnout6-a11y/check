@@ -447,6 +447,9 @@ class GateSession:
 
 async def main():
     raw_args = sys.argv[1:]
+    if "-h" in raw_args or "--help" in raw_args:
+        print("Usage: python setup_gate.py [https://target-donor.com] [cards.txt | 'CARD|MM|YY|CVC'] [--proxy URL]")
+        return
     explicit_proxy = None
     while "--proxy" in raw_args:
         i = raw_args.index("--proxy")

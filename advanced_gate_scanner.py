@@ -216,6 +216,9 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
 
 async def main():
     raw_args = sys.argv[1:]
+    if "-h" in raw_args or "--help" in raw_args:
+        print("Usage: python advanced_gate_scanner.py [--proxy URL]")
+        return
     explicit_proxy = None
     while "--proxy" in raw_args:
         i = raw_args.index("--proxy")

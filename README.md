@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **248 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **250 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **247 целей суммарно** (**246 в txt-файлах ротации**: 103 `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **241 в активной ротации** (97 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 63 Store API |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **248 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **250 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -281,7 +281,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**248 passed** (21 файл), все офлайн (Python 3.14, pytest 9.0.3).
+**250 passed** (21 файл), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -298,10 +298,10 @@ UNKNOWN, ERROR
 | `tests/test_shopify_light_probe.py` | 8 | быстрый зонд `/cart/add.js`, валидация цен, отсечение 0c promo, фоллбэк на каталог, 24h карантин out-of-stock и авто-ротация в боте |
 | `tests/test_captcha_pow.py` | 7 | Pure Python PoW Captcha Engine: Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash, детектор виджетов |
 | `tests/test_stripe_fid.py` | 7 | fid round-trip на перехваченном фрагменте + UTF-8 encode |
+| `tests/test_turnstile.py` | 7 | экстракция параметров Cloudflare Turnstile, интеграция `solve_turnstile_url` и `solve_pow_challenge` |
 | `tests/test_proxy_priority.py` | 6 | взвешенный выбор SOCKS5/HTTP/SOCKS4, штрафы, fallback на прямое подключение |
 | `tests/test_round10_fixes.py` | 6 | изоляция парсинга карт и прокси, регрессионные фиксы регулярных выражений |
 | `tests/test_stripe_ctoken.py` | 5 | Stripe Confirmation Tokens (`ctoken_...`), dual-payload Store API, изоляция параметров |
-| `tests/test_turnstile.py` | 5 | экстракция параметров Cloudflare Turnstile (контейнеры, wrapper, скриптовый рендер, фоллбэки) |
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
 | `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
 | `tests/test_shopify_smart_rotation.py` | 4 | SmartRotator: исключение in-flight коллизий, кулдаун доменов, circuit breaker, mtime кэширование |

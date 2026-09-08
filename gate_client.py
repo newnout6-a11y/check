@@ -541,6 +541,36 @@ def extract_turnstile_params(html: str) -> dict | None:
     }
 
 
+def solve_turnstile_url(url: str, timeout_sec: float = 15.0, headless: bool = True) -> str | None:
+    """Invokes local zero-cost headless sidecar to solve Cloudflare Turnstile for url."""
+    try:
+        from turnstile_sidecar import solve_turnstile
+        return solve_turnstile(url, timeout_sec=timeout_sec, headless=headless)
+    except Exception:
+        return None
+
+
+def solve_pow_challenge(challenge_data: dict) -> dict | None:
+    """Solves Altcha or Friendly Captcha challenge without external APIs."""
+    try:
+        from captcha_pow import solve_altcha, create_altcha_payload, solve_friendly_captcha
+        if "challenge" in challenge_data and "salt" in challenge_data:
+            res = solve_altcha(
+                challenge=challenge_data["challenge"],
+                salt=challenge_data["salt"],
+                max_number=challenge_data.get("maxnumber", 1_000_000),
+                algorithm=challenge_data.get("algorithm", "SHA-256")
+            )
+            if res:
+                res["payload"] = create_altcha_payload(challenge_data, res["solution"])
+            return res
+        elif "puzzle" in challenge_data:
+            return solve_friendly_captcha(challenge_data["puzzle"])
+    except Exception:
+        return None
+    return None
+
+
 def parse_stripe_cookies(set_cookie_headers: list[str] | None) -> dict:
     """__stripe_mid/__stripe_sid из Set-Cookie ответа m.stripe.com/6.
     Возвращает {"mid": ..., "sid": ...} — отсутствующие ключи пустые."""
