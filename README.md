@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **230 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **248 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **247 целей суммарно** (**246 в txt-файлах ротации**: 103 `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **241 в активной ротации** (97 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 63 Store API |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **230 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **248 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -121,6 +121,8 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | `bin_cache.py` | 100+ | SQLite-кэш BIN (TTL ∞), ленивое создание схемы |
 | `stripe_fid.py` | 130+ | Декодер `#fid`-фрагмента Stripe Checkout (base64 → XOR-5 → JSON) |
 | `pusto_logger.py` | 280+ | **Центральный консольный логгер:** Windows Virtual Terminal, ANSI/UTF-8, бейджи `[TG]` `[HTTP]` `[STRIPE]` `[GATE]` `[RESULT]` по всем слоям, адаптер стандартного `logging` |
+| `captcha_pow.py` | 160+ | **Pure Python PoW Captcha Engine:** Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash; zero-cost, 1.4M+ H/s без ML |
+| `turnstile_sidecar.py` | 80+ | **Локальный Headless Sidecar:** нативное решение Cloudflare Turnstile (non-interactive и managed) через `patchright` и нативный Chrome CDP |
 | `config.py` | 60+ | Единый источник констант, таксономии вердиктов и пула TLS-отпечатков |
 | `bot/` | 3 570+ | Pyrogram-бот (`main.py` 1 890+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
 
@@ -279,7 +281,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**238 passed** (19 файлов), все офлайн (Python 3.14, pytest 9.0.3).
+**248 passed** (21 файл), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -294,6 +296,7 @@ UNKNOWN, ERROR
 | `tests/test_round7_fixes.py` | 9 | ротация Shopify, кэш без `init_db()`, регистрация `/chk`, тир таблицей целевого гейта |
 | `tests/test_hit_3ds.py` | 9 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 / Radar bot challenge → `CAPTCHA_CHECKOUT` / каскад `amount_mismatch` (предикат + DummySession + двойной дрейф) |
 | `tests/test_shopify_light_probe.py` | 8 | быстрый зонд `/cart/add.js`, валидация цен, отсечение 0c promo, фоллбэк на каталог, 24h карантин out-of-stock и авто-ротация в боте |
+| `tests/test_captcha_pow.py` | 7 | Pure Python PoW Captcha Engine: Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash, детектор виджетов |
 | `tests/test_stripe_fid.py` | 7 | fid round-trip на перехваченном фрагменте + UTF-8 encode |
 | `tests/test_proxy_priority.py` | 6 | взвешенный выбор SOCKS5/HTTP/SOCKS4, штрафы, fallback на прямое подключение |
 | `tests/test_round10_fixes.py` | 6 | изоляция парсинга карт и прокси, регрессионные фиксы регулярных выражений |
@@ -302,6 +305,7 @@ UNKNOWN, ERROR
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
 | `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
 | `tests/test_shopify_smart_rotation.py` | 4 | SmartRotator: исключение in-flight коллизий, кулдаун доменов, circuit breaker, mtime кэширование |
+| `tests/test_turnstile_sidecar.py` | 3 | локальный Headless Sidecar решения Turnstile (`patchright` + native Chrome CDP): экспорт, mock-решение, timeout |
 
 Покрыты: ядро классификации, эвристики рекона, воронки чекаута, тиры, ротация, скоринг прокси, валидация карт, атомарная БД, интерактивные меню и роутинг сообщений Telegram-бота. Внешняя сеть при запуске тестового сьюта отключена — тесты полностью детерминированы.
 
@@ -331,6 +335,8 @@ pusto/
 ├── bin_cache.py                # SQLite-кэш BIN
 ├── stripe_fid.py               # декодер #fid фрагмента
 ├── pusto_logger.py             # центральный ANSI-логгер (бейджи по слоям)
+├── captcha_pow.py              # Pure Python PoW Captcha Engine (Altcha, Friendly Captcha, Hashcash)
+├── turnstile_sidecar.py        # локальный Headless Sidecar решения Turnstile (patchright + CDP)
 ├── config.py                   # константы + 26 вердиктов
 ├── рабочий_файл.md             # журнал завершённых задач (обновляет агент по команде)
 ├── bot/
@@ -350,7 +356,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 17 файлов, 218 тестов, без сети
+├── tests/                      # 21 файл, 248 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
