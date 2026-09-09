@@ -14,7 +14,6 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import domains_store
 import funnel
 import recon
 import surface

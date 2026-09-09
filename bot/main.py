@@ -69,13 +69,6 @@ HIT_VERDICTS = set(engine_cfg.HIT_VERDICTS) | {"APPROVED@PAID", "3DS_FRICTIONLES
                                                 "3DS_CHALLENGE"}
 
 
-def me_line(u: dict) -> str:
-    prem = db.is_premium(u)
-    return (f"ID: <code>{u['user_id']}</code>\n"
-            f"Баланс: <b>{u['credits']}</b> кр.{' | ♦ Премиум' if prem else ''}\n"
-            f"Проверок: {u['total_checks']} | Успешных: {u['hits']}")
-
-
 def admin_only(func):
     @functools.wraps(func)
     async def wrapped(client, message: Message):
@@ -604,11 +597,6 @@ def render_admin_panel() -> str:
     )
 
 
-def build_start_menu(u: dict, creator: str = CREATOR_NICK) -> str:
-    settings = db.get_user_settings(u.get("user_id", 0))
-    return render_main_menu(u, settings, creator=creator)
-
-
 @app.on_message(filters.command(["start", "cmds", "help"]))
 @user_only
 async def cmd_start(client, message: Message):
@@ -787,7 +775,7 @@ async def cmd_addproxy(client, message: Message):
 
     is_admin = bool(message.from_user and message.from_user.id in config.ADMIN_IDS)
     status_msg = await message.reply(
-        f"📥 <b>Загружено {len(lines)} прокси</b> (всего в пуле: {len(merged)} шт.).\n"
+        f"📥 <b>Загружено {len(lines)} прокси</b> (S5: {s5}, S4: {s4}, HTTP: {ht} | всего: {len(merged)} шт.).\n"
         f"⚡ <i>Запускаю мгновенную проверку на живость...</i>",
         parse_mode=ParseMode.HTML
     )

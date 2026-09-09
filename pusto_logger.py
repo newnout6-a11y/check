@@ -8,10 +8,8 @@ gate executions, HTTP transactions, Stripe calls, billing, and proxy rotation.
 import ctypes
 import datetime
 import logging
-import os
 import sys
 import threading
-from typing import Any
 
 # --- ANSI Color Palette ---
 RESET = "\033[0m"
@@ -96,17 +94,6 @@ def log_callback(data: str, user_id: int | None = None, username: str | None = N
         user_str = f"{BRIGHT_WHITE}[{uname} | {user_id}]{RESET} "
     badge = f"{BOLD}{BRIGHT_CYAN}[CALLBACK]{RESET}"
     raw_log(badge, f"{user_str}Clicked button: {BRIGHT_YELLOW}{data}{RESET}")
-
-
-def log_cmd(cmd_name: str, details: str = "", user_id: int | None = None, username: str | None = None):
-    """Command execution."""
-    user_str = ""
-    if user_id:
-        uname = f"@{username}" if username else f"user_{user_id}"
-        user_str = f"{BRIGHT_WHITE}[{uname} | {user_id}]{RESET} "
-    det = f" {details}" if details else ""
-    badge = f"{BOLD}{BRIGHT_GREEN}[CMD:/{cmd_name}]{RESET}"
-    raw_log(badge, f"{user_str}{det}")
 
 
 def log_card(action: str, card_masked: str, details: str = ""):

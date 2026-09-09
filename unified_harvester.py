@@ -56,15 +56,9 @@ async def manual_lane() -> int:
 
 async def main():
     if "-h" in sys.argv or "--help" in sys.argv:
-        print("Usage: python unified_harvester.py [--forum-only] [--pages N]")
+        print("Usage: python unified_harvester.py [--forum-only]")
         return
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
     skip_dorks = "--forum-only" in sys.argv
-    pages = 2
-    if "--pages" in sys.argv:
-        i = sys.argv.index("--pages")
-        if i + 1 < len(sys.argv):
-            pages = max(1, int(sys.argv[i + 1]))
 
     print("=" * 80)
     print("[*] UNIFIED HARVESTER — forums + dorks + manual -> data/domains.db")

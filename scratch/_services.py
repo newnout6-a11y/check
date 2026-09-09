@@ -9,8 +9,7 @@
 from __future__ import annotations
 
 import json
-import sqlite3
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

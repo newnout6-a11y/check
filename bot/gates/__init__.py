@@ -2,7 +2,7 @@
 # Sprint 4: реестр гейтов. Контракт модуля (SkyBots-паттерн):
 #   NAME = "gate-id"
 #   COST = 1                      # опционально, перекрывает config
-#   async def gate(cc, mm, yy, cvv) -> tuple[str, str]   # (verdict, detail)
+#   async def gate(cc, mm, yy, cvv, **kwargs) -> tuple[str, str, dict] | tuple[str, str]
 # Модуль с ошибкой импорта не валит бота — просто выпадает из реестра.
 import importlib
 import pkgutil

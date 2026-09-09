@@ -1,5 +1,4 @@
 import asyncio
-import os
 import sys
 import random
 import time
@@ -9,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import gate_client as gc
 import shopify_gate as sg
-from bot.gates import shopify as bg_shopify
 
 def gen_test_card():
     prefix = "379363037"

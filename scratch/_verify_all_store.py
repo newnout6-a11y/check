@@ -7,10 +7,6 @@ import re
 import sys
 
 import gate_client as gc
-import config
-from store_gate import bin_lookup
-
-from curl_cffi.requests import AsyncSession
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 

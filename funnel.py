@@ -70,9 +70,6 @@ SUCCESSES = {
     "VERIFIED": "поверхность подтверждена боем",
 }
 
-# Успешные терминальные состояния (не причины отказа, но пишутся в scans)
-STAGES = ("S0", "S1", "S2", "S3", "S4")
-
 # Что считать «домен жив, просто не наш вектор» — не выкидывать из корпуса
 RETRYABLE = {"TIMEOUT", "CF_CHALLENGE", "CAPTCHA", "HTTP_5XX", "GATE_TIMEOUT",
              "RATE_LIMITED"}

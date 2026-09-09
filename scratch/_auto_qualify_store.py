@@ -2,8 +2,6 @@ import asyncio
 import json
 import os
 import sys
-import time
-import re
 
 sys.path.insert(0, r"c:\Users\Redmi\Downloads\pusto")
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")

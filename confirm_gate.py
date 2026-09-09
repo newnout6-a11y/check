@@ -5,10 +5,8 @@
 import asyncio
 import json
 import os
-import re
 import sys
 import time
-from datetime import datetime
 
 from curl_cffi.requests import AsyncSession
 

@@ -123,9 +123,6 @@ class ProxyPool:
         fail = e.get("fail_count", 0)
         return ((1000.0 / lat) ** 2) * proto_mult / (1.0 + fail * 2.0)
 
-    def _weights(self) -> list[float]:
-        return [self._calc_weight(e) for e in self.entries]
-
     def pick(self, sticky_key: str | None = None) -> str | None:
         alive = [e for e in self.entries if e.get("alive") is True and e.get("fail_count", 0) < 2]
         if not alive:

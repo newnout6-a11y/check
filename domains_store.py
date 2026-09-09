@@ -6,7 +6,8 @@ import os
 import sqlite3
 import time
 
-DB_PATH = os.path.join("data", "domains.db")
+ROOT = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(ROOT, "data", "domains.db")
 
 
 @contextlib.contextmanager

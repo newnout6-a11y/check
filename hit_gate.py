@@ -8,7 +8,6 @@
 # Отличие от confirm_gate: НЕ нужен сайт-донор с pk на витрине —
 # подходит любой checkout-линк (checkout.stripe.com / pay.1vpn.org / pay.opus.pro / buy.stripe.com).
 import asyncio
-import json
 import sys
 import time
 import uuid

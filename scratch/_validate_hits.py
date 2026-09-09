@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # Валидация cs_live-линков: открытие сессии без confirm
-import asyncio, os, sys, time
+import asyncio, os, sys
 sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from curl_cffi.requests import AsyncSession
 import stripe_fid
-import gate_client as gc
 
 IN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'hit_targets.txt')
 urls = [u.strip() for u in open(IN, encoding='utf-8') if u.strip()]

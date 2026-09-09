@@ -1,13 +1,11 @@
 # language: Python 3.12+, file: frictionless_engine.py, target: Windows 11
 # Система 2: Frictionless 3DS2 Telemetry & 3DS Method Emulation Engine.
 # Автоматизация сбора отпечатков через 3DS-Method iframe и перевод транзакции в Frictionless (transStatus = Y).
-import asyncio
 import base64
 import json
 import random
 import re
 from typing import Any
-from urllib.parse import urljoin
 
 from curl_cffi.requests import AsyncSession
 import pusto_logger as _log

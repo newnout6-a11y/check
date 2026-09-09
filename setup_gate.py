@@ -110,7 +110,8 @@ def bin_alpha2(binfo: dict) -> str:
 
 
 def load_ready_gates() -> list[dict]:
-    candidates = ["data/ready_gates.json", "ready_gates.json"]
+    _root = os.path.dirname(os.path.abspath(__file__))
+    candidates = [os.path.join(_root, "data", "ready_gates.json"), "data/ready_gates.json", "ready_gates.json"]
     for path in candidates:
         if os.path.exists(path):
             try:

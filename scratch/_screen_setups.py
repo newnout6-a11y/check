@@ -1,7 +1,6 @@
-import asyncio, json, sys, os
+import asyncio, sys, os
 sys.path.insert(0, os.path.abspath("."))
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
-from curl_cffi.requests import AsyncSession
 import gate_client as gc
 import setup_gate
 

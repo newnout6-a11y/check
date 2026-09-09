@@ -6,9 +6,6 @@ import asyncio
 import json
 import os
 import random
-from pathlib import Path
-
-from curl_cffi.requests import AsyncSession
 import gate_client as gc
 from shopify_gate import check_target, MAX_PRICE_CENTS
 import pusto_logger as log

@@ -1,7 +1,6 @@
 # language: Python 3.12+, file: bot/db.py, target: Windows 11, stdlib-only
 # Sprint 4: юзеры/кредиты/ключи активации. SQLite как у эталонных ботов.
 import contextlib
-import os
 import sqlite3
 import time
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GATES_PATH = os.path.join(ROOT, "data", "shopify_gates.json")

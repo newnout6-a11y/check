@@ -1,6 +1,5 @@
 import time
 import random
-from collections import deque
 
 class SmartRotator:
     """

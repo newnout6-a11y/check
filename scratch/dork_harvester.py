@@ -7,7 +7,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # корень проекта при любом cwd
 
-from curl_cffi import requests
 from curl_cffi.requests import AsyncSession
 
 import gate_client as gc

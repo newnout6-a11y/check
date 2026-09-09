@@ -155,16 +155,6 @@ DORK_TEMPLATES = (
     ("{v} small batch online store", "any"),
 )
 
-# Специализированные шаблоны для SetupIntent ($0) и донатов (piconfirm)
-SETUP_DORK_TEMPLATES = (
-    ('inurl:/my-account/ "{v}" -site:wordpress.org', "setupwoo"),
-    ('{v} "my-account" "Register" "Lost your password"', "setupwoo"),
-)
-
-DONATE_DORK_TEMPLATES = (
-    ('inurl:/donate/ "stripe" {v}', "piconfirm"),
-    ('inurl:/give/ "card" {v}', "piconfirm"),
-)
 def _norm_host(h: str) -> str:
     h = (h or "").lower().strip()
     return h[4:] if h.startswith("www.") else h   # НЕ lstrip: тот ест символы
