@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 from patchright.async_api import async_playwright
 
 async def test_patchright():

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Test Approach 3: Accessibility Pass & Cookie Harvesting Analysis.
 Investigates:
 1. The deprecated hCaptcha accessibility flow (why hCaptcha neutralized email-based auto-pass in 2024-2026).

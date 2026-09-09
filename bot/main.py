@@ -460,8 +460,8 @@ def render_gates_monitor() -> str:
         return []
 
     ready = [g for g in load_json("ready_gates.json") if g.get("status", "READY") == "READY"]
-    store = [g for g in load_json("store_gates.json") if not g.get("phantom") and not g.get("dead_surface")]
-    shopify = load_json("shopify_gates.json")
+    store = [g for g in load_json("store_gates.json") if g.get("verified") and not g.get("phantom") and not g.get("dead_surface") and not g.get("blocked")]
+    shopify = [g for g in load_json("shopify_gates.json") if g.get("verified") and not g.get("dead_surface") and not g.get("blocked")]
     final = load_json("final_gates.json")
 
     lines = [
@@ -1917,7 +1917,7 @@ if __name__ == "__main__":
         async with app:
             async def _bg_proxy():
                 while True:
-                    await asyncio.sleep(15 * 60)
+                    await asyncio.sleep(proxy_manager.VALIDATE_INTERVAL)
                     try:
                         p_list = gc.load_proxies()
                         if p_list:

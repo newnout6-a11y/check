@@ -1,0 +1,1 @@
+# data/braintree_targets.txt: URLs of Braintree-hosted checkout forms (one per line)

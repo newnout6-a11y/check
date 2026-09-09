@@ -1,4 +1,4 @@
-﻿"""
+"""
 Deep audit of TG bot core functions:
 1. DB operations (user, credits, premium, keys, settings).
 2. Formatters (cards, BIN, translations, mass results).

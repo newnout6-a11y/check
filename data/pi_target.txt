@@ -1,0 +1,1 @@
+# data/pi_target.txt: URLs of checkout pages with exposed PaymentIntent client_secret (one per line)

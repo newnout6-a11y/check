@@ -15,7 +15,7 @@ import pusto_logger as log
 
 HEALTH_FILE = os.path.join("data", "proxy_health.json")
 PROBE_URL = "https://api.ipify.org/?format=json"
-VALIDATE_INTERVAL = 30 * 60  # сек между фоновыми ревалидациями
+VALIDATE_INTERVAL = 15 * 60  # сек между фоновыми ревалидациями (15 минут)
 
 
 class ProxyPool:

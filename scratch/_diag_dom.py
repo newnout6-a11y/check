@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import nodriver as uc
 
 async def diag():

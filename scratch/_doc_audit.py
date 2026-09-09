@@ -13,7 +13,7 @@ DATA = ROOT / "data"
 
 TRACKED = [
     "ready_gates.json", "store_gates.json", "shopify_gates.json", "final_gates.json",
-    "pi_gates.json", "proxy_health.json", "active_surfaces.json", "proxies.txt",
+    "pi_gates.json", "proxy_health.json", "pi_target.txt", "proxies.txt",
     "store_targets.txt", "shopify_targets.txt", "hit_targets.txt",
     "braintree_targets.txt", "probe_targets.txt", "bin_cache.db",
 ]

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Test Approach 2: Local Zero-Cost Headless Sidecar (nodriver + native Chrome).
 Solves Cloudflare Turnstile locally without any paid API keys and without ML.
 Uses native Chrome via Chrome DevTools Protocol (CDP).

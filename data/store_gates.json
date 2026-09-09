@@ -262,21 +262,6 @@
     "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
   },
   {
-    "domain": "artisalwaysmagic.com",
-    "base_url": "https://artisalwaysmagic.com",
-    "pk_live": "pk_live_51TNI9WGVygXXHvimd06qhAnTwgCJKW7UhbijE0g8ZnoF7f1d0dyCN9QL3RFYucrXz5dXL0MohGOgZBxyRkNnOAlb00bJryHACT",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 188,
-    "updated_at": 1787832164,
-    "status": "STORE_LIVE",
-    "verified": false,
-    "verify_status": "ERROR",
-    "verify_detail": "Timeout: Failed to perform, curl: (28) Connection timed out after 10007 milliseconds. See https://curl.se/libcurl/c/libc",
-    "phantom": false,
-    "phantom_probe": "ERROR: pk_live not found on storefront"
-  },
-  {
     "domain": "conferenziaworld.com",
     "base_url": "https://conferenziaworld.com",
     "pk_live": "pk_live_51Pivbi2MBL85rceRLY8MwiMaGxrV24i87I8IptUf0kAsI7oBYEe2G3SGAHnkGj62PdgUJnLP6wRbzf47Ay5Z03f100AFzIQzm7",
@@ -494,21 +479,6 @@
     "phantom_probe": "ERROR: pk_live not found on storefront"
   },
   {
-    "domain": "updraftplus.com",
-    "base_url": "https://updraftplus.com",
-    "pk_live": "pk_live_5103WHZ23U6LItlHlgGAgKGkr1FAfl05EsLShTVL2Mqx5LOJ2Ra0V57BL0EzknetqZB2fPiVPkAbVDNrPactxmUX1009pk446JL",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 1190,
-    "updated_at": 1787832272,
-    "status": "STORE_LIVE",
-    "verified": false,
-    "verify_status": "ERROR",
-    "verify_detail": "no purchasable product under cap (out of stock?)",
-    "phantom": false,
-    "phantom_probe": "ERROR: no purchasable product under cap (out of stock?)"
-  },
-  {
     "domain": "woo.com",
     "base_url": "https://woo.com",
     "pk_live": "pk_live_51ETDmyFuiXB5oUVxaIafkGPnwuNcBxr1pXVhvLJ4BrWuiqfG6SldjatOGLQhuqXnDmgqwRA7tDoSFlbY4wFji7KR0079TvtxNs",
@@ -633,24 +603,6 @@
     "verify_detail": "no purchasable product under cap (out of stock?)",
     "phantom": false,
     "phantom_probe": "ERROR: pk_live not found on storefront"
-  },
-  {
-    "domain": "atriumcoffeeroasters.com",
-    "base_url": "https://atriumcoffeeroasters.com",
-    "pk_live": "pk_live_51ETDmyFuiXB5oUVxaIafkGPnwuNcBxr1pXVhvLJ4BrWuiqfG6SldjatOGLQhuqXnDmgqwRA7tDoSFlbY4wFji7KR0079TvtxNs",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 600,
-    "updated_at": 1787833656,
-    "status": "STORE_LIVE",
-    "verified": false,
-    "verify_status": "ERROR",
-    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Apple Pay is not available for this orderвЂ”please ch",
-    "phantom": false,
-    "phantom_probe": "ERROR: checkout HTTP 508: :",
-    "dead_surface": false,
-    "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "brick-library.com",
@@ -906,24 +858,6 @@
     "verify_detail": "checkout HTTP 500: woocommerce_rest_unknown_server_error:Please complete the reCAPTCHA to verify that you are not a robo",
     "phantom": false,
     "phantom_probe": "ERROR: checkout HTTP 500: woocommerce_rest_unknown_server_error:Please complete the reCAPTCHA to "
-  },
-  {
-    "domain": "petalane.ch",
-    "base_url": "https://petalane.ch",
-    "pk_live": "pk_live_51ETDmyFuiXB5oUVxaIafkGPnwuNcBxr1pXVhvLJ4BrWuiqfG6SldjatOGLQhuqXnDmgqwRA7tDoSFlbY4wFji7KR0079TvtxNs",
-    "gate_type": "woo_store_api",
-    "store_nonce": true,
-    "cheapest_cents": 1980,
-    "updated_at": 1787839109,
-    "status": "STORE_LIVE",
-    "verified": false,
-    "verify_status": "ERROR",
-    "verify_detail": "checkout HTTP 400: woocommerce_rest_checkout_payment_method_disabled:Multibanco ist fГјr diese Bestellung nicht verfГјgbar",
-    "phantom": false,
-    "phantom_probe": "ERROR: Timeout: Failed to perform, curl: (28) Operation timed out after 10003 milliseconds with 0",
-    "dead_surface": false,
-    "battle_check": "2026-08-27",
-    "battle_result": "LIVE (cap $20)"
   },
   {
     "domain": "projectivities.com",

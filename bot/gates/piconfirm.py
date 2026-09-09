@@ -31,8 +31,9 @@ def _target() -> str:
         if os.path.exists(p):
             with open(p, encoding="utf-8") as f:
                 for line in f:
-                    if line.strip():
-                        t = line.strip()
+                    s = line.strip()
+                    if s and not s.startswith("#"):
+                        t = s
                         break
     if not t:
         p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "pi_gates.json")
@@ -82,8 +83,8 @@ async def _get_session() -> ConfirmGateSession:
         _gs = None
     target = _target()
     if not target:
-        log.log_error("piconfirm", "PI target not configured (env PUSTO_PI_TARGET / data/pi_target.txt / pi_gates.json)")
-        raise RuntimeError("PI target not configured (env PUSTO_PI_TARGET / data/pi_target.txt)")
+        log.log_error("piconfirm", "no pi targets configured (env PUSTO_PI_TARGET / data/pi_gates.json)")
+        raise RuntimeError("no pi targets (env PUSTO_PI_TARGET / data/pi_gates.json)")
     proxy_pool = gc.load_proxies()
     proxy = gc.pick_proxy(proxy_pool, None)
     log.log_target("piconfirm", target, f"opening session (proxy: {proxy or 'direct'})")

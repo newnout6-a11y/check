@@ -346,9 +346,18 @@ async def main():
             del args[i:i + 2]
         else:
             del args[i]
-    if not args or not args[0].startswith("http") or "cs_" not in args[0]:
-        print("Usage: python hit_gate.py <cs_live-checkout-url> [cards...|file] [--proxy URL]")
-        return
+    if not args:
+        p_hit = os.path.join(os.path.dirname(__file__), "data", "hit_targets.txt")
+        if os.path.exists(p_hit):
+            with open(p_hit, encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("http"):
+                        args.append(line.strip())
+                        break
+        if not args:
+            print("Usage: python hit_gate.py <cs_live-checkout-url> [cards...|file] [--proxy URL]")
+            return
+        print(f"[*] Цель не указана — взята из data/hit_targets.txt: {args[0][:60]}...")
     target = args[0]
     cards = []
     import os
