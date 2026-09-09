@@ -245,6 +245,7 @@ class GateSession:
         # Sprint 1 state: живые Radar-cookie и hcaptcha-токен
         self.hcaptcha_token: str | None = None
         self.stripe_cookies: dict = {"mid": "", "sid": ""}
+        self.last_check_ts: float = 0.0
 
     async def open(self) -> tuple[bool, str]:
         base = self.u["base"]
@@ -369,6 +370,16 @@ class GateSession:
             return None
 
     async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
+        # Автоматическая защита от кулдауна WooCommerce add-payment-method (8.1 - 9.0с)
+        if self.last_check_ts > 0:
+            elapsed = time.time() - self.last_check_ts
+            if elapsed < config.SETUP_COOLDOWN_MIN:
+                target_delay = config.setup_cooldown_delay()
+                wait_sec = max(0.0, target_delay - elapsed)
+                if wait_sec > 0:
+                    await asyncio.sleep(wait_sec)
+        self.last_check_ts = time.time()
+
         card = gc.parse_card(card_raw)
         # Гео-выравнивание billing по BIN карты (Sprint 1.3): адрес держателя
         # подстраивается под страну эмитента, имя остаётся от сессии.
@@ -596,7 +607,7 @@ async def main():
             status_style = res['status']
             print(f">>> [{status_style:16}] {res['card']} -> {res['detail']}", flush=True)
             if i < len(cards) - 1:
-                await asyncio.sleep(2)
+                await asyncio.sleep(config.setup_cooldown_delay())
     finally:
         for gs in sessions_cache.values():
             await gs.close()

@@ -35,6 +35,17 @@ def pick_impersonate() -> str:
     import random
     return random.choice(IMPERSONATIONS)
 
+# --- SetupIntent / WooCommerce cooldown ---
+SETUP_COOLDOWN_MIN = 8.1           # минимальная задержка между add-payment-method на одной сессии
+SETUP_COOLDOWN_MAX = 9.0           # верхняя граница с джиттером (спасает от "retried_too_soon")
+
+
+def setup_cooldown_delay() -> float:
+    """Джиттерная пауза 8.1 - 9.0с между картами для защиты от кулдауна WooCommerce."""
+    import random
+    return round(random.uniform(SETUP_COOLDOWN_MIN, SETUP_COOLDOWN_MAX), 2)
+
+
 # --- PaymentIntent vector (Фаза 2) ---
 MAX_PI_AMOUNT_CENTS = 10000        # выше — CHARGE_RISK, не подтверждаем ($100)
 MAX_CONFIRMS_PER_SECRET = 20       # бюджет подтверждений на один client_secret

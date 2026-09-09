@@ -1,0 +1,357 @@
+[
+  {
+    "platform": "Shopify",
+    "store_url": "https://sparkcandles.com",
+    "total_cards": 10,
+    "clean_verdicts": 10,
+    "bot_challenges": 0,
+    "errors": 0,
+    "avg_latency_ms": 5385,
+    "results": [
+      {
+        "card": "453927******4227",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 6205
+      },
+      {
+        "card": "448528******8113",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3534
+      },
+      {
+        "card": "517546******3969",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3979
+      },
+      {
+        "card": "440393******4288",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3640
+      },
+      {
+        "card": "379363******8185",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4546
+      },
+      {
+        "card": "411111******5526",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3115
+      },
+      {
+        "card": "555555******8082",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4350
+      },
+      {
+        "card": "400000******4303",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3714
+      },
+      {
+        "card": "520000******2460",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 16942
+      },
+      {
+        "card": "378282******7085",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3830
+      }
+    ]
+  },
+  {
+    "platform": "Shopify",
+    "store_url": "https://sweetharvestfarms.com",
+    "total_cards": 10,
+    "clean_verdicts": 10,
+    "bot_challenges": 0,
+    "errors": 0,
+    "avg_latency_ms": 4666,
+    "results": [
+      {
+        "card": "453927******4227",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 5905
+      },
+      {
+        "card": "448528******8113",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3552
+      },
+      {
+        "card": "517546******3969",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4198
+      },
+      {
+        "card": "440393******4288",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3409
+      },
+      {
+        "card": "379363******8185",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4905
+      },
+      {
+        "card": "411111******5526",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 6895
+      },
+      {
+        "card": "555555******8082",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 5523
+      },
+      {
+        "card": "400000******4303",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3702
+      },
+      {
+        "card": "520000******2460",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3540
+      },
+      {
+        "card": "378282******7085",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 5036
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce Store API",
+    "store_url": "https://rocketgeek.com",
+    "total_cards": 10,
+    "clean_verdicts": 2,
+    "bot_challenges": 0,
+    "errors": 8,
+    "avg_latency_ms": 15180,
+    "results": [
+      {
+        "card": "453927******4227",
+        "status": "ERROR",
+        "detail": "Timeout: Failed to perform, curl: (28) Resolving timed out after 10014 milliseconds. See https://cur",
+        "latency_ms": 22519
+      },
+      {
+        "card": "448528******8113",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 13092
+      },
+      {
+        "card": "517546******3969",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 17337
+      },
+      {
+        "card": "440393******4288",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 15649
+      },
+      {
+        "card": "379363******8185",
+        "status": "INVALID",
+        "detail": "The card number is longer than the maximum supported length of 15.",
+        "latency_ms": 12432
+      },
+      {
+        "card": "411111******5526",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 12874
+      },
+      {
+        "card": "555555******8082",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 21483
+      },
+      {
+        "card": "400000******4303",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 12813
+      },
+      {
+        "card": "520000******2460",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 12445
+      },
+      {
+        "card": "378282******7085",
+        "status": "INVALID",
+        "detail": "The card number is longer than the maximum supported length of 15.",
+        "latency_ms": 11162
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce Store API",
+    "store_url": "https://forageplus.co.uk",
+    "total_cards": 10,
+    "clean_verdicts": 0,
+    "bot_challenges": 0,
+    "errors": 10,
+    "avg_latency_ms": 1495,
+    "results": [
+      {
+        "card": "453927******4227",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1787
+      },
+      {
+        "card": "448528******8113",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1298
+      },
+      {
+        "card": "517546******3969",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1724
+      },
+      {
+        "card": "440393******4288",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1500
+      },
+      {
+        "card": "379363******8185",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1661
+      },
+      {
+        "card": "411111******5526",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1418
+      },
+      {
+        "card": "555555******8082",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1467
+      },
+      {
+        "card": "400000******4303",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1487
+      },
+      {
+        "card": "520000******2460",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1295
+      },
+      {
+        "card": "378282******7085",
+        "status": "ERROR",
+        "detail": "Store API: no Nonce header",
+        "latency_ms": 1314
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce SetupIntent",
+    "store_url": "https://www.blackbeltprotein.com.au",
+    "total_cards": 10,
+    "clean_verdicts": 10,
+    "bot_challenges": 0,
+    "errors": 0,
+    "avg_latency_ms": 2505,
+    "results": [
+      {
+        "card": "453927******4227",
+        "status": "DECLINED",
+        "detail": "Your card was declined.",
+        "latency_ms": 5735
+      },
+      {
+        "card": "448528******8113",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2493
+      },
+      {
+        "card": "517546******3969",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 3452
+      },
+      {
+        "card": "440393******4288",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2494
+      },
+      {
+        "card": "379363******8185",
+        "status": "INVALID",
+        "detail": "The card number is longer than the maximum supported length of 15.",
+        "latency_ms": 431
+      },
+      {
+        "card": "411111******5526",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2421
+      },
+      {
+        "card": "555555******8082",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2681
+      },
+      {
+        "card": "400000******4303",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2482
+      },
+      {
+        "card": "520000******2460",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2399
+      },
+      {
+        "card": "378282******7085",
+        "status": "INVALID",
+        "detail": "The card number is longer than the maximum supported length of 15.",
+        "latency_ms": 465
+      }
+    ]
+  }
+]

@@ -1,0 +1,373 @@
+[
+  {
+    "platform": "Shopify",
+    "store_url": "https://sparkcandles.com",
+    "gate_type": "shopify",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [
+        "hcaptcha",
+        "recaptcha"
+      ],
+      "bypass_strategy": "silent_radar_token_or_ctoken",
+      "is_active_block": false,
+      "inspect_latency_ms": 2187
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 4737,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 6824
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3409
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3978
+      }
+    ]
+  },
+  {
+    "platform": "Shopify",
+    "store_url": "https://sweetharvestfarms.com",
+    "gate_type": "shopify",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [
+        "hcaptcha",
+        "recaptcha"
+      ],
+      "bypass_strategy": "silent_radar_token_or_ctoken",
+      "is_active_block": false,
+      "inspect_latency_ms": 1049
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 3912,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 5422
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 2974
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3341
+      }
+    ]
+  },
+  {
+    "platform": "Shopify",
+    "store_url": "https://beeyouorganics.com",
+    "gate_type": "shopify",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [
+        "hcaptcha",
+        "recaptcha"
+      ],
+      "bypass_strategy": "silent_radar_token_or_ctoken",
+      "is_active_block": false,
+      "inspect_latency_ms": 1229
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 4655,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 6081
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3455
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4430
+      }
+    ]
+  },
+  {
+    "platform": "Shopify",
+    "store_url": "https://tasteoftea.com",
+    "gate_type": "shopify",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [
+        "hcaptcha",
+        "recaptcha"
+      ],
+      "bypass_strategy": "silent_radar_token_or_ctoken",
+      "is_active_block": false,
+      "inspect_latency_ms": 1610
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 4070,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 5049
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3825
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3337
+      }
+    ]
+  },
+  {
+    "platform": "Shopify",
+    "store_url": "https://ontheround.com",
+    "gate_type": "shopify",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [
+        "hcaptcha",
+        "recaptcha"
+      ],
+      "bypass_strategy": "silent_radar_token_or_ctoken",
+      "is_active_block": false,
+      "inspect_latency_ms": 5314
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 4001,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4292
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 3030
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "Card declined by Shopify Payments / Issuer",
+        "latency_ms": 4682
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce Store API",
+    "store_url": "https://rocketgeek.com",
+    "gate_type": "store",
+    "shield": {
+      "waf": "none",
+      "shields": [],
+      "bypass_strategy": "standard_direct",
+      "is_active_block": false,
+      "inspect_latency_ms": 1256
+    },
+    "clean_verdicts": 0,
+    "errors": 3,
+    "avg_latency_ms": 13652,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 14910
+      },
+      {
+        "card": "448528******9722",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 14367
+      },
+      {
+        "card": "517546******3306",
+        "status": "ERROR",
+        "detail": "checkout HTTP 200: :",
+        "latency_ms": 11680
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce Store API",
+    "store_url": "https://brentrobitaille.com",
+    "gate_type": "store",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [],
+      "bypass_strategy": "curl_impersonate_direct",
+      "is_active_block": false,
+      "inspect_latency_ms": 3390
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 23839,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "order 16280 PI requires valid payment method",
+        "latency_ms": 20350
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "order 16281 PI requires valid payment method",
+        "latency_ms": 26024
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "order 16282 PI requires valid payment method",
+        "latency_ms": 25143
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce Store API",
+    "store_url": "https://specialteacompany.com",
+    "gate_type": "store",
+    "shield": {
+      "waf": "none",
+      "shields": [
+        "recaptcha",
+        "kasada"
+      ],
+      "bypass_strategy": "standard_direct",
+      "is_active_block": false,
+      "inspect_latency_ms": 4192
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 18673,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "There was an error processing the payment: The card was declined.",
+        "latency_ms": 19546
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "There was an error processing the payment: The card was declined.",
+        "latency_ms": 18793
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "There was an error processing the payment: The card was declined.",
+        "latency_ms": 17681
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce Store API",
+    "store_url": "https://yarnstreet.com",
+    "gate_type": "store",
+    "shield": {
+      "waf": "cloudflare",
+      "shields": [
+        "recaptcha",
+        "cloudflare_challenge"
+      ],
+      "bypass_strategy": "curl_impersonate_direct",
+      "is_active_block": false,
+      "inspect_latency_ms": 1483
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 21415,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "There was an error processing the payment: The card was declined.",
+        "latency_ms": 19338
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "There was an error processing the payment: The card was declined.",
+        "latency_ms": 17823
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "There was an error processing the payment: The card was declined.",
+        "latency_ms": 27086
+      }
+    ]
+  },
+  {
+    "platform": "WooCommerce SetupIntent",
+    "store_url": "https://www.blackbeltprotein.com.au",
+    "gate_type": "setup",
+    "shield": {
+      "waf": "none",
+      "shields": [],
+      "bypass_strategy": "standard_direct",
+      "is_active_block": false,
+      "inspect_latency_ms": 2080
+    },
+    "clean_verdicts": 3,
+    "errors": 0,
+    "avg_latency_ms": 3463,
+    "results": [
+      {
+        "card": "453927******6606",
+        "status": "DECLINED",
+        "detail": "Your card was declined.",
+        "latency_ms": 4958
+      },
+      {
+        "card": "448528******9722",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2598
+      },
+      {
+        "card": "517546******3306",
+        "status": "DECLINED",
+        "detail": "You cannot add a new payment method so soon after the previous one.",
+        "latency_ms": 2834
+      }
+    ]
+  }
+]

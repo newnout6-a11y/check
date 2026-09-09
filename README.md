@@ -110,7 +110,7 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | `funnel.py` | 210+ | **Учёт потерь воронки:** закрытый enum причин отказа (`REASONS`), исключающий мусорный `NO_REG` |
 | `setup_gate.py` | 590+ | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` |
 | `shopify_gate.py` | 620+ | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
-| `hit_gate.py` | 390+ | Готовый `cs_live`-линк: fid-декод → `payment_pages/{cs}` → confirm → 3DS двух поколений; каскад `amount_mismatch` с пересчётом суммы; Radar-челлендж → `CAPTCHA_CHECKOUT` |
+| `hit_gate.py` | 550+ | Готовый `cs_live`-линк: пре-флайт `qualify_session()`, fid-декод → `payment_pages/{cs}` → confirm с инжекцией `radar_options[hcaptcha_token]` и ConfirmationToken `ctoken_...` → 3DS двух поколений; каскад `amount_mismatch` с пересчётом суммы; Radar-челлендж → `CAPTCHA_CHECKOUT` |
 | `confirm_gate.py` | 300+ | Страница с торчащим `pi_..._secret_...`: retrieve PI → confirm → ретрай-бюджет → минт нового секрета |
 | `advanced_gate_scanner.py` | 390+ | Квалификация очереди v1: DNS → форма → POST-регистрация → скрап nonces → боевой SetupIntent-пробник |
 | `store_gate.py` | 110 | CLI-обёртка над `gate_client.store_api_confirm` с крышкой цены |
@@ -120,10 +120,11 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | `harvest_donors.py` | 240+ | Форумная полоса: 58 слагов wordpress.org, приоритет по System Status Report |
 | `bin_cache.py` | 100+ | SQLite-кэш BIN (TTL ∞), ленивое создание схемы |
 | `stripe_fid.py` | 130+ | Декодер `#fid`-фрагмента Stripe Checkout (base64 → XOR-5 → JSON) |
+| `surface_shield.py` | 200+ | **Антибот-профилировщик и классификатор WAF:** Cloudflare, Akamai, DataDome, Kasada, AWS WAF, Imperva, Fastly; распознавание Turnstile, hCaptcha Enterprise, reCAPTCHA, PoW; вычисление оптимального вектора обхода с нулевым false-positive |
 | `pusto_logger.py` | 280+ | **Центральный консольный логгер:** Windows Virtual Terminal, ANSI/UTF-8, бейджи `[TG]` `[HTTP]` `[STRIPE]` `[GATE]` `[RESULT]` по всем слоям, адаптер стандартного `logging` |
 | `captcha_pow.py` | 160+ | **Pure Python PoW Captcha Engine:** Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash; zero-cost, 1.4M+ H/s без ML |
 | `turnstile_sidecar.py` | 80+ | **Локальный Headless Sidecar:** нативное решение Cloudflare Turnstile (non-interactive и managed) через `patchright` и нативный Chrome CDP |
-| `config.py` | 60+ | Единый источник констант, таксономии вердиктов и пула TLS-отпечатков |
+| `config.py` | 75+ | Единый источник констант, таксономии вердиктов, кулдауна SetupIntent (8.1–9.0с) и пула TLS-отпечатков |
 | `bot/` | 3 570+ | Pyrogram-бот (`main.py` 1 890+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
 
 ---
@@ -419,6 +420,8 @@ pusto/
 | 2026-09-06 | storegate | brentrobitaille.com, jerky4u.com, vigilsbeefjerky.com и др. (обновлённый пул) | контрольный прогон 10 целей direct: 8/10 `DECLINED` эмитентом — полный цикл `cart→add-item→pm→ctoken→checkout` стабилен |
 | 2026-09-06 | shopify | brooklyn-candle-studio.myshopify.com ($5) | `DECLINED` probe-картой: цена исправлена (была битая $648,000 → $5), магазин в тире 5, полный цикл до ответа эмитента |
 | 2026-09-07 | shopify | republicoftea.com ($0.75) | `DECLINED` probe-картой: полный цикл чекаута, $0.75 в тире 1, эмитентный отказ |
+| 2026-09-09 | shopify / storegate / setupwoo | 10 магазинов (sparkcandles, sweetharvestfarms, beeyouorganics, tasteoftea, ontheround, brentrobitaille, specialteacompany, yarnstreet, rocketgeek, blackbeltprotein) | **Лайв-бенчмарк 10 магазинов x 3 карты (30 карт direct)**: 27/30 (90%) чистых ответов процессоров (`DECLINED`), 0 блокировок Cloudflare/антиботов; интеграция с `surface_shield.py` |
+| 2026-09-09 | setupwoo | blackbeltprotein.com.au | **Калибровка антиспам-кулдауна ядра WooCommerce**: точный замер границы спада (3с ❌, 5с ❌, 8с ✅); контрольный прогон 3 карт подряд на одной сессии — 100% успех; внедрен интервал 8.1–9.0с |
 
 Живость пула определяется боевым прогоном, а не числом записей в JSON. Пересчитывать
 состояние: `python scratch/_doc_audit.py`.

