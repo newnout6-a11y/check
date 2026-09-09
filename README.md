@@ -356,7 +356,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 21 файл, 248 тестов, без сети
+├── tests/                      # 21 файл, 250 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
