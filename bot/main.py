@@ -1399,6 +1399,7 @@ async def cmd_bin(client, message: Message):
         return await message.reply("Формат: /bin 123456 или просто 6 цифр БИНа")
     if len(bin_query) < 6:
         return await message.reply("❌ БИН должен содержать минимум 6 цифр")
+    status_msg = await message.reply("🔍 Запрос данных БИН...", parse_mode=ParseMode.HTML)
     import bin_cache
     binfo = await bin_cache.cached_lookup(bin_query, gc.bin_lookup_enriched)
     if not binfo or not binfo.get("scheme"):
@@ -1425,7 +1426,10 @@ async def cmd_bin(client, message: Message):
         f"🌍 <b>Страна:</b> {esc(c_name)} {f'({esc(c_a2)})' if c_a2 else ''}\n"
         f"🛡 <b>3DS / VBV:</b> {vbv_str}\n"
     )
-    await status_msg.edit_text(text, parse_mode=ParseMode.HTML)
+    try:
+        await status_msg.edit_text(text, parse_mode=ParseMode.HTML)
+    except Exception:
+        await message.reply(text, parse_mode=ParseMode.HTML)
 
 
 @app.on_message(filters.command(["gates"]))

@@ -80,8 +80,8 @@ def coerce_verdict(verdict: str) -> str:
     """
     v = (verdict or "").strip()
     # Сбои витрины/цели (не свойство карты) обязаны быть ERROR
-    if v in ("GUEST_CHECKOUT_DISABLED", "CAPTCHA_CHECKOUT", "NO_PM_SLUG",
-             "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
+    if v in ("GUEST_CHECKOUT_DISABLED", "GUEST_CHECKOUT_OFF", "CAPTCHA_CHECKOUT",
+             "NO_PM_SLUG", "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
              "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED", "CHARGE_RISK",
              "OUT_OF_STOCK", "CART_EMPTY", "CHECKPOINT_DENIED"):
         return "ERROR"
@@ -106,7 +106,7 @@ REFUNDABLE_VERDICTS = {"ERROR", "SESSION_EXPIRED", "SESSION_CANCELED"}
 
 def is_refundable(verdict: str) -> bool:
     """ERROR или смерть цели/сессии: кредит возвращается, фолл-троу продолжается."""
-    return verdict in REFUNDABLE_VERDICTS
+    return coerce_verdict(verdict) in REFUNDABLE_VERDICTS
 
 
 def icon(verdict: str) -> str:

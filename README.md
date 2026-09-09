@@ -306,6 +306,7 @@ UNKNOWN, ERROR
 | `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
 | `tests/test_shopify_smart_rotation.py` | 4 | SmartRotator: исключение in-flight коллизий, кулдаун доменов, circuit breaker, mtime кэширование |
 | `tests/test_turnstile_sidecar.py` | 3 | локальный Headless Sidecar решения Turnstile (`patchright` + native Chrome CDP): экспорт, mock-решение, timeout |
+| `tests/test_audit_crit_fixes.py` | 8 | верификация 8 критических фиксов аудита (CRIT-01..08): proxy leak, status_msg, loop-safe Turnstile, hit abort, refundable coercion, storegate cap & verification |
 
 Покрыты: ядро классификации, эвристики рекона, воронки чекаута, тиры, ротация, скоринг прокси, валидация карт, атомарная БД, интерактивные меню и роутинг сообщений Telegram-бота. Внешняя сеть при запуске тестового сьюта отключена — тесты полностью детерминированы.
 
@@ -356,7 +357,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 21 файл, 250 тестов, без сети
+├── tests/                      # 22 файла, 258 тестов, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 

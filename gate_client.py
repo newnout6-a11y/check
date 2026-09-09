@@ -45,7 +45,6 @@ CF_CHALLENGE_MARKS = (
     "Just a moment...",
     "Attention Required! | Cloudflare",
     "challenge-platform",
-    "cf-turnstile-wrapper",
 )
 
 # --- Cloudflare Turnstile: селекторы и атрибуты виджета (2026) ---
@@ -546,6 +545,15 @@ def solve_turnstile_url(url: str, timeout_sec: float = 15.0, headless: bool = Tr
     try:
         from turnstile_sidecar import solve_turnstile
         return solve_turnstile(url, timeout_sec=timeout_sec, headless=headless)
+    except Exception:
+        return None
+
+
+async def solve_turnstile_url_async(url: str, timeout_sec: float = 15.0, headless: bool = True) -> str | None:
+    """Asynchronously invokes local zero-cost headless sidecar to solve Cloudflare Turnstile for url."""
+    try:
+        from turnstile_sidecar import solve_turnstile_async
+        return await solve_turnstile_async(url, timeout_sec=timeout_sec, headless=headless)
     except Exception:
         return None
 

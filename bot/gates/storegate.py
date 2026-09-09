@@ -4,11 +4,8 @@
 # на самый дешёвый товар (<= $2) — COST выше остальных.
 import asyncio
 import os
-import random
-from pathlib import Path
 
 import gate_client as gc
-from curl_cffi.requests import AsyncSession
 from store_gate import check_target, MAX_PRICE_CENTS
 import pusto_logger as log
 
@@ -47,14 +44,15 @@ def _cheapest_map() -> dict[str, int]:
 
 
 def _dead_domains() -> set[str]:
-    """Мёртвые по верификации: dead_surface/phantom из store_gates.json."""
+    """Мёртвые по верификации: dead_surface/phantom/blocked/verified=False из store_gates.json."""
     import json
     p = os.path.join(os.path.dirname(__file__), "..", "..", "data", "store_gates.json")
     try:
         with open(p, encoding="utf-8") as f:
             gates = json.load(f)
         return {g.get("domain") for g in gates
-                if g.get("dead_surface") or g.get("phantom")} - {None}
+                if g.get("dead_surface") or g.get("phantom") or g.get("blocked")
+                or g.get("verified") is False} - {None}
     except Exception:
         return set()
 
@@ -74,7 +72,7 @@ def _targets(tier: tuple[int, int] | None = None) -> list[str]:
         targets = [t2 for t2 in targets
                    if t2.replace("https://", "") not in dead]
     if tier is not None:
-        # ценовой тир: сайты с мин. товаром в окне [lo, hi)
+        # ценовой тир: сайты с мин. товаром в полуинтервале [lo, hi)
         lo, hi = tier
         cmap = _cheapest_map()
         targets = [t2 for t2 in targets
@@ -142,7 +140,7 @@ async def gate(cc: str, mm: str, yy: str, cvv: str,
         targets = _targets(tier=None)
     if not targets:
         return ("ERROR", "нет доступных целей Store API в data/store_targets.txt")
-    max_price = t_window[1] if (t_window and t_window[1] >= 500) else MAX_PRICE_CENTS
+    max_price = t_window[1] if t_window else MAX_PRICE_CENTS
     async with _sem:  # A6: сессия своя на вызов — сериализация не нужна
         target = _pick_target(targets)  # A3: быстрые цели чаще
         proxy_pool = gc.load_proxies()

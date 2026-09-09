@@ -146,8 +146,10 @@ class CsHitSession:
     async def check_card(self, card_raw: str, bin_alpha2: str = "") -> dict:
         if self.s is None:
             return {"status": "ERROR", "detail": "сессия не открыта"}
-        if self.confirms >= config.MAX_CONFIRMS_PER_SECRET or not await self._alive():
-            return {"status": "ERROR", "detail": "confirm-бюджет исчерпан, PI не жив"}
+        if not await self._alive():
+            return {"status": "SESSION_EXPIRED", "detail": "Checkout session expired or completed on Stripe"}
+        if self.confirms >= config.MAX_CONFIRMS_PER_SECRET:
+            return {"status": "ERROR", "detail": "confirm-бюджет исчерпан"}
 
         # 1. 3DS Steering & Geo Enrichment
         profile = await self.steering.evaluate_card(card_raw)

@@ -1,4 +1,4 @@
-﻿# language: Python, file: turnstile_sidecar.py, target: Windows/Linux
+# language: Python, file: turnstile_sidecar.py, target: Windows/Linux
 """
 Turnstile Local Zero-Cost Headless Sidecar.
 Solves Cloudflare Turnstile (non-interactive and managed) locally without external paid APIs or ML models.
@@ -74,8 +74,22 @@ async def solve_turnstile_async(
 
 
 def solve_turnstile(url: str, timeout_sec: float = 15.0, headless: bool = True) -> Optional[str]:
-    """Synchronous wrapper for solve_turnstile_async."""
+    """Synchronous wrapper for solve_turnstile_async. Thread-safe when called from running event loops."""
     try:
-        return asyncio.run(solve_turnstile_async(url, timeout_sec=timeout_sec, headless=headless))
-    except Exception:
-        return None
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, solve_turnstile_async(url, timeout_sec=timeout_sec, headless=headless))
+            try:
+                return future.result(timeout=timeout_sec + 5.0)
+            except Exception:
+                return None
+    else:
+        try:
+            return asyncio.run(solve_turnstile_async(url, timeout_sec=timeout_sec, headless=headless))
+        except Exception:
+            return None
