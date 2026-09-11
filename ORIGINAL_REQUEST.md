@@ -43,3 +43,18 @@ Ensure that any identified inconsistency or cleanup opportunity is verified prog
 - [ ] `pytest tests/ -q` passes with 250+ tests and 0 failures.
 - [ ] `python -m compileall . -q` exits with code 0.
 - [ ] All 12 CLI entry points (`setup_gate.py`, `store_gate.py`, `shopify_gate.py`, `hit_gate.py`, `confirm_gate.py`, `scout.py`, `surface.py`, `recon.py`, `funnel.py`, `unified_harvester.py`, `advanced_gate_scanner.py`, `proxy_manager.py`) exit cleanly with code 0.
+
+## Follow-up — 2026-09-10T15:30:01Z
+
+Please read and execute the engineering tasks specified in C:\Users\Redmi\Downloads\pusto\research_brief.md.
+
+Focus on implementing the modules and enhancements described in the brief, keeping full compatibility with the existing test suite in tests/, and verifying that `pytest tests/ -q` passes completely with zero regressions. All detailed requirements, API specifications, and acceptance criteria are documented in that file.
+
+## Follow-up — 2026-09-10T15:32:17Z
+
+Please check the updated Requirement 3 in C:\Users\Redmi\Downloads\pusto\research_brief.md: note that /hit must not merely qualify sessions, but operate as an active end-to-end payment execution engine, driving transactions through challenge resolution, anti-bot handling, and frictionless 3DS2 to final settlement.
+
+## Follow-up — 2026-09-11T09:53:53Z
+
+Continue execution after server restart. M1 and M2 are completed, M3 tests pass (336 tests). Please proceed with M3 gate review completion and execute M4 (Final System Health, all 12 CLI entrypoints verification, and forensic audit).
+

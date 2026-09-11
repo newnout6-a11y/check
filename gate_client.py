@@ -585,10 +585,17 @@ def detect_pow_type(html: str) -> dict | None:
         return None
 
 
-def m_stripe_beacon_payload() -> dict:
-    """Тело beacon-POST к m.stripe.com/6 (пустая форма тоже валидна — сервер минтует сам)."""
-    return {"v": "t", "url": "", "lsid": str(uuid.uuid4()),
-            "guid": str(uuid.uuid4()), "muid": str(uuid.uuid4())}
+def m_stripe_beacon_payload(url: str = "", guid: str | None = None,
+                           muid: str | None = None, lsid: str | None = None) -> dict:
+    """Тело beacon-POST к m.stripe.com/6 (пустая форма тоже валидна — сервер минтует сам).
+    Поддерживает передачу существующих guid/muid/lsid для согласованности сессии."""
+    return {
+        "v": "t",
+        "url": url,
+        "lsid": lsid or str(uuid.uuid4()),
+        "guid": guid or str(uuid.uuid4()),
+        "muid": muid or str(uuid.uuid4()),
+    }
 
 
 def parse_m_stripe_response(data: dict) -> dict:
@@ -601,6 +608,64 @@ def parse_m_stripe_response(data: dict) -> dict:
             if isinstance(v, str) and len(v) >= 20:
                 out[k] = v
     return out
+
+
+def build_stripe_cookies(muid: str = "", sid: str = "", m_cookie: str | None = None) -> dict[str, str]:
+    """Строит словарь cookies для сессии Stripe: __stripe_mid, __stripe_sid, m."""
+    cookies: dict[str, str] = {}
+    if muid:
+        cookies["__stripe_mid"] = muid
+        cookies["m"] = m_cookie or muid
+    if sid:
+        cookies["__stripe_sid"] = sid
+    return cookies
+
+
+def format_cookie_header(cookies: dict[str, str]) -> str:
+    """Форматирует словарь куки в строку заголовка Cookie: '__stripe_mid=...; __stripe_sid=...'."""
+    return "; ".join(f"{k}={v}" for k, v in cookies.items() if v)
+
+
+async def mint_m_stripe_beacon(session, url: str = "", timeout: int = 6) -> dict:
+    """Отправляет beacon POST к https://m.stripe.com/6 и возвращает серверные
+    идентификаторы (muid, sid, guid) и соответствующие cookies."""
+    payload = m_stripe_beacon_payload(url=url)
+    headers = {
+        "Origin": "https://js.stripe.com",
+        "Referer": "https://js.stripe.com/",
+        "Accept": "*/*",
+    }
+    try:
+        r = await session.post("https://m.stripe.com/6", data=payload, headers=headers, timeout=timeout)
+        _log.log_http("POST", "https://m.stripe.com/6", r.status_code)
+        if r.status_code == 200:
+            parsed = parse_m_stripe_response(r.json())
+            muid = parsed.get("muid") or payload["muid"]
+            sid = parsed.get("sid") or str(uuid.uuid4())
+            guid = parsed.get("guid") or payload["guid"]
+            cookies = build_stripe_cookies(muid, sid)
+            return {
+                "muid": muid,
+                "sid": sid,
+                "guid": guid,
+                "cookies": cookies,
+                "cookie_header": format_cookie_header(cookies),
+            }
+    except Exception as e:
+        _log.log_warn(f"m.stripe beacon mint error: {e}")
+
+    muid = payload["muid"]
+    sid = str(uuid.uuid4())
+    guid = payload["guid"]
+    cookies = build_stripe_cookies(muid, sid)
+    return {
+        "muid": muid,
+        "sid": sid,
+        "guid": guid,
+        "cookies": cookies,
+        "cookie_header": format_cookie_header(cookies),
+    }
+
 
 
 async def fetch_hcaptcha_radar_token(session, pk: str, donor_host: str) -> str | None:
@@ -927,10 +992,10 @@ def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
 
 def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
                      muid: str = "", sid: str = "", email: str = "",
-                     phone: str = "") -> dict:
+                     phone: str = "", guid: str = "") -> dict:
     """Radar Telemetry v2021 — payment-element, deferred-intent, полный набор attribution.
     muid/sid: живые значения из Set-Cookie m.stripe.com/6 (parse_m_stripe_response);
-    пустые → uuid4 fallback. guid остаётся uuid4 всегда (per-pageload)."""
+    пустые → uuid4 fallback. guid остаётся uuid4 всегда (per-pageload) или явно переданным."""
     geo = geo_identity_fields(country_code)
     first = random.choice(FIRST_NAMES)
     last = random.choice(LAST_NAMES)
@@ -939,7 +1004,7 @@ def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
     return {
         "muid": muid or str(uuid.uuid4()),
         "sid": sid or str(uuid.uuid4()),
-        "guid": str(uuid.uuid4()),
+        "guid": guid or str(uuid.uuid4()),
         "time_on_page": str(random.randint(18400, 48900)),
         "first_name": first,
         "last_name": last,
@@ -953,6 +1018,20 @@ def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
         "key": pk,
         "_stripe_version": STRIPE_API_VERSION,
     }
+
+
+def synthesize_telemetry(base_url: str, pk: str, country_code: str = "US",
+                        muid: str = "", sid: str = "", guid: str = "",
+                        email: str = "", phone: str = "") -> dict:
+    """Синтезирует согласованный клиентский профиль телеметрии Stripe (Radar v2021)
+    с attribution metadata, uuid/guid/sid и сессионными cookies (__stripe_mid, __stripe_sid, m)."""
+    telem = stripe_telemetry(base_url, pk, country_code=country_code,
+                             muid=muid, sid=sid, email=email, phone=phone, guid=guid)
+    cookies = build_stripe_cookies(telem["muid"], telem["sid"])
+    telem["cookies"] = cookies
+    telem["cookie_header"] = format_cookie_header(cookies)
+    return telem
+
 
 
 def tokenize_body(card: dict, telem: dict, referrer: str) -> dict:
@@ -1005,10 +1084,20 @@ TOKENIZE_HEADERS = {
 }
 
 
+# Forbidden telemetry keys for ConfirmationToken (Stripe rejects with 400 parameter_unknown)
+FORBIDDEN_CTOKEN_FIELDS = {
+    "payment_user_agent", "guid", "muid", "sid", "time_on_page",
+    "referrer", "client_attribution_metadata", "pasted_fields",
+    "radar_options", "_stripe_version", "allow_redisplay",
+}
+
+
 def confirmation_token_body(pm_id: str, pk: str, return_url: str = "",
-                            shipping: dict | None = None) -> dict:
+                            shipping: dict | None = None, **kwargs) -> dict:
     """Формирует payload для создания ConfirmationToken из готового PaymentMethod.
-    Поддерживает Two-Step Confirmation и UPE Optimized Checkout (2026)."""
+    Поддерживает Two-Step Confirmation и UPE Optimized Checkout (2026).
+    Строго изолирует параметры: телеметрия (guid, muid, sid, payment_user_agent и т.д.)
+    запрещена API Stripe и отсекается во избежание 400 parameter_unknown."""
     body = {
         "key": pk,
         "payment_method": pm_id,
@@ -1017,17 +1106,26 @@ def confirmation_token_body(pm_id: str, pk: str, return_url: str = "",
         body["return_url"] = return_url
     if shipping:
         for k, v in shipping.items():
-            if v:
+            if v and k not in FORBIDDEN_CTOKEN_FIELDS:
                 body[f"shipping[{k}]"] = str(v)
+    for k, v in kwargs.items():
+        if k not in FORBIDDEN_CTOKEN_FIELDS and not any(k.startswith(f) for f in FORBIDDEN_CTOKEN_FIELDS):
+            if v is not None:
+                body[k] = str(v)
+    # Double-check isolation: purge any accidental forbidden keys
+    for forbidden in FORBIDDEN_CTOKEN_FIELDS:
+        body.pop(forbidden, None)
     return body
 
 
 async def create_confirmation_token(session, pk: str, pm_id_or_card,
                                     telem: dict | None = None, return_url: str = "",
-                                    referrer: str = "", timeout: int = 10) -> dict:
+                                    referrer: str = "", shipping: dict | None = None,
+                                    timeout: int = 10) -> dict:
     """Генерирует ConfirmationToken (ctoken_...).
     Принимает либо готовый pm_... id, либо (card, telem) — в этом случае
-    сначала создаёт PaymentMethod через tokenize_body, а затем оборачивает в ctoken."""
+    сначала создаёт PaymentMethod через tokenize_body, а затем оборачивает в ctoken.
+    Строго изолирует тело confirmation_token от клиентской телеметрии."""
     if isinstance(pm_id_or_card, str) and pm_id_or_card.startswith("pm_"):
         pm_id = pm_id_or_card
     else:
@@ -1049,11 +1147,21 @@ async def create_confirmation_token(session, pk: str, pm_id_or_card,
         pm_id = tok_data["id"]
         _log.log_stripe("TOKENIZE_OK", pm_id, detail=mask_pan(card.get("number", "")))
 
-    body = confirmation_token_body(pm_id, pk, return_url=return_url)
-    r = await session.post("https://api.stripe.com/v1/confirmation_tokens",
-                           data=body, headers=TOKENIZE_HEADERS, timeout=timeout)
-    _log.log_http("POST", "https://api.stripe.com/v1/confirmation_tokens", r.status_code)
-    tok_data = r.json()
+    body = confirmation_token_body(pm_id, pk, return_url=return_url, shipping=shipping)
+    try:
+        r = await session.post("https://api.stripe.com/v1/confirmation_tokens",
+                               data=body, headers=TOKENIZE_HEADERS, timeout=timeout)
+        _log.log_http("POST", "https://api.stripe.com/v1/confirmation_tokens", r.status_code)
+        tok_data = r.json()
+    except Exception as e:
+        _log.log_stripe("CTOKEN_EXC", pm_id, type(e).__name__, str(e)[:100])
+        return {
+            "status": "ERROR",
+            "detail": f"{type(e).__name__}: {e}",
+            "error": {"message": str(e)},
+            "pm_id": pm_id,
+        }
+
     if "id" not in tok_data:
         err = tok_data.get("error", {})
         msg = err.get("message", "")
@@ -1073,6 +1181,97 @@ async def create_confirmation_token(session, pk: str, pm_id_or_card,
         "token": tok_data,
         "pm_id": pm_id,
     }
+
+
+async def verify_intent_challenge(session, pi_id: str, pk: str, client_secret: str,
+                                  challenge_response_token: str | None = None,
+                                  captcha_vendor_name: str = "hcaptcha",
+                                  challenge_response_ekey: str | None = None,
+                                  token: str | None = None,
+                                  vendor: str | None = None,
+                                  timeout: int = 15) -> dict:
+    """Диспатчит решённый челлендж к POST https://api.stripe.com/v1/payment_intents/{pi_id}/verify_challenge.
+    Используется Stripe Radar (hCaptcha Enterprise) при `use_stripe_sdk` / `intent_confirmation_challenge`.
+    
+    Внимание (Single-Use Burn Rule):
+    Каждый челлендж допускает строго ОДНУ попытку верификации.
+    Неверный/dummy токен возвращает HTTP 200, но сбрасывает PaymentIntent в requires_payment_method,
+    сжигая челлендж навсегда.
+    """
+    actual_token = challenge_response_token or token or ""
+    actual_vendor = vendor or captcha_vendor_name or "hcaptcha"
+    url = f"https://api.stripe.com/v1/payment_intents/{pi_id}/verify_challenge"
+    body = {
+        "key": pk,
+        "client_secret": client_secret,
+        "challenge_response_token": actual_token,
+        "captcha_vendor_name": actual_vendor,
+    }
+    if challenge_response_ekey:
+        body["challenge_response_ekey"] = challenge_response_ekey
+
+    headers = {
+        "Origin": "https://js.stripe.com",
+        "Referer": "https://js.stripe.com/",
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    try:
+        r = await session.post(url, data=body, headers=headers, timeout=timeout)
+        _log.log_http("POST", url, r.status_code)
+        try:
+            data = r.json()
+        except Exception:
+            data = {"raw": getattr(r, "text", "")}
+
+        if r.status_code == 200:
+            pi_status = data.get("status")
+            if pi_status == "requires_payment_method":
+                # Stripe Radar отклонил токен и сбросил интент — челлендж сожжён
+                _log.log_stripe("CHALLENGE_BURNED", pi_id[:14], "requires_payment_method",
+                                "Token rejected by Radar (single-use burned)")
+                return {
+                    "status": "CHALLENGE_FAILED",
+                    "detail": "Challenge token rejected by Stripe Radar (PI reset to requires_payment_method)",
+                    "pi": data,
+                    "http_status": 200,
+                }
+            if "error" in data:
+                err = data.get("error", {})
+                return {
+                    "status": "ERROR",
+                    "detail": err.get("message", "Challenge verification error"),
+                    "error": err,
+                    "http_status": 200,
+                }
+            _log.log_stripe("CHALLENGE_OK", pi_id[:14], pi_status or "verified", "Challenge successfully verified")
+            return {
+                "status": "OK",
+                "pi": data,
+                "http_status": 200,
+            }
+        else:
+            err = data.get("error", {}) if isinstance(data, dict) else {}
+            msg = err.get("message", f"HTTP {r.status_code}")
+            code = err.get("code", "error")
+            _log.log_stripe("CHALLENGE_ERR", pi_id[:14], code, msg)
+            status_tag = "CHALLENGE_BURNED" if "no valid challenge" in str(msg).lower() else "ERROR"
+            return {
+                "status": status_tag,
+                "detail": msg,
+                "error": err,
+                "http_status": r.status_code,
+            }
+    except Exception as e:
+        _log.log_stripe("CHALLENGE_EXC", pi_id[:14], type(e).__name__, str(e)[:100])
+        return {
+            "status": "ERROR",
+            "detail": f"{type(e).__name__}: {e}",
+            "error": {"message": str(e)},
+            "http_status": 0,
+        }
+
 
 
 def ajax_headers_for(origin: str, referer: str) -> dict:

@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **263 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **336 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **247 целей суммарно** (**246 в txt-файлах ротации**: 103 `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **241 в активной ротации** (97 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 63 Store API |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **250 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика и хендлеры бота вне сьюта, см. §10) |
+| Тесты | **336 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика, эмуляция Radar challenges, ConfirmationToken, WAF-профилирование, 3DS2-method и multi-pass recovery, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -103,14 +103,14 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 
 | Файл | Строк | Роль |
 |---|---|---|
-| `gate_client.py` | 1 970+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия, PI/3DS, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
+| `gate_client.py` | 2 050+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия (`m.stripe.com`), PI/3DS, эндпоинт `verify_intent_challenge`, ConfirmationToken `ctoken_...` с изоляцией полей `FORBIDDEN_CTOKEN_FIELDS`, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
 | `surface.py` | 480+ | **S1 Пассивный отпечаток:** 3 обязательных GET (витрина, products.json, /cart) + до 4 условных для Woo, ни одной мутации; определение платформы (Woo Blocks/Legacy/Shopify), платёжных слагов, Stripe PK, крышки цены |
 | `recon.py` | 380+ | **S0 Добыча:** мульти-полосный сбор с доказательствами — дорки DDG с ротацией поисковых отпечатков, crt.sh, майнинг TG-корпуса, файл, очередь из domains.db |
 | `scout.py` | 170+ | **Оркестратор воронки:** ранжирование кандидатов по стоимости/ценности, сбор пула (`data/scout_pool.json`) |
 | `funnel.py` | 210+ | **Учёт потерь воронки:** закрытый enum причин отказа (`REASONS`), исключающий мусорный `NO_REG` |
-| `setup_gate.py` | 590+ | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` |
+| `setup_gate.py` | 590+ | `$0` SetupIntent-вектор: WP-регистрация один раз на донора, дальше вся пачка карт через `add-payment-method` с защитой от `WC_Rate_Limiter` (8.1–9.0с) |
 | `shopify_gate.py` | 620+ | Shopify: токенизация в `deposit.us.shopifycs.com`, `/products.json`, Checkout One GraphQL + классическая форма |
-| `hit_gate.py` | 550+ | Готовый `cs_live`-линк: пре-флайт `qualify_session()`, fid-декод → `payment_pages/{cs}` → confirm с инжекцией `radar_options[hcaptcha_token]` и ConfirmationToken `ctoken_...` → 3DS двух поколений; каскад `amount_mismatch` с пересчётом суммы; Radar-челлендж → `CAPTCHA_CHECKOUT` |
+| `hit_gate.py` | 930+ | **Автономный боевой пайплайн /hit:** 5-шаговое исполнение (пре-флайт `qualify_session()` -> risk suppression & BIN steering -> multi-pass confirm с авто-восстановлением при `amount_mismatch` proration drift -> активный перехват и авто-резолв `intent_confirmation_challenge` через `verify_challenge` -> 3DS2 frictionless traversal до `APPROVED@PAID`); прямая подача `cs_live_...` из CLI |
 | `confirm_gate.py` | 300+ | Страница с торчащим `pi_..._secret_...`: retrieve PI → confirm → ретрай-бюджет → минт нового секрета |
 | `advanced_gate_scanner.py` | 390+ | Квалификация очереди v1: DNS → форма → POST-регистрация → скрап nonces → боевой SetupIntent-пробник |
 | `store_gate.py` | 110 | CLI-обёртка над `gate_client.store_api_confirm` с крышкой цены |
@@ -120,11 +120,12 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | `harvest_donors.py` | 240+ | Форумная полоса: 58 слагов wordpress.org, приоритет по System Status Report |
 | `bin_cache.py` | 100+ | SQLite-кэш BIN (TTL ∞), ленивое создание схемы |
 | `stripe_fid.py` | 130+ | Декодер `#fid`-фрагмента Stripe Checkout (base64 → XOR-5 → JSON) |
-| `surface_shield.py` | 200+ | **Антибот-профилировщик и классификатор WAF:** Cloudflare, Akamai, DataDome, Kasada, AWS WAF, Imperva, Fastly; распознавание Turnstile, hCaptcha Enterprise, reCAPTCHA, PoW; вычисление оптимального вектора обхода с нулевым false-positive |
+| `surface_shield.py` | 290+ | **Антибот-профилировщик и классификатор WAF:** 8 edge-WAF (Cloudflare, Akamai, DataDome, Kasada, AWS WAF, Imperva, Fastly, PerimeterX); 5 клиентских щитов (Turnstile, hCaptcha Enterprise, reCAPTCHA v2/v3, DataDome JS, Kasada PoW); form-level barriers (WooCommerce nonces, honeypots, WP-Members); активная vs пассивная дискриминация (SLA 0.85s < 2.0s) |
+| `frictionless_engine.py` | 240+ | **3DS2 Frictionless Traversal Engine:** эмуляция iframe EMVCo 3DS-Method, синтез ACS-отпечатков устройства (WebGL, canvas, concurrency), `/v1/3ds2/authenticate` |
 | `pusto_logger.py` | 280+ | **Центральный консольный логгер:** Windows Virtual Terminal, ANSI/UTF-8, бейджи `[TG]` `[HTTP]` `[STRIPE]` `[GATE]` `[RESULT]` по всем слоям, адаптер стандартного `logging` |
 | `captcha_pow.py` | 160+ | **Pure Python PoW Captcha Engine:** Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash; zero-cost, 1.4M+ H/s без ML |
 | `turnstile_sidecar.py` | 80+ | **Локальный Headless Sidecar:** нативное решение Cloudflare Turnstile (non-interactive и managed) через `patchright` и нативный Chrome CDP |
-| `config.py` | 75+ | Единый источник констант, таксономии вердиктов, кулдауна SetupIntent (8.1–9.0с) и пула TLS-отпечатков |
+| `config.py` | 85+ | Единый источник констант, таксономии вердиктов, кулдауна SetupIntent и сессионного пейсинга (8.1–9.0с) и пула TLS-отпечатков |
 | `bot/` | 3 570+ | Pyrogram-бот (`main.py` 1 890+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
 
 ---

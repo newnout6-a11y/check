@@ -35,15 +35,24 @@ def pick_impersonate() -> str:
     import random
     return random.choice(IMPERSONATIONS)
 
-# --- SetupIntent / WooCommerce cooldown ---
+# --- SetupIntent / WooCommerce cooldown & Session Pacing ---
 SETUP_COOLDOWN_MIN = 8.1           # минимальная задержка между add-payment-method на одной сессии
 SETUP_COOLDOWN_MAX = 9.0           # верхняя граница с джиттером (спасает от "retried_too_soon")
+SESSION_PACING_MIN = 8.1           # унифицированная пауза для rate-limited эндпоинтов
+SESSION_PACING_MAX = 9.0
 
 
 def setup_cooldown_delay() -> float:
     """Джиттерная пауза 8.1 - 9.0с между картами для защиты от кулдауна WooCommerce."""
     import random
     return round(random.uniform(SETUP_COOLDOWN_MIN, SETUP_COOLDOWN_MAX), 2)
+
+
+def session_pacing_delay(min_delay: float = SESSION_PACING_MIN, max_delay: float = SESSION_PACING_MAX) -> float:
+    """Возвращает равномерно распределённую случайную задержку с джиттером (8.1 - 9.0с по умолчанию)
+    для rate-limited e-commerce эндпоинтов и защиты от anti-spam tripwires."""
+    import random
+    return round(random.uniform(min_delay, max_delay), 2)
 
 
 # --- PaymentIntent vector (Фаза 2) ---

@@ -116,7 +116,11 @@ async def execute_3ds_method(
         # Парсим скрытые формы и эндпоинты сбора данных ACS (например Entersekt / Cardinal)
         device_fp_url = None
         if "devicefingerprint" in html:
-            m = re.search(r'submitDataAndForm\(["\'](https://[^"\']+/devicefingerprint)["\']\)', html)
+            m = re.search(r'submitDataAndForm\(["\'](https://[^"\']+/devicefingerprint[^"\']*)["\']\)', html)
+            if not m:
+                m = re.search(r'action=["\'](https://[^"\']+/devicefingerprint[^"\']*)["\']', html)
+            if not m:
+                m = re.search(r'["\'](https://[^"\']+/devicefingerprint[^"\']*)["\']', html)
             if m:
                 device_fp_url = m.group(1)
 
@@ -177,14 +181,37 @@ async def attempt_frictionless_resolution(
     2. Обогащение телеметрии браузера (browser metadata)
     3. Вызов /v1/3ds2/authenticate или опрос payment_pages на финальный статус
     """
-    method_url = sdk_data.get("three_ds_method_url")
-    server_trans_id = sdk_data.get("server_transaction_id")
-    source_id = sdk_data.get("three_d_secure_2_source") or sdk_data.get("source")
-    
+    stripe_js = sdk_data.get("stripe_js") or {}
+    method_url = (
+        sdk_data.get("three_ds_method_url")
+        or stripe_js.get("three_ds_method_url")
+        or sdk_data.get("method_url")
+        or stripe_js.get("method_url")
+    )
+    server_trans_id = (
+        sdk_data.get("server_transaction_id")
+        or stripe_js.get("server_transaction_id")
+        or sdk_data.get("three_ds_server_trans_id")
+        or stripe_js.get("three_ds_server_trans_id")
+        or sdk_data.get("threeDSServerTransID")
+    )
+    source_id = (
+        sdk_data.get("three_d_secure_2_source")
+        or stripe_js.get("three_d_secure_2_source")
+        or sdk_data.get("source")
+        or stripe_js.get("source")
+    )
+    notification_url = (
+        sdk_data.get("three_ds_method_notification_url")
+        or stripe_js.get("three_ds_method_notification_url")
+        or sdk_data.get("notification_url")
+        or "https://hooks.stripe.com/3ds2/fingerprint/complete"
+    )
+
     # 1. Запуск 3DS Method, если он есть
     method_res = {"success": True}
     if method_url and server_trans_id:
-        method_res = await execute_3ds_method(session, method_url, server_trans_id)
+        method_res = await execute_3ds_method(session, method_url, server_trans_id, notification_url=notification_url)
 
     # 2. Формирование согласованной телеметрии
     browser_data = build_browser_telemetry(country_code=country_code)
@@ -211,35 +238,62 @@ async def attempt_frictionless_resolution(
         except Exception as e:
             auth_res = {"error": str(e)}
 
+    # Анализируем результат аутентификации
+    ares = auth_res.get("ares") or {}
+    trans_status = str(auth_res.get("transStatus") or ares.get("transStatus") or "").upper()
+    state = str(auth_res.get("state") or auth_res.get("status") or "").lower()
+
+    if trans_status == "Y" or state in ("succeeded", "approved"):
+        return {
+            "outcome": "FRICTIONLESS_PASSED",
+            "pi_status": "succeeded",
+            "detail": "Frictionless 3DS2 authenticated successfully (transStatus=Y)",
+            "auth_res": auth_res,
+            "method_res": method_res,
+        }
+    if trans_status == "C" or state in ("challenge_required",) or "acs_url" in str(auth_res):
+        return {
+            "outcome": "CHALLENGE_REQUIRED",
+            "pi_status": "requires_action",
+            "detail": "Issuer requires OTP / app challenge (transStatus=C)",
+            "auth_res": auth_res,
+            "method_res": method_res,
+        }
+
     # 4. Проверка состояния сессии чекаута
-    try:
-        r_poll = await session.get(
-            f"https://api.stripe.com/v1/payment_pages/{cs}",
-            params={"key": pk},
-            headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/", "Accept": "application/json"},
-            timeout=10
-        )
-        poll_json = r_poll.json() or {}
-        pi = poll_json.get("payment_intent") or {}
-        pi_status = pi.get("status")
-        
-        if pi_status in ("succeeded", "processing") or poll_json.get("status") == "complete":
-            return {
-                "outcome": "FRICTIONLESS_PASSED",
-                "pi_status": pi_status,
-                "detail": f"Frictionless authentication approved ({pi_status})"
-            }
-        elif pi_status == "requires_action":
-            na = pi.get("next_action") or {}
-            sdk = na.get("use_stripe_sdk") or {}
-            if sdk.get("type") == "stripe_3ds2_challenge" or "acs_url" in str(sdk):
+    if cs:
+        try:
+            r_poll = await session.get(
+                f"https://api.stripe.com/v1/payment_pages/{cs}",
+                params={"key": pk},
+                headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/", "Accept": "application/json"},
+                timeout=10
+            )
+            poll_json = r_poll.json() or {}
+            pi = poll_json.get("payment_intent") or {}
+            pi_status = pi.get("status")
+
+            if pi_status in ("succeeded", "processing") or poll_json.get("status") == "complete":
                 return {
-                    "outcome": "CHALLENGE_REQUIRED",
+                    "outcome": "FRICTIONLESS_PASSED",
                     "pi_status": pi_status,
-                    "detail": "Issuer requires OTP / app challenge"
+                    "detail": f"Frictionless authentication approved ({pi_status})",
+                    "auth_res": auth_res,
+                    "method_res": method_res,
                 }
-    except Exception:
-        pass
+            elif pi_status == "requires_action":
+                na = pi.get("next_action") or {}
+                sdk = na.get("use_stripe_sdk") or {}
+                if sdk.get("type") == "stripe_3ds2_challenge" or "acs_url" in str(sdk):
+                    return {
+                        "outcome": "CHALLENGE_REQUIRED",
+                        "pi_status": pi_status,
+                        "detail": "Issuer requires OTP / app challenge",
+                        "auth_res": auth_res,
+                        "method_res": method_res,
+                    }
+        except Exception:
+            pass
 
     return {
         "outcome": "IN_PROGRESS",
