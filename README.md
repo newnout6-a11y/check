@@ -1,6 +1,6 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **336 passed** (Python 3.14).
+> Все исторические и противоречивые документы убраны. `README.md` и `AGENTS.md` — единственный состав документации проекта; README сверен с кодом пофайлово. Полный тестовый сьют: **356 passed** (Python 3.14).
 
 ---
 
@@ -82,7 +82,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **247 целей суммарно** (**246 в txt-файлах ротации**: 103 `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **241 в активной ротации** (97 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 63 Store API |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **336 passed** (все офлайн; покрыт весь офлайн-контур — сетевая механика, эмуляция Radar challenges, ConfirmationToken, WAF-профилирование, 3DS2-method и multi-pass recovery, см. §10) |
+| Тесты | **356 passed** (все офлайн; покрыт весь офлайн-контур — Telegram-бот live battery из 20 тестов, сетевая механика, эмуляция Radar challenges, ConfirmationToken, WAF-профилирование, 3DS2-method и multi-pass recovery, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -283,7 +283,7 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**250 passed** (21 файл), все офлайн (Python 3.14, pytest 9.0.3).
+**356 passed** (26 файлов), все офлайн (Python 3.14, pytest 9.0.3).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -292,12 +292,18 @@ UNKNOWN, ERROR
 | `tests/test_audit_fixes.py` | 27 | регрессии аудита 2026-09: parse_card, normalize_proxy, coerce техстатусов, REFUNDABLE, hit прокси/гео, константы Stripe, каскад amount_mismatch, таксономия (APPROVED@PAID в HIT_VERDICTS, WRONG_CVC/RESTRICTED), переводы и форматирование результатов |
 | `tests/test_round9_fixes.py` | 21 | `coerce_verdict`, статусы SetupIntent, `card_rejection`, тиры, фолл-троу гейтов, WAL/`user_version`, антиспам, откат счётчика, атомная запись |
 | `tests/test_shopify.py` | 21 | `_normalize_card`, 12 ветвей `classify_shopify_verdict`, тиры, реестр гейтов |
+| `tests/test_autonomous_hit_and_pacing.py` | 21 | автономный боевой пайплайн `/hit`, пре-флайт квалификация `qualify_session`, dynamic amount recovery, тайминги сессий |
+| `tests/test_bot_live_battery.py` | 20 | исчерпывающая батарея тестирования Telegram-бота: БД, ключи, баланс, клавиатуры, форматирование, команды, роутинг, админ-права, фоллбэк и возврат кредитов |
+| `tests/test_intent_verification_and_radar.py` | 18 | Stripe Radar mitigation, `verify_challenge`, перехват `intent_confirmation_challenge`, ConfirmationToken параметры |
+| `tests/test_surface_shield_adversarial.py` | 16 | стресс-тесты WAF профилировщика: 8 типов WAF, Turnstile, hCaptcha Enterprise, honeypots, dynamic nonces |
 | `tests/test_bot_interactive.py` | 13 | интерактивные inline-меню бота, переключение шлюзов и тиров цены, фильтрация ввода |
 | `tests/test_round1_fixes.py` | 13 | `parse_card`, `extract_pan`, Luhn, `score_gate`, `classify_verdict`, `domains_store`, redeem/spend/refund |
 | `tests/test_speed_fixes.py` | 13 | `bin_cache` round-trip/miss/empty, `_pick_target`, `_dead_domains`, `_available_gates` |
+| `tests/test_surface_shield_and_hit.py` | 9 | детекция Cloudflare/DataDome/Akamai/PoW/Turnstile, квалификатор сессий `qualify_session`, инжекция Radar-токена |
 | `tests/test_round7_fixes.py` | 9 | ротация Shopify, кэш без `init_db()`, регистрация `/chk`, тир таблицей целевого гейта |
 | `tests/test_hit_3ds.py` | 9 | `_classify_and_resolve_3ds`: paid / card errors / 3DS2 / 3DS1 / Radar bot challenge → `CAPTCHA_CHECKOUT` / каскад `amount_mismatch` (предикат + DummySession + двойной дрейф) |
 | `tests/test_shopify_light_probe.py` | 8 | быстрый зонд `/cart/add.js`, валидация цен, отсечение 0c promo, фоллбэк на каталог, 24h карантин out-of-stock и авто-ротация в боте |
+| `tests/test_audit_crit_fixes.py` | 8 | верификация 8 критических фиксов аудита (CRIT-01..08): proxy leak, status_msg, loop-safe Turnstile, hit abort, refundable coercion, storegate cap & verification |
 | `tests/test_captcha_pow.py` | 7 | Pure Python PoW Captcha Engine: Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash, детектор виджетов |
 | `tests/test_stripe_fid.py` | 7 | fid round-trip на перехваченном фрагменте + UTF-8 encode |
 | `tests/test_turnstile.py` | 7 | экстракция параметров Cloudflare Turnstile, интеграция `solve_turnstile_url` и `solve_pow_challenge` |
@@ -305,11 +311,10 @@ UNKNOWN, ERROR
 | `tests/test_round10_fixes.py` | 6 | изоляция парсинга карт и прокси, регрессионные фиксы регулярных выражений |
 | `tests/test_stripe_ctoken.py` | 5 | Stripe Confirmation Tokens (`ctoken_...`), dual-payload Store API, изоляция параметров |
 | `tests/test_price_tiers.py` | 5 | тиры `storegate` — фильтрация товаров по ценовым диапазонам |
+| `tests/test_audit_drift_fixes.py` | 5 | верификация выравнивания данных (DRIFT-01..12): дедупликация store_gates, 100% верификация store_targets, pi_target без комментов, VALIDATE_INTERVAL, no BOM |
 | `tests/test_3ds_steering.py` | 4 | классификация Non-VBV / 3DS рисков, приоритизация очереди, EMVCo 3DS-Method payload, согласованная телеметрия |
 | `tests/test_shopify_smart_rotation.py` | 4 | SmartRotator: исключение in-flight коллизий, кулдаун доменов, circuit breaker, mtime кэширование |
 | `tests/test_turnstile_sidecar.py` | 3 | локальный Headless Sidecar решения Turnstile (`patchright` + native Chrome CDP): экспорт, mock-решение, timeout |
-| `tests/test_audit_crit_fixes.py` | 8 | верификация 8 критических фиксов аудита (CRIT-01..08): proxy leak, status_msg, loop-safe Turnstile, hit abort, refundable coercion, storegate cap & verification |
-| `tests/test_audit_drift_fixes.py` | 5 | верификация выравнивания данных (DRIFT-01..12): дедупликация store_gates, 100% верификация store_targets, pi_target без комментов, VALIDATE_INTERVAL, no BOM |
 
 Покрыты: ядро классификации, эвристики рекона, воронки чекаута, тиры, ротация, скоринг прокси, валидация карт, атомарная БД, интерактивные меню и роутинг сообщений Telegram-бота. Внешняя сеть при запуске тестового сьюта отключена — тесты полностью детерминированы.
 
