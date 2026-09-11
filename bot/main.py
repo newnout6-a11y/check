@@ -71,9 +71,9 @@ HIT_VERDICTS = set(engine_cfg.HIT_VERDICTS) | {"APPROVED@PAID", "3DS_FRICTIONLES
 
 def admin_only(func):
     @functools.wraps(func)
-    async def wrapped(client, message: Message):
+    async def wrapped(client, message: Message, *args, **kwargs):
         if message.from_user and message.from_user.id in config.ADMIN_IDS:
-            return await func(client, message)
+            return await func(client, message, *args, **kwargs)
         return await message.reply("Доступ только для администраторов.")
     return wrapped
 
@@ -81,10 +81,10 @@ def admin_only(func):
 def user_only(func):
     """Guard: в каналах/анонимных сообщениях from_user=None → тихий краш без ответа."""
     @functools.wraps(func)
-    async def wrapped(client, message: Message):
+    async def wrapped(client, message: Message, *args, **kwargs):
         if message.from_user is None:
             return
-        return await func(client, message)
+        return await func(client, message, *args, **kwargs)
     return wrapped
 
 
@@ -993,6 +993,10 @@ async def gate_dispatch(client, message: Message):
         return await message.reply("Нет доступных гейтов: ни одна поверхность не настроена.")
     if gate_name in GATES:
         argline = " ".join(parts[1:])
+        # Если в команду передано больше 1 карты (пачка карт) -> автоматический массовый чек
+        cards_batch = parse_cards(argline, limit=2, dedupe=False)
+        if len(cards_batch) > 1:
+            return await cmd_mass(client, message, gate_forced=gate_name, tier_forced=tier, cards_text=argline)
         return await run_gate(message, gate_name, argline, tier=tier)
     # Команда попала в фильтр, но гейт не зарегистрирован: модуль упал на
     # импорте и реестр его молча выбросил. Без этой ветки /au, /st, /sp
@@ -1194,40 +1198,53 @@ async def cmd_hit(client, message: Message):
 
 @app.on_message(filters.command(["mass"]))
 @user_only
-async def cmd_mass(client, message: Message):
+async def cmd_mass(client, message: Message, gate_forced: str | None = None,
+                   tier_forced: str | None = None, cards_text: str | None = None):
     u_id = message.from_user.id
     db.ensure_user(u_id, message.from_user.username or "")
     if not db.antispam_ok(u_id):
         return await message.reply("⏳ Слишком часто — подождите пару секунд (антиспам)")
 
-    cards_text = ""
-    gate_forced = None
-    tier_forced = None
-
-    # форс гейта первым аргументом: имя, алиас (/st) или команда с тиром (/st1)
-    parts = (message.text or "").split()
-    if len(parts) > 1:
-        tok = parts[1].lower()
-        if tok in TIERED_GATE_CMDS:
-            gate_forced, tier_forced = TIERED_GATE_CMDS[tok]
-            raw_tail = " ".join(parts[2:])
-        elif GATE_ALIASES.get(tok, tok) in GATES:
-            gate_forced = GATE_ALIASES.get(tok, tok)
-            raw_tail = " ".join(parts[2:])
+    raw_tail = ""
+    # Если cards_text не передан явно (из gate_dispatch или direct_card_input)
+    if cards_text is None:
+        text = (message.text or message.caption or "").strip()
+        if text.startswith("/"):
+            parts = text.split()
+            cmd_root = parts[0].lstrip("/").split("@")[0].lower()
+            if cmd_root == "mass":
+                if len(parts) > 1:
+                    tok = parts[1].lower()
+                    if tok in TIERED_GATE_CMDS:
+                        if gate_forced is None and tier_forced is None:
+                            gate_forced, tier_forced = TIERED_GATE_CMDS[tok]
+                        raw_tail = " ".join(parts[2:])
+                    elif GATE_ALIASES.get(tok, tok) in GATES:
+                        if gate_forced is None:
+                            gate_forced = GATE_ALIASES.get(tok, tok)
+                        raw_tail = " ".join(parts[2:])
+                    else:
+                        raw_tail = " ".join(parts[1:])
+            else:
+                cmd_gate, cmd_tier = resolve_gate_cmd(parts[0])
+                if gate_forced is None:
+                    gate_forced = cmd_gate
+                if tier_forced is None:
+                    tier_forced = cmd_tier
+                raw_tail = " ".join(parts[1:])
         else:
-            raw_tail = " ".join(parts[1:])
-    else:
-        raw_tail = ""
+            # Прямой ввод текста без слэша: все строки являются картами
+            raw_tail = text
 
-    # Check if document / reply
-    if message.reply_to_message and message.reply_to_message.document:
-        doc = await message.reply_to_message.download(in_memory=True)
-        cards_text = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
-    elif message.document:
-        doc = await message.download(in_memory=True)
-        cards_text = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
-    elif raw_tail.strip():
-        cards_text = raw_tail
+        # Check if document / reply
+        if message.reply_to_message and message.reply_to_message.document:
+            doc = await message.reply_to_message.download(in_memory=True)
+            cards_text = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
+        elif message.document:
+            doc = await message.download(in_memory=True)
+            cards_text = bytes(doc.getbuffer()).decode("utf-8", errors="ignore")
+        elif raw_tail.strip():
+            cards_text = raw_tail
 
     u = db.get_user(u_id)
     is_admin = bool(u_id in config.ADMIN_IDS or db.is_developer(u))
@@ -1269,9 +1286,23 @@ async def cmd_mass(client, message: Message):
         reasons = "; ".join(dict.fromkeys(r["detail"] for r in rejected))[:300]
         return await message.reply(f"❌ Ни одной валидной карты. Причины: {reasons}")
 
-    gate_name = _pick_gate(gate_forced)
+    settings = db.get_user_settings(u_id)
+    if not gate_forced:
+        user_default = settings.get("selected_gate", "chk")
+        if user_default != "chk" and user_default in GATES:
+            gate_name = user_default
+        else:
+            gate_name = _pick_gate(None)
+    else:
+        gate_name = _pick_gate(gate_forced)
+
     if not gate_name:
         return await message.reply("Нет загруженных гейтов")
+
+    if not tier_forced and gate_name in ("storegate", "shopify"):
+        user_tier = settings.get("selected_tier", "1")
+        if user_tier not in ("all", "none"):
+            tier_forced = user_tier
 
     meta = GATES[gate_name]
     cost_per = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
@@ -1750,6 +1781,12 @@ async def callback_router(client, callback_query: CallbackQuery):
             await callback_query.answer()
 
     except Exception as e:
+        if type(e).__name__ == "MessageNotModified":
+            try:
+                await callback_query.answer()
+            except Exception:
+                pass
+            return
         print(f"[callback error] {type(e).__name__}: {e}")
         try:
             await callback_query.answer(f"Ошибка: {e}"[:60], show_alert=True)
@@ -1804,8 +1841,9 @@ async def direct_card_input(client, message: Message):
             return await message.reply("❌ Нет доступных шлюзов с активными целями (проверьте data/ready_gates.json или data/store_targets.txt).")
         return await run_gate(message, gate_to_run, text, tier=tier_arg)
     else:
-        # Несколько карт -> запускаем массовый чек через cmd_mass
-        return await cmd_mass(client, message)
+        # Несколько карт -> запускаем массовый чек через cmd_mass с сохранением гейта и тира
+        forced_gate = None if selected_gate == "chk" else selected_gate
+        return await cmd_mass(client, message, gate_forced=forced_gate, tier_forced=tier_arg, cards_text=text)
 
 
 @app.on_message(filters.document)
@@ -1844,9 +1882,14 @@ async def direct_document_input(client, message: Message):
     # 2. Иначе проверяем, являются ли строки картами (CC MM YY CVV)
     cards = parse_cards(content, limit=5, dedupe=False)
     if cards:
-        log.log_tg(f"Direct doc upload: {len(cards)} card(s) detected -> running cmd_mass",
+        settings = db.get_user_settings(u_id)
+        selected_gate = settings.get("selected_gate", "chk")
+        selected_tier = settings.get("selected_tier", "1")
+        tier_arg = None if selected_tier in ("all", "none") else selected_tier
+        forced_gate = None if selected_gate == "chk" else selected_gate
+        log.log_tg(f"Direct doc upload: {len(cards)} card(s) detected -> running cmd_mass via {forced_gate or 'auto'} (tier {tier_arg})",
                    user_id=u_id, username=message.from_user.username)
-        return await cmd_mass(client, message)
+        return await cmd_mass(client, message, gate_forced=forced_gate, tier_forced=tier_arg, cards_text=content)
 
     return await message.reply(
         "❓ <b>Не удалось распознать тип файла:</b>\n\n"

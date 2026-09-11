@@ -560,6 +560,20 @@ async def test_direct_card_input_routing(isolated_db, monkeypatch):
     assert args[1] == "storegate"
     assert "4111111111111111" in args[2]
 
+    # Проверяем пачку из нескольких карт прямым вводом
+    mock_cmd_mass = AsyncMock()
+    monkeypatch.setattr(bm, "cmd_mass", mock_cmd_mass)
+    isolated_db.set_user_gate(5004, "shopify")
+    isolated_db.set_user_tier(5004, "5")
+
+    msg_batch = MockMessage("4111111111111111 12 28 123\n4242424242424242 10 29 456", user_id=5004, username="fast_operator")
+    await bm.direct_card_input(None, msg_batch)
+
+    mock_cmd_mass.assert_awaited_once()
+    _, mass_kwargs = mock_cmd_mass.call_args
+    assert mass_kwargs.get("gate_forced") == "shopify"
+    assert mass_kwargs.get("tier_forced") == "5"
+
 
 # ============================================================================
 # 5. ТЕСТЫ МАРШРУТИЗАТОРА CALLBACK-ЗАПРОСОВ (callback_router)
