@@ -53,9 +53,27 @@ class ConfirmGateSession:
                 return False, f"GET target HTTP {r.status_code}"
             html = r.text
             if gc.is_cloudflare_challenge(html):
-                await _close(s)
-                log.log_warn(f"[confirm_gate] Cloudflare challenge on target page {self.target}")
-                return False, "Cloudflare challenge on target page"
+                # Раньше здесь был молчаливый отказ. Теперь поверхность классифицируется
+                # (surface_shield + captcha_pow) и защита пробуется сняться нашими средствами,
+                # а причина отказа уходит в результат с маршрутом (аудит 2026-09, §7 п.4).
+                profile = gc.classify_surface_challenge(
+                    r.status_code, html, headers=dict(r.headers), url=self.target
+                )
+                log.log_warn(f"[confirm_gate] защита на {self.target}: waf={profile['waf']} "
+                             f"route={profile['bypass_strategy'] or '-'} shields={profile['shields']}")
+                cleared = await gc.clear_surface_challenge(s, self.target, html, profile=profile)
+                if not cleared["cleared"]:
+                    await _close(s)
+                    log.log_warn(f"[confirm_gate] снять не удалось ({cleared['route'] or '-'}): "
+                                 f"{cleared['detail']}")
+                    return False, (f"Cloudflare challenge on target page "
+                                   f"(route={cleared['route'] or 'unknown'}; {cleared['detail']})")
+                log.log_warn(f"[confirm_gate] защита снята: {cleared['detail']}")
+                r_after = await s.get(self.target, timeout=15)
+                html = r_after.text
+                if gc.is_cloudflare_challenge(html):
+                    await _close(s)
+                    return False, "Cloudflare challenge on target page (осталась после снятия)"
 
             self.pk = gc.extract_pk_live(html)
             secrets = gc.extract_client_secrets(html)

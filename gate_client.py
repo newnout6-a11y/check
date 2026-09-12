@@ -450,6 +450,122 @@ def is_cloudflare_challenge(html: str) -> bool:
     return any(mark in html for mark in CF_CHALLENGE_MARKS)
 
 
+def classify_surface_challenge(status_code: int, html: str, headers: dict | None = None,
+                               cookies: str = "", url: str = "") -> dict:
+    """Единая развилка прод-графа: что стоит на поверхности и каким маршрутом это снимается.
+
+    До этой правки гейты видели только булев is_cloudflare_challenge и молча отдавали ERROR,
+    а классификатор surface_shield и PoW-солвер жили вне прод-графа — их звали лишь тесты и
+    scratch (аудит 2026-09, C-05...C-07, §7 п.4 «врезать или признать инструментами»).
+    Импорт surface_shield ленивый: он сам импортирует gate_client, на уровне модуля был бы цикл.
+    """
+    out = {
+        "url": url,
+        "block": False,
+        "waf": "unknown",
+        "shields": [],
+        "bypass_strategy": "",
+        "block_reason": "",
+        "pow": {},
+        "solvable": False,
+    }
+    try:
+        from surface_shield import classify_protection
+        prof = classify_protection(
+            status_code=status_code, headers=headers or {}, cookies=cookies, html=html or ""
+        )
+        out["block"] = bool(prof.get("is_active_block"))
+        out["waf"] = prof.get("waf") or "unknown"
+        out["shields"] = list(prof.get("shields") or [])
+        out["bypass_strategy"] = prof.get("bypass_strategy") or ""
+        out["block_reason"] = prof.get("block_reason") or ""
+    except Exception as e:
+        # Классификатор недоступен — падаем на грубую проверку, но не молчим об этом.
+        out["block"] = is_cloudflare_challenge(html or "")
+        out["block_reason"] = f"surface_shield unavailable: {type(e).__name__}"
+
+    pow_info = detect_pow_type(html or "") or {}
+    if pow_info:
+        pow_info = dict(pow_info)
+        out["pow"] = pow_info
+        out["solvable"] = str(pow_info.get("solvable", "")).lower() == "true"
+        if out["solvable"]:
+            out["bypass_strategy"] = "captcha_pow_cpu"
+    elif out["block"] and not out["bypass_strategy"]:
+        out["bypass_strategy"] = "turnstile_sidecar_cdp"
+    return out
+
+
+async def clear_surface_challenge(session, url: str, html: str,
+                                  profile: dict | None = None,
+                                  timeout_sec: float = 15.0) -> dict:
+    """Пробует снять защиту нашими средствами и честно сообщает, что получилось.
+
+    Маршруты:
+      * captcha_pow_cpu — снять челлендж, решить KDF локально, вернуть готовый payload
+        (сабмит делает вызывающий: форма у каждой витрины своя);
+      * turnstile_sidecar_cdp — прогнать страницу через локальный headless-сайдкар и,
+        если cookie-сессия действительно сняла интерстишиал, вернуть cleared=True;
+      * всё остальное — честный отказ с указанием маршрута, а не пустое «не вышло».
+    """
+    prof = profile or classify_surface_challenge(200, html, url=url)
+    route = prof.get("bypass_strategy") or ""
+    result = {"cleared": False, "route": route, "token": "", "detail": "", "profile": prof}
+
+    pow_info = prof.get("pow") or {}
+    if pow_info and str(pow_info.get("solvable", "")).lower() == "true":
+        ch_url = pow_info.get("challenge_url") or ""
+        if not ch_url:
+            result["detail"] = "челлендж есть, но URL не объявлен на странице — решать нечего"
+            return result
+        try:
+            if ch_url.startswith("/"):
+                from urllib.parse import urljoin
+                ch_url = urljoin(url, ch_url)
+            r = await session.get(ch_url, timeout=timeout_sec,
+                                  headers={"Accept": "application/json"})
+            challenge_data = r.json() or {}
+        except Exception as e:
+            result["detail"] = f"челлендж не снялся: {type(e).__name__}"
+            return result
+        try:
+            from captcha_pow import create_altcha_payload, solve_altcha_any
+            solved = solve_altcha_any(challenge_data)
+            if not solved:
+                result["detail"] = "KDF не дал решения в отведённом бюджете счётчика"
+                return result
+            number = solved.get("solution") or solved.get("number") or 0
+            result["token"] = create_altcha_payload(challenge_data, int(number))
+            result["detail"] = f"челлендж решён локально (number={number}), payload готов к сабмиту"
+        except Exception as e:
+            result["detail"] = f"солвер упал: {type(e).__name__}: {e}"
+        return result
+
+    if prof.get("block") and (prof.get("waf") == "cloudflare" or "turnstile" in prof.get("shields", [])):
+        try:
+            token = await solve_turnstile_url_async(url, timeout_sec=timeout_sec)
+        except Exception:
+            token = None
+        if not token:
+            result["detail"] = ("Turnstile-сайдкар не дал токен: маршрут остаётся "
+                                "непокрытым, поверхность не проходит")
+            return result
+        try:
+            r2 = await session.get(url, timeout=timeout_sec, allow_redirects=True)
+            after = r2.text or ""
+        except Exception:
+            result["detail"] = "после сайдкара страница не перечиталась"
+            return result
+        result["token"] = token
+        result["cleared"] = not is_cloudflare_challenge(after)
+        result["detail"] = ("интерстишиал снят cookie-сессией сайдкара" if result["cleared"]
+                            else "токен получен, но интерстишиал на странице остался")
+        return result
+
+    result["detail"] = f"маршрут {route or 'не определён'} на нашей стороне не реализован"
+    return result
+
+
 def extract_reg_nonce(html: str) -> str | None:
     m = RE_REG_NONCE.search(html)
     return m.group(1) if m else None

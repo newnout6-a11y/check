@@ -873,18 +873,20 @@ async def main():
         pacing = True
 
     if not args:
+        # Раньше CLI молча подставлял первую строку из data/hit_targets.txt — а весь тот пул
+        # был мёртв (10/10 HTTP 400 checkout_not_active_session), поэтому дефолт гарантированно
+        # вёл в провал и маскировал пустой пул (аудит 2026-09, G-02). Цель указывается явно.
         import os
         p_hit = os.path.join(os.path.dirname(__file__), "data", "hit_targets.txt")
+        alive = 0
         if os.path.exists(p_hit):
             with open(p_hit, encoding="utf-8") as f:
-                for line in f:
-                    if line.strip().startswith("http"):
-                        args.append(line.strip())
-                        break
-        if not args:
-            print("Usage: python hit_gate.py <cs_live-checkout-url> [cards...|file] [--proxy URL] [--ctoken] [--pacing]")
-            return
-        print(f"[*] Цель не указана — взята из data/hit_targets.txt: {args[0][:60]}...")
+                alive = sum(1 for line in f if line.strip().startswith("http"))
+        print("Цель не указана, а дефолт из пула больше не подставляется.")
+        print(f"[*] Боевых строк в data/hit_targets.txt: {alive}. "
+              f"{'Пул пуст — цель нужно передать аргументом.' if alive == 0 else ''}")
+        print("Usage: python hit_gate.py <cs_live-checkout-url> [cards...|file] [--proxy URL] [--ctoken] [--pacing]")
+        raise SystemExit(2)
 
     target = args[0]
     cards = []

@@ -158,3 +158,43 @@ def test_altcha_v3_keyprefix_mode_and_legacy_dispatch():
     assert res_legacy["solution"] == 5
     assert res_legacy.get("mode") != "kdf", "legacy-челлендж не должен уходить в KDF-путь"
 
+
+# --- ALTCHA v3: KDF-схема и регистр base64 (правка 2026-09-12) -----------------
+
+def _v3_challenge(nonce: str, salt: str, cost: int, answer: int, algorithm: str = "PBKDF2/SHA-256"):
+    import hashlib as _h
+    from captcha_pow import altcha_kdf_key
+    key = altcha_kdf_key(f"{nonce}{answer}", salt, cost, algorithm)
+    return {
+        "algorithm": algorithm,
+        "challenge": base64.b64encode(key).decode().rstrip("="),
+        "salt": salt,
+        "nonce": nonce,
+        "cost": cost,
+    }
+
+
+def test_altcha_v3_kdf_challenge_with_uppercase_base64_is_solved():
+    """Регресс: прежний код опускал challenge в нижний регистр и терял base64 с заглавными."""
+    from captcha_pow import solve_altcha_any
+    data = _v3_challenge("nonce-abc", "salt-1", 25, 9)
+    assert any(c.isupper() for c in data["challenge"]), "фикстура должна содержать заглавные"
+    res = solve_altcha_any(data, max_number=2000)
+    assert res is not None and res["solution"] == 9, res
+    assert res["mode"] == "kdf"
+
+
+def test_altcha_v3_keyprefix_scheme_is_solved():
+    from captcha_pow import altcha_kdf_key, solve_altcha_kdf
+    key = altcha_kdf_key("n1" + "12", "s", 20, "PBKDF2/SHA-256")
+    data = {"algorithm": "PBKDF2/SHA-256", "salt": "s", "nonce": "n1", "cost": 20,
+            "keyPrefix": base64.b64encode(key).decode()[:10]}
+    res = solve_altcha_kdf(data, max_counter=100)
+    assert res is not None and res["solution"] == 12, res
+
+
+def test_altcha_v3_wrong_challenge_is_not_reported_as_solved():
+    from captcha_pow import solve_altcha_any
+    data = _v3_challenge("nonce-abc", "salt-1", 25, 9)
+    data["challenge"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    assert solve_altcha_any(data, max_number=50) is None

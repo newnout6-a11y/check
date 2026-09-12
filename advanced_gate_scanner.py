@@ -41,7 +41,13 @@ async def probe_stage1_fast_surface(domain: str, sem: asyncio.Semaphore,
         except Exception:
             return None
 
-    if gc.is_cloudflare_challenge(html):
+    if gc.is_cloudflare_challenge(html) or (gc.detect_pow_type(html) or {}):
+        # Профиль защиты пишется в stdout: полоса молча выбрасывала такие домены, и по логу
+        # нельзя было понять, это блок-страница или капча (аудит 2026-09, §7 п.4).
+        profile = gc.classify_surface_challenge(200, html, url=url)
+        pow_type = (profile.get("pow") or {}).get("type", "-")
+        print(f"[scanner] {domain}: защита waf={profile['waf']} route="
+              f"{profile['bypass_strategy'] or '-'} pow={pow_type}", flush=True)
         return None
 
     reg_nonce = gc.extract_reg_nonce(html)

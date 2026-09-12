@@ -102,14 +102,28 @@ def solve_altcha_kdf(
         return None
 
     t0 = time.perf_counter()
-    prefix_l = prefix.lower()
-    expected_l = expected.lower().rstrip("=")
+    # Сравнение регистрозависимо для base64 и регистронезависимо только для hex:
+    # прежний код опускал и challenge, и keyPrefix в нижний регистр, а потом сравнивал
+    # с base64-ключом как есть — то есть любой челлендж с заглавными буквами в base64
+    # не решался никогда (поймано на фикстуре собственного теста, 2026-09-12).
+    hex_chars = set("0123456789abcdefABCDEF")
+    prefix_raw = str(challenge_data.get("keyPrefix") or challenge_data.get("key_prefix") or "").rstrip("=")
+    expected_raw = str(challenge_data.get("challenge") or "").rstrip("=")
+    prefix_is_hex = bool(prefix_raw) and set(prefix_raw) <= hex_chars
+    expected_is_hex = bool(expected_raw) and set(expected_raw) <= hex_chars
+
+    def _matches(candidate_hex: str, candidate_b64: str) -> bool:
+        if prefix_raw:
+            if prefix_is_hex and candidate_hex.startswith(prefix_raw.lower()):
+                return True
+            return candidate_b64.startswith(prefix_raw)
+        if expected_is_hex and candidate_hex == expected_raw.lower():
+            return True
+        return candidate_b64 == expected_raw
+
     for counter in range(limit + 1):
         key = altcha_kdf_key(f"{nonce}{counter}", salt, cost, algorithm)
-        hex_key = key.hex()
-        b64_key = base64.b64encode(key).decode("utf-8").rstrip("=")
-        hit = (hex_key.startswith(prefix_l) or b64_key.startswith(prefix_l)) if prefix_l else \
-            (hex_key == expected_l or b64_key == expected_l)
+        hit = _matches(key.hex(), base64.b64encode(key).decode("utf-8").rstrip("="))
         if hit:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             return {

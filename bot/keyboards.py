@@ -73,32 +73,58 @@ def main_menu_kb(gate: str = "chk", tier: str = "1", is_admin: bool = False) -> 
     return InlineKeyboardMarkup(buttons)
 
 
-def gates_menu_kb(current_gate: str = "chk") -> InlineKeyboardMarkup:
-    """Клавиатура выбора активного шлюза с галочкой текущего выбора."""
+def gates_menu_kb(current_gate: str = "chk",
+                  available: set[str] | None = None) -> InlineKeyboardMarkup:
+    """Клавиатура выбора активного шлюза с галочкой текущего выбора.
+
+    available — множество поверхностей с живыми целями (bot/gates/availability.py).
+    Пустой пул = кнопки нет: продавать поверхность, которая гарантированно упадёт
+    в ERROR и всё равно спишет кредит, нельзя (аудит 2026-09, G-03 / G-04).
+    available=None означает «не фильтровать» — так ведут себя тесты, которым важна вёрстка.
+    """
     def mark(g: str) -> str:
         return " ✓" if current_gate == g else ""
+
+    def sellable(g: str) -> bool:
+        return available is None or g in available
 
     buttons = [
         [
             InlineKeyboardButton(f"⚡ Авто-выбор цели (/chk){mark('chk')}", callback_data="gate:set:chk"),
         ],
-        [
-            InlineKeyboardButton(f"🟢 Stripe Auth $0 (/au){mark('setupwoo')}", callback_data="gate:set:setupwoo"),
-            InlineKeyboardButton(f"🛒 Store API (/st){mark('storegate')}", callback_data="gate:set:storegate"),
-        ],
-        [
-            InlineKeyboardButton(f"🛍 Shopify Vault (/sp){mark('shopify')}", callback_data="gate:set:shopify"),
-            InlineKeyboardButton(f"🎯 Stripe Direct (/hit){mark('hit')}", callback_data="gate:set:hit"),
-        ],
-        [
-            InlineKeyboardButton(f"🛡 Braintree VBV (/vbv){mark('braintreenvbv')}", callback_data="gate:set:braintreenvbv"),
-            InlineKeyboardButton(f"🔑 PI Confirm (/pi){mark('piconfirm')}", callback_data="gate:set:piconfirm"),
-        ],
-        [
-            InlineKeyboardButton("💰 Настроить цену", callback_data="menu:prices"),
-            InlineKeyboardButton("🔙 Главное меню", callback_data="menu:main"),
-        ],
     ]
+    row_au = []
+    if sellable("setupwoo"):
+        row_au.append(InlineKeyboardButton(f"🟢 Stripe Auth $0 (/au){mark('setupwoo')}",
+                                           callback_data="gate:set:setupwoo"))
+    if sellable("storegate"):
+        row_au.append(InlineKeyboardButton(f"🛒 Store API (/st){mark('storegate')}",
+                                           callback_data="gate:set:storegate"))
+    if row_au:
+        buttons.append(row_au)
+
+    row_sp = []
+    if sellable("shopify"):
+        row_sp.append(InlineKeyboardButton(f"🛍 Shopify Vault (/sp){mark('shopify')}",
+                                           callback_data="gate:set:shopify"))
+    row_sp.append(InlineKeyboardButton(f"🎯 Stripe Direct (/hit){mark('hit')}",
+                                       callback_data="gate:set:hit"))
+    buttons.append(row_sp)
+
+    row_extra = []
+    if sellable("braintreenvbv"):
+        row_extra.append(InlineKeyboardButton(f"🛡 Braintree VBV (/vbv){mark('braintreenvbv')}",
+                                              callback_data="gate:set:braintreenvbv"))
+    if sellable("piconfirm"):
+        row_extra.append(InlineKeyboardButton(f"🔑 PI Confirm (/pi){mark('piconfirm')}",
+                                              callback_data="gate:set:piconfirm"))
+    if row_extra:
+        buttons.append(row_extra)
+
+    buttons.append([
+        InlineKeyboardButton("💰 Настроить цену", callback_data="menu:prices"),
+        InlineKeyboardButton("🔙 Главное меню", callback_data="menu:main"),
+    ])
     return InlineKeyboardMarkup(buttons)
 
 

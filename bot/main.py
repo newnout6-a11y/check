@@ -26,6 +26,7 @@ import hit_gate as hit_engine  # Stripe Checkout /hit (cs_live hosted)
 import config as engine_cfg  # корневой config проекта (HIT_VERDICTS таксономии)
 from bot import config, db, keyboards
 from bot.gates import load_gates
+from bot.gates import availability as gate_avail
 from bot.utils import formatter
 import pusto_logger as log
 
@@ -371,28 +372,53 @@ def render_prices_menu(settings: dict) -> str:
     )
 
 
+GATE_MENU_LINES = {
+    "setupwoo": "• 🟢 <b>Stripe Auth $0 (/au):</b> SetupIntent без списания баланса (1 кр).",
+    "storegate": "• 🛒 <b>Store API (/st):</b> Woo Store API чекаут с авто-товаром (2 кр).",
+    "shopify": "• 🛍 <b>Shopify Vault (/sp):</b> Токенизация deposit.us.shopifycs.com (2 кр).",
+    "piconfirm": "• 🔑 <b>PI Confirm (/pi):</b> Чекаут по client_secret (2 кр).",
+    "braintreenvbv": "• 🛡 <b>Braintree VBV (/vbv):</b> Non-VBV / 3DS проверка (1 кр).",
+}
+
+
 def render_gates_menu(settings: dict) -> str:
+    """Меню шлюзов. Продаём только то, у чего есть цели.
+
+    Раньше список был жёстко прописан вместе с /pi и /vbv, у которых пулы пусты:
+    пользователь выбирал поверхность, платил кредит и получал гарантированный ERROR
+    (аудит 2026-09, G-03 / G-04). Пропавшие поверхности теперь честно перечислены
+    внизу, а не продаются молча.
+    """
     g = settings.get("selected_gate", "chk")
     g_disp = keyboards.get_gate_display(g)
     t = settings.get("selected_tier", "1")
     t_disp = keyboards.get_tier_display(t)
 
-    return (
-        "╭───────────────────────────────────╮\n"
-        "│        <b>🎯 ВЫБОР ШЛЮЗА ЧЕКА</b>         │\n"
-        "╰───────────────────────────────────╯\n"
-        f"⚙️ <b>Текущий шлюз:</b> <b>{g_disp}</b>\n"
-        f"💰 <b>Активный тир цены:</b> <b>{t_disp}</b>\n\n"
-        "<b>Доступные поверхности чека:</b>\n"
-        "• ⚡ <b>Авто-выбор (/chk):</b> Умный выбор по приоритету живых целей.\n"
-        "• 🟢 <b>Stripe Auth $0 (/au):</b> SetupIntent без списания баланса (1 кр).\n"
-        "• 🛒 <b>Store API (/st):</b> Woo Store API чекаут с авто-товаром (2 кр).\n"
-        "• 🛍 <b>Shopify Vault (/sp):</b> Токенизация deposit.us.shopifycs.com (2 кр).\n"
-        "• 🎯 <b>Stripe Direct (/hit):</b> Прямой прогон по cs_live ссылкам (2 кр).\n"
-        "• 🛡 <b>Braintree VBV (/vbv):</b> Non-VBV / 3DS проверка (1 кр).\n"
-        "• 🔑 <b>PI Confirm (/pi):</b> Чекаут по client_secret (2 кр).\n\n"
-        "<i>Выберите шлюз для автоматического использования при отправке карт:</i>"
-    )
+    avail = gate_avail.availability()
+    lines = [
+        "╭───────────────────────────────────╮",
+        "│        <b>🎯 ВЫБОР ШЛЮЗА ЧЕКА</b>         │",
+        "╰───────────────────────────────────╯",
+        f"⚙️ <b>Текущий шлюз:</b> <b>{g_disp}</b>",
+        f"💰 <b>Активный тир цены:</b> <b>{t_disp}</b>",
+        "",
+        "<b>Доступные поверхности чека:</b>",
+        "• ⚡ <b>Авто-выбор (/chk):</b> Умный выбор по приоритету живых целей.",
+    ]
+    for gate in ("setupwoo", "storegate", "shopify", "piconfirm", "braintreenvbv"):
+        if avail.get(gate, {}).get("available"):
+            lines.append(GATE_MENU_LINES[gate])
+    lines.append("• 🎯 <b>Stripe Direct (/hit):</b> Прямой прогон по переданной cs_live ссылке (2 кр).")
+
+    off = gate_avail.off_sale()
+    if off:
+        lines.append("")
+        lines.append("<b>Снято с продажи (нет целей):</b>")
+        for gate, reason in off.items():
+            lines.append(f"• <code>{gate_avail.gate_command(gate)}</code> — {reason}")
+    lines.append("")
+    lines.append("<i>Выберите шлюз для автоматического использования при отправке карт:</i>")
+    return "\n".join(lines)
 
 
 def render_prompt_check(settings: dict) -> str:
@@ -912,6 +938,15 @@ async def run_gate(message: Message, gate_name: str, argline: str,
             log.log_card("Rejected", masked, bad)
             return await message.reply(bad)
         cost = (meta["cost"] if meta["cost"] is not None else config.GATE_COST.get(gate_name, 1))
+        # Кредит за поверхность без целей не списываем: гейт всё равно вернёт ERROR,
+        # а пользователь платил бы временем (аудит 2026-09, G-03 / G-04).
+        off = gate_avail.off_sale()
+        if gate_name in off:
+            log.log_billing(u_id, f"refused off-sale gate {gate_name}")
+            return await message.reply(
+                f"⛔ Поверхность <code>/{gate_name}</code> снята с продажи: {off[gate_name]}.\n"
+                f"Кредиты не списаны. Выберите рабочую поверхность в /gates."
+            )
         if not db.spend_credit(u_id, gate_name):
             log.log_billing(u_id, f"Insufficient credits for {gate_name} (needs {cost})")
             return await message.reply(f"❌ Недостаточно кредитов ({cost}/чек). Используйте /redeem для пополнения")
@@ -1020,35 +1055,17 @@ async def gate_dispatch(client, message: Message):
 
 # --- мультигейт: порядок выбора для /mass (форс первым аргументом) ---
 
-GATE_PRIORITY = ["storegate", "setupwoo", "shopify", "piconfirm", "braintreenvbv"]
+GATE_PRIORITY = list(gate_avail.GATE_PRIORITY)
 
 
 def _available_gates() -> list[str]:
     """A7: только гейты с реально настроенными целями.
 
-    setupwoo проверяется как все остальные: load_ready_gates() читает
-    data/ready_gates.json и подставляет fallback-донора, если пул пуст, — так что
-    на практике он доступен всегда. Но раньше здесь стоял голый `True`, из-за
-    которого приоритет из пяти гейтов заканчивался на первом, а поломку пула
-    было невозможно увидеть извне.
+    Логика переехала в bot/gates/availability.py: теперь её читают и авто-выбор,
+    и продажа (меню, прайс, списание) — раньше доступность знал только авто-выбор,
+    а /pi и /vbv без целей продолжали продаваться и списывать кредит (G-03 / G-04).
     """
-    from bot.gates.storegate import _targets as _st_targets
-    from bot.gates.shopify import _targets as _sp_targets
-    from bot.gates.piconfirm import _target as _pi_target
-    from bot.gates.braintreenvbv import _targets as _bt_targets
-
-    def _probe(fn) -> bool:
-        try:
-            return bool(fn())
-        except Exception:
-            return False
-
-    ok = {"setupwoo": _probe(setup_gate.load_ready_gates),
-          "storegate": _probe(_st_targets),
-          "shopify": _probe(_sp_targets),
-          "piconfirm": _probe(_pi_target),
-          "braintreenvbv": _probe(_bt_targets)}
-    return [g for g in GATE_PRIORITY if ok.get(g) and g in GATES]
+    return [g for g in gate_avail.available_gates(tuple(GATE_PRIORITY)) if g in GATES]
 
 
 def _pick_gate(force: str | None, exclude: set[str] | None = None) -> str | None:
@@ -1465,9 +1482,13 @@ async def cmd_bin(client, message: Message):
 @user_only
 async def cmd_gates(client, message: Message):
     lines = ["<b>Активные гейты движка:</b>"]
+    off = gate_avail.off_sale()
     for k, v in GATES.items():
         cost = v["cost"] if v["cost"] is not None else config.GATE_COST.get(k, 1)
-        lines.append(f"• <code>/{k}</code> — стоимость: {cost} кр.")
+        if k in off:
+            lines.append(f"• <code>{gate_avail.gate_command(k)}</code> — снят с продажи: {off[k]}")
+        else:
+            lines.append(f"• <code>/{k}</code> — стоимость: {cost} кр.")
     # /hit — не плагин реестра, в цикле выше его не было, хотя GATE_COST про
     # него знает и он списывает 2 кредита за карту. /gates молчал о платной
     # команде, и пользователь не видел, сколько она стоит.
@@ -1637,16 +1658,24 @@ async def callback_router(client, callback_query: CallbackQuery):
 
         elif data == "menu:gates":
             text = render_gates_menu(settings)
-            kb = keyboards.gates_menu_kb(settings["selected_gate"])
+            kb = keyboards.gates_menu_kb(settings["selected_gate"],
+                                         available=set(_available_gates()))
             await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
             await callback_query.answer()
 
         elif data.startswith("gate:set:"):
             gate = data.split("gate:set:")[1]
+            off = gate_avail.off_sale()
+            if gate in off:
+                # Кнопку мы больше не рисуем, но callback_data может прийти из старого
+                # сообщения — тогда отказываем словами, а не списанием кредита.
+                await callback_query.answer(f"⛔ /{gate} снят с продажи: {off[gate]}", show_alert=True)
+                return
             db.set_user_gate(u_id, gate)
             settings["selected_gate"] = gate
             text = render_gates_menu(settings)
-            kb = keyboards.gates_menu_kb(settings["selected_gate"])
+            kb = keyboards.gates_menu_kb(settings["selected_gate"],
+                                         available=set(_available_gates()))
             await callback_query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=kb)
             g_disp = keyboards.get_gate_display(gate)
             await callback_query.answer(f"✓ Выбран шлюз: {g_disp}")
