@@ -9,6 +9,10 @@ const path = require("path");
 const LINK = process.argv[2];
 const CDP = process.argv[3] || "http://127.0.0.1:9224";
 const CARD_FILE = process.argv[4] || "data/amex_379363.txt";
+  // Маскируем длинные цифровые последовательности: в отчётах не должно быть полных PAN
+  // (иначе падает tests/test_secret_hygiene.py: он сканирует data/ строго).
+  const mask = (v) => (typeof v === "string" ? v.replace(/\b\d{13,19}\b/g, (m) => m.slice(0, 6) + "******" + m.slice(-4)) : v);
+
 const WATCH_S = Number(process.argv[5] || 90);
 if (!LINK) { console.log("нужна ссылка"); process.exit(2); }
 
@@ -114,7 +118,7 @@ function readCard() {
   const out = { link: LINK.split("#")[0], started: new Date().toISOString(), filled, confirms, tail_events: events.slice(-60), cap };
   fs.mkdirSync("data/results", { recursive: true });
   const name = "data/results/submit_probe_" + new Date().toISOString().replace(/[-:T]/g, "").slice(0, 15) + ".json";
-  fs.writeFileSync(name, JSON.stringify(out, null, 1));
+  fs.writeFileSync(name, JSON.stringify(out, (k, v) => mask(v), 1));
   console.log("confirm-записей: " + confirms.length + " | отчёт: " + name);
   for (const c of confirms) {
     console.log("--- " + (c.status ? ("RES " + c.status + " " + (c.response || "").slice(0, 200)) : ("REQ " + c.body.slice(0, 400))));

@@ -6,7 +6,15 @@
 """
 import pytest
 
+import config
 import gate_client as gc
+
+
+@pytest.fixture(autouse=True)
+def _isolated_device_cache(tmp_path, monkeypatch):
+    """Тесты не должны читать/писать рабочий кэш идентификаторов устройства."""
+    monkeypatch.setattr(config, "STRIPE_DEVICE_IDS_PATH", str(tmp_path / "dev.json"), raising=False)
+    yield
 
 
 class _Resp:

@@ -992,6 +992,50 @@ async def live_bin_metadata(session, pk: str, cards: list[str], timeout: int = 8
     return out
 
 
+def load_cached_device_ids() -> dict:
+    """Кэш идентификаторов устройства: настоящий браузер приходит одним и тем же muid/guid месяцами.
+
+    Без кэша мы выглядели как новое устройство на каждом раунде (живой замер: muid менялся каждую попытку).
+    Возвращает {} при отсутствии, порче или истечении срока (config.STRIPE_DEVICE_ID_TTL_DAYS).
+    """
+    import json as _json
+    import time as _time
+    from pathlib import Path as _P
+
+    path = _P(getattr(_cfg, "STRIPE_DEVICE_IDS_PATH", "data/stripe_device_ids.json"))
+    try:
+        data = _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    muid = str((data or {}).get("muid") or "")
+    sid = str((data or {}).get("sid") or "")
+    saved = int((data or {}).get("saved_at") or 0)
+    ttl_days = int(getattr(_cfg, "STRIPE_DEVICE_ID_TTL_DAYS", 30))
+    fresh = saved and (int(_time.time()) - saved) < ttl_days * 86400
+    if muid and sid and fresh:
+        return {"muid": muid, "sid": sid, "guid": str((data or {}).get("guid") or ""), "cached": True}
+    return {}
+
+
+def save_cached_device_ids(ids: dict) -> None:
+    """Складывает идентификаторы на диск, чтобы следующие прогоны шли как тот же клиент."""
+    import json as _json
+    import time as _time
+    from pathlib import Path as _P
+
+    if not (ids.get("muid") and ids.get("sid")):
+        return
+    path = _P(getattr(_cfg, "STRIPE_DEVICE_IDS_PATH", "data/stripe_device_ids.json"))
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_json.dumps({
+            "muid": ids["muid"], "sid": ids["sid"], "guid": ids.get("guid") or "",
+            "saved_at": int(_time.time()),
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
+
 async def mint_stripe_ids(session, timeout: int = 10) -> dict:
     """Настоящие идентификаторы устройства Stripe (muid/guid/sid) — POST m.stripe.com/6.
 
@@ -1002,7 +1046,12 @@ async def mint_stripe_ids(session, timeout: int = 10) -> dict:
     Возвращает {} при любой неудаче — вызывающий работает по прежней схеме.
     """
     import json as _json
+    import time as _time
     import urllib.parse as _up
+
+    cached = load_cached_device_ids()
+    if cached:
+        return cached
     payload = _json.dumps({
         "muid": f"{uuid.uuid4()}",
         "sid": f"{uuid.uuid4()}",
@@ -1025,7 +1074,9 @@ async def mint_stripe_ids(session, timeout: int = 10) -> dict:
     guid = str(data.get("guid") or "")
     if not (muid and sid):
         return {}
-    return {"muid": muid, "sid": sid, "guid": guid}
+    ids = {"muid": muid, "sid": sid, "guid": guid}
+    save_cached_device_ids(ids)
+    return ids
 
 
 async def card_metadata(session, pk: str, bin_prefix: str, timeout: int = 10) -> dict:

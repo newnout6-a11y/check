@@ -10,6 +10,10 @@ const path = require("path");
 const LINK = process.argv[2];
 const CDP = process.argv[3] || "http://127.0.0.1:9224";
 const CARD_FILE = process.argv[4] || "data/amex_379363.txt";
+  // Маскируем длинные цифровые последовательности: в отчётах не должно быть полных PAN
+  // (иначе падает tests/test_secret_hygiene.py: он сканирует data/ строго).
+  const mask = (v) => (typeof v === "string" ? v.replace(/\b\d{13,19}\b/g, (m) => m.slice(0, 6) + "******" + m.slice(-4)) : v);
+
 const WATCH_S = Number(process.argv[5] || 45);
 if (!LINK) { console.log("нужна ссылка"); process.exit(2); }
 
@@ -150,7 +154,7 @@ try { mo.observe(document.documentElement || document, {subtree: true, childList
                 counts: { requests: requests.length, after_submit: requests.length - before, responses: responses.length, sockets: sockets.length } };
   fs.mkdirSync("data/results", { recursive: true });
   const name = "data/results/checkout_study_" + new Date().toISOString().replace(/[-:T]/g, "").slice(0, 15) + ".json";
-  fs.writeFileSync(name, JSON.stringify(out, null, 1));
+  fs.writeFileSync(name, JSON.stringify(out, (k, v) => mask(v), 1));
   console.log("отчёт: " + name + " | запросов " + requests.length + " (после submit +" + (requests.length - before) + "), ответов " + responses.length + ", сокетов " + sockets.length);
   const host = {};
   for (const r of requests) { const h = r.url.replace(/^https?:\/\//, "").split("/")[0]; host[h] = (host[h] || 0) + 1; }
