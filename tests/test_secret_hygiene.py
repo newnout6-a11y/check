@@ -4,6 +4,18 @@
 Появились после аудита 2026-09 (Фиксация №25): в git лежали data/probe_20_cards.txt,
 data/amex_379363.txt (живые по формату PAN) и data/proxies_https_60k.txt (1 МБ ip:port).
 Тесты офлайновые: используется локальный git и чтение файлов, сети нет.
+
+Расширение скана (2026-09-12). Раньше сторож смотрел только *.py и целиком пропускал tests/,
+поэтому PAN, вставленный в data/*.json, в README или в тест, не ловился вообще. Теперь:
+  * сканируются все текстовые типы, которые отслеживает git (.py/.json/.md/.txt/.yml/.toml/
+    .ini/.cfg/.csv/.js/.ts/.cjs/.sh/.html/.example), а не только .py;
+  * tests/ не пропускается: вместо этого разрешены публичные тест-PAN и явно объявленный
+    список фикстур проекта (KNOWN_FIXTURES), всё остальное — падение;
+  * data/ и файлы корня проверяются без исключений;
+  * сырые ресёрч-дампы _audit/_e_raw/ не освобождаются целиком: голые цифровые совпадения там
+    шум (фрагменты sha256, npm tmp-пути, параметры Incapsula), но карточные шаблоны и
+    карточные слова рядом проверяются и там;
+  * отдельный тест следит, что скан действительно покрывает репозиторий и не выродился.
 """
 from __future__ import annotations
 
@@ -43,9 +55,36 @@ PUBLIC_TEST_PANS = {
     "3530111333300000",
 }
 
+# Фикстуры проекта: сгенерированные по Луну пробники на BIN из gate_client._PROBE_BINS
+# и BIN-групп bin_steering. Это наши собственные номера, а не чужие карты — но список
+# объявлен явно, чтобы любая новая цифра в тестах требовала осознанной регистрации здесь.
+KNOWN_FIXTURES = {
+    "4485287641630198",   # пробник проекта, BIN 448528
+    "4539274130459806",   # пробник проекта, BIN 453927
+    "4539274558237997",   # пробник проекта, BIN 453927
+    "5175461780694255",   # пробник проекта, BIN 517546
+    "5175465382242090",   # пробник проекта, BIN 517546
+    "5500005555555559",   # пробник проекта (тестовый Mastercard)
+    "4403931234567890",   # фикстура BIN-группы bin_steering
+}
+
+# Расширения, которые считаются текстом и подлежат скану.
+SCAN_EXTS = {".py", ".json", ".md", ".txt", ".yml", ".yaml", ".toml", ".ini", ".cfg",
+             ".csv", ".js", ".ts", ".cjs", ".mjs", ".sh", ".html", ".example"}
+
+# Сырые дампы ресёрча: цифровой шум ожидаем, карточные шаблоны всё равно проверяются.
+RAW_DUMP_PREFIXES = ("_audit/_e_raw/",)
+
+# data/ проверяется без исключений.
+STRICT_PREFIXES = ("data/",)
+
+MAX_SCAN_BYTES = 4_000_000
+
 
 def _luhn(number: str) -> bool:
     digits = [int(c) for c in number]
+    if not 13 <= len(digits) <= 19 or len(set(digits)) == 1:
+        return False
     total = 0
     for i, d in enumerate(reversed(digits)):
         if i % 2:
@@ -59,13 +98,113 @@ def _luhn(number: str) -> bool:
 def _git(*args: str) -> str:
     try:
         out = subprocess.run(
-            ["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=30
+            ["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=60
         )
     except (OSError, subprocess.SubprocessError):  # pragma: no cover
         pytest.skip("git недоступен — проверка отслеживания пропущена")
     if out.returncode != 0:
         pytest.skip(f"git {args[0]} вернул {out.returncode}: {out.stderr.strip()[:120]}")
     return out.stdout
+
+
+# Непрерывный прогон 13-19 цифр. Разделители (пробел, дефис) в шаблон НЕ входят намеренно:
+# с ними склеивались посторонние токены — например хост wordpress-1550062-5998994.cloudwaysapps.com
+# давал «PAN» из склеенных 1550062-5998994, а SVG-путь Stripe — из одиночных цифр пути. Группировка
+# проверяется отдельным шаблоном ниже.
+RE_DIGIT_RUN = re.compile(r"(?<!\d)\d{13,19}(?!\d)")
+# Карточные шаблоны: PAN, разбитый по четвёркам (в т.ч. Amex 4-6-5), и форма PAN|MM|YY|CVV.
+RE_PAN_GROUPED_4 = re.compile(r"(?<![\w-])(?:\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{3,4}|"
+                              r"\d{4}[ -]\d{6}[ -]\d{5})(?![\w-])")
+RE_PAN_WITH_EXPIRY = re.compile(
+    r"(?<![\w-])\d{12,19}\s*[|/ ]\s*\d{1,2}\s*[|/ ]\s*\d{2,4}\s*[|/ ]\s*\d{3,4}(?![\w-])"
+)
+RE_CARD_WORD = re.compile(
+    r"(?i)\b(pan|card|cc|cvv|cvc|expiry|cardnumber|номер карты|карта|карты)\b"
+)
+# Идентификаторы в JSON — не карты: Shopify variant_id 44705130******** проходит Луна по случайности.
+RE_ID_VALUE = re.compile(r'"[A-Za-z_]*(?:id|sku|ref|num|no)\w*"\s*:\s*$', re.I)
+TOKEN_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
+CONTEXT_WINDOW = 40
+
+
+def _tracked_files(exts=SCAN_EXTS):
+    """Отслеживаемые git текстовые файлы для скана (без карт исходников и бинарников)."""
+    for rel in _git("ls-files").splitlines():
+        if rel.endswith((".map", ".tgz", ".png", ".jpg", ".ico", ".woff", ".woff2")):
+            continue
+        if "node_modules/" in rel or rel.startswith(".git/"):
+            continue
+        if pathlib.Path(rel).suffix.lower() not in exts:
+            continue
+        path = ROOT / rel
+        try:
+            if not path.is_file() or path.stat().st_size > MAX_SCAN_BYTES:
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        yield rel, text
+
+
+def _is_allowed_number(number: str) -> bool:
+    return number in PUBLIC_TEST_PANS or number in KNOWN_FIXTURES
+
+
+def _is_standalone_token(text: str, start: int, end: int) -> bool:
+    """Номер должен быть самостоятельным токеном, а не куском хоста/хеша/пути."""
+    before = text[start - 1] if start else ""
+    after = text[end] if end < len(text) else ""
+    return before not in TOKEN_CHARS and after not in TOKEN_CHARS
+
+
+def _is_identifier_value(text: str, start: int) -> bool:
+    """Значение ключа вида variant_id/product_id/order_no — это ID, а не карта."""
+    return bool(RE_ID_VALUE.search(text[max(0, start - 60):start]))
+
+
+def _bare_pan_offenders(rel: str, text: str) -> list[str]:
+    """PAN-литералы вне публичного тест-набора и объявленных фикстур."""
+    out = []
+    for m in RE_DIGIT_RUN.finditer(text):
+        number = m.group(0)
+        if not 13 <= len(number) <= 19 or _is_allowed_number(number):
+            continue
+        if not _is_standalone_token(text, m.start(), m.end()):
+            continue
+        if _is_identifier_value(text, m.start()):
+            continue
+        if _luhn(number):
+            out.append(f"{rel}: {number[:6]}******{number[-4:]}")
+    return out
+
+
+def _context_offenders(rel: str, text: str) -> list[str]:
+    """Карточные шаблоны: PAN по четвёркам, PAN|MM|YY|CVV и PAN рядом с карточным словом."""
+    out = []
+    for pattern, label in ((RE_PAN_GROUPED_4, "PAN, разбитый по четвёркам"),
+                           (RE_PAN_WITH_EXPIRY, "PAN|MM|YY|CVV")):
+        for m in pattern.finditer(text):
+            digits = re.sub(r"\D", "", m.group(0))
+            pan = digits[:16]
+            if _is_allowed_number(pan) or _is_allowed_number(digits):
+                continue
+            if _luhn(pan) or _luhn(digits[:15]):
+                out.append(f"{rel}: {label} -> {m.group(0)[:32]}")
+    for m in RE_DIGIT_RUN.finditer(text):
+        number = m.group(0)
+        if not 13 <= len(number) <= 19 or _is_allowed_number(number) or not _luhn(number):
+            continue
+        if not _is_standalone_token(text, m.start(), m.end()) or _is_identifier_value(text, m.start()):
+            continue
+        left = max(0, m.start() - CONTEXT_WINDOW)
+        window = text[left:m.end() + CONTEXT_WINDOW]
+        if RE_CARD_WORD.search(window):
+            out.append(f"{rel}: PAN рядом с карточным словом -> {window.strip()[:60]}")
+    return out
+
+
+def _raw_dump(rel: str) -> bool:
+    return rel.startswith(RAW_DUMP_PREFIXES)
 
 
 def test_card_containers_are_not_tracked():
@@ -87,24 +226,62 @@ def test_gitignore_covers_card_and_proxy_dumps():
         assert pattern in text, f"в .gitignore нет правила {pattern!r}"
 
 
-def test_no_real_pan_literals_in_tracked_code():
-    """В отслеживаемом коде (кроме tests/) не должно быть PAN вне публичного тест-набора."""
-    rx = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
+def test_no_card_data_in_data_dir_and_root():
+    """data/ и файлы корня — без исключений: ни одного Лун-номера вне публичного набора.
+
+    Раньше сторож смотрел только *.py, поэтому список карт, положенный в data/*.json,
+    в README или в .txt, не ловился вообще.
+    """
     offenders: list[str] = []
-    for rel in _git("ls-files", "*.py").splitlines():
-        if rel.startswith("tests/"):
+    scanned = 0
+    for rel, text in _tracked_files():
+        if not (rel.startswith(STRICT_PREFIXES) or "/" not in rel):
             continue
-        try:
-            text = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
-        except OSError:
+        scanned += 1
+        offenders += _bare_pan_offenders(rel, text)
+    assert scanned > 0, "строгие каталоги почему-то не просканированы"
+    assert not offenders, (
+        "карточные номера в data/ или в файлах корня: " + "; ".join(offenders[:20])
+    )
+
+
+def test_no_pan_literals_anywhere_outside_fixtures():
+    """Голые PAN-литералы во всех отслеживаемых текстовых файлах, включая tests/.
+
+    tests/ больше не пропускается целиком: разрешены публичные тест-PAN и явно объявленные
+    фикстуры проекта (KNOWN_FIXTURES). Сырые дампы _audit/_e_raw/ освобождены только от этого
+    правила — их цифровой шум разобран по контексту, и для них отдельно работает проверка
+    карточных шаблонов ниже.
+    """
+    offenders: list[str] = []
+    for rel, text in _tracked_files():
+        if _raw_dump(rel):
             continue
-        for m in rx.finditer(text):
-            number = re.sub(r"[ -]", "", m.group(0))
-            if not 13 <= len(number) <= 19 or number in PUBLIC_TEST_PANS:
-                continue
-            if _luhn(number):
-                offenders.append(f"{rel}: {number[:6]}******{number[-4:]}")
-    assert not offenders, "в коде найдены PAN вне публичного тест-набора: " + "; ".join(offenders)
+        offenders += _bare_pan_offenders(rel, text)
+    assert not offenders, (
+        "в репозитории найдены PAN вне публичного набора и фикстур: "
+        + "; ".join(offenders[:20])
+    )
+
+
+def test_no_card_context_patterns_including_raw_dumps():
+    """Карточные шаблоны (PAN|MM|YY|CVV и PAN рядом со словом card/cvv) — без освобождений."""
+    offenders: list[str] = []
+    for rel, text in _tracked_files():
+        offenders += _context_offenders(rel, text)
+    assert not offenders, (
+        "карточные данные в карточном контексте: " + "; ".join(offenders[:20])
+    )
+
+
+def test_scan_actually_covers_the_repo():
+    """Скан не должен выродиться: расширения и объём проверяются явно."""
+    files = list(_tracked_files())
+    exts = {pathlib.Path(rel).suffix.lower() for rel, _ in files}
+    assert len(files) >= 600, f"просканировано всего {len(files)} файлов — скан выродился"
+    for ext in (".py", ".json", ".md", ".txt"):
+        assert ext in exts, f"тип {ext} выпал из скана"
+    assert any(rel.startswith(STRICT_PREFIXES) for rel, _ in files), "data/ не попал в скан"
 
 
 def test_telegram_credentials_are_env_only():
