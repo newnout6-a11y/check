@@ -123,7 +123,7 @@ async def refresh_access_token(auth: dict, proxy: str | None = None, timeout: in
 
 def save_auth(auth: dict, path: str | None = None) -> str:
     """Пишет токены обратно в файл, чтобы продление жило между запусками."""
-    p = Path(path or config.ACCOUNT_AUTH_PATH)
+    p = Path(path or auth.get("source_path") or config.ACCOUNT_AUTH_PATH)
     payload: dict = {"access_token": auth.get("access_token") or ""}
     if auth.get("refresh_token"):
         payload["refresh_token"] = auth["refresh_token"]
@@ -161,8 +161,10 @@ def load_auth(path: str | None = None) -> dict:
         headers = default_headers()
         headers.update({str(k): str(v) for k, v in ((raw or {}).get("headers") or {}).items()})
         return {"access_token": token, "headers": headers, "source": f"файл {p}",
+                "source_path": str(p),
                 "refresh_token": str((raw or {}).get("refresh_token") or ""),
-                "expires_at": token_expiry(token)}
+                "expires_at": token_expiry(token),
+                "refresh_expires_at": token_expiry(str((raw or {}).get("refresh_token") or ""))}
 
     token = os.environ.get(ENV_KEYS["access_token"], "").strip()
     if not token:
@@ -203,7 +205,14 @@ async def mint_link(auth: dict | None = None, goods_id: str | None = None,
         if ref.get("ok"):
             print(f"[*] токен продлён автоматически ({_expiry_note(ref['expires_at'])})")
             auth = {**auth, "access_token": ref["access_token"],
-                    "refresh_token": ref["refresh_token"], "expires_at": ref["expires_at"]}
+                    "refresh_token": ref["refresh_token"], "expires_at": ref["expires_at"],
+                    "refresh_expires_at": token_expiry(ref["refresh_token"])}
+            # Продление выдаёт и НОВЫЙ refresh_token: если не сохранить, файл останется со старым,
+            # и следующий запуск упрётся в «токен протух». Пишем сразу, ошибку записи не роняем.
+            try:
+                save_auth(auth)
+            except Exception as e:
+                print(f"[!] продлённый токен не удалось записать: {e}")
         elif exp <= int(time.time()):
             return {"ok": False, "http": 0,
                     "error": (f"токен истёк и продлить не удалось ({ref.get('error')}) — обнови данные: "
@@ -260,6 +269,8 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="только проверить данные аккаунта, без выпуска")
     ap.add_argument("--refresh", action="store_true",
                     help="продлить access_token по refresh_token и записать файл (браузер не нужен)")
+    ap.add_argument("--out", default=None,
+                    help="записать ПОЛНУЮ ссылку (с #fid) в файл — без фрагмента checkout отвергает её")
     a = ap.parse_args()
     try:
         auth = load_auth(a.auth)
@@ -268,6 +279,9 @@ def main() -> int:
         return 2
     print(f"[+] данные аккаунта: {auth['source']}, токен {len(auth['access_token'])} симв."
           + (f", {_expiry_note(int(auth.get('expires_at') or 0))}" if auth.get("expires_at") else ""))
+    if auth.get("refresh_expires_at"):
+        days = (int(auth["refresh_expires_at"]) - int(time.time())) / 86400
+        print(f"[*] refresh_token живой ещё {days:.1f} сут — это и есть срок жизни всей цепочки")
     if a.refresh:
         res = asyncio.run(refresh_access_token(auth, proxy=a.proxy))
         if not res.get("ok"):
@@ -284,6 +298,11 @@ def main() -> int:
     if not res.get("ok"):
         print(f"[x] не выпустилось (HTTP {res.get('http')}): {res.get('error')}")
         return 3
+    if a.out:
+        from pathlib import Path as _P
+
+        _P(a.out).write_text(res["link"] + "\n", encoding="utf-8")
+        print(f"[*] полная ссылка (с фрагментом) записана в {a.out}")
     print(f"[+] новая ссылка: {res['link'].split('#')[0]}")
     print(f"[*] подписка: {res.get('subscription_id')}")
     print("[!] Помни: предыдущая ссылка этим выпуском погашена.")

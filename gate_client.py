@@ -959,6 +959,44 @@ async def stripe_retrieve_pi(session, pk: str, secret: str) -> dict | None:
         return None
 
 
+async def card_metadata(session, pk: str, bin_prefix: str, timeout: int = 10) -> dict:
+    """Живой BIN-lookup Stripe: GET /edge-internal/card-metadata?bin_prefix=…&key=pk_…
+
+    Найдено на живой странице оплаты 2026-09-13: страница зовёт это, едва в поле номера набраны
+    первые цифры (bin_prefix=379363), и получает brand / funding / country / pan_length. То есть
+    данные, которые у нас лежат офлайн-таблицами, доступны бесплатно и по конкретной цели —
+    можно сверять бренд/тип/длину до токенизации, а не догадываться.
+    """
+    prefix = "".join(ch for ch in str(bin_prefix) if ch.isdigit())[:8]
+    if not prefix:
+        return {"ok": False, "error": "нужен хотя бы один цифровой символ BIN"}
+    url = "https://api.stripe.com/edge-internal/card-metadata"
+    try:
+        r = await session.get(url, params={"bin_prefix": prefix, "key": pk},
+                             headers={"Origin": "https://js.stripe.com",
+                                      "Referer": "https://js.stripe.com/",
+                                      "Accept": "application/json"}, timeout=timeout)
+    except Exception as e:
+        return {"ok": False, "error": f"{type(e).__name__}: {e}"[:160]}
+    try:
+        data = r.json() or {}
+    except Exception:
+        data = {}
+    flag_internal_endpoint(r, url)
+    rows = data.get("data") or []
+    if r.status_code != 200 or not rows:
+        err = data.get("error") or {}
+        return {"ok": False, "http": r.status_code,
+                "error": str(err.get("message") or err.get("code") or r.text[:120])[:200]}
+    first = rows[0] or {}
+    return {"ok": True, "http": r.status_code,
+            "brand": str(first.get("brand") or "").lower(),
+            "funding": str(first.get("funding") or "").lower(),
+            "country": str(first.get("country") or "").upper(),
+            "pan_length": int(first.get("pan_length") or 0),
+            "range": [first.get("account_range_low"), first.get("account_range_high")]}
+
+
 async def stripe_confirm_pi(session, pk: str, secret: str, pm_id: str,
                             donor_origin: str, telem: dict) -> dict:
     """POST /v1/payment_intents/{pi}/confirm с полным fingerprint-набором.

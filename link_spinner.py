@@ -128,7 +128,13 @@ async def probe_session(url: str) -> dict:
     if m:
         cs = m.group(1)
     if not cs or not pk:
-        return {"ok": False, "reason": "не удалось извлечь pk/cs из ссылки"}
+        # Живой случай: ссылку передали без #fid (её легко потерять, если где-то сделать split("#")).
+        # Сама витрина на такую отвечает «This link is incomplete» — это НЕ смерть сессии, и путать
+        # их нельзя: причина в нашей ссылке, а не в цели.
+        missing = "фрагмент #fid потерян" if "#" not in url else "фрагмент #fid не разобран"
+        return {"ok": False, "incomplete": True,
+                "reason": (f"{missing}: без него checkout отвечает «This link is incomplete». "
+                           "Возьмите исходную ссылку целиком, вместе с частью после #")}
 
     async with AsyncSession(impersonate=config.pick_impersonate(), verify=False) as s:
         r = await s.get(f"https://api.stripe.com/v1/payment_pages/{cs}",
