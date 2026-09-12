@@ -332,7 +332,7 @@ async def test_proration_recovery_via_payment_pages_re_query():
             "total_summary": {"due": 1250},
             "currency": "usd",
         }),
-        MockResponse(200, {"status": "complete"}),                  # confirm 2 with 1250
+        MockResponse(200, {"status": "complete", "payment_status": "paid"}),   # confirm 2 with 1250
     ])
     sess.s = mock_sess
 
@@ -378,7 +378,7 @@ async def test_proration_recovery_via_dedicated_invoices_endpoint():
             "id": "in_live_lineitemadjusted999",
             "amount_due": 1399,
         }),
-        MockResponse(200, {"status": "complete"}),                  # confirm 2 with 1399
+        MockResponse(200, {"status": "complete", "payment_status": "paid"}),   # confirm 2 with 1399
     ])
     sess.s = mock_sess
 
@@ -486,7 +486,7 @@ async def test_radar_challenge_solver_success_and_resumed_paid():
 
     verdict, detail = await sess._classify_and_resolve_3ds(radar_resp)
     assert verdict == "APPROVED@PAID"
-    assert "checkout complete" in detail
+    assert "checkout paid" in detail
 
 
 @pytest.mark.asyncio
@@ -507,7 +507,7 @@ async def test_radar_challenge_solver_object_with_solve_method():
 
     mock_sess = SequentialMockSession([
         MockResponse(200, {"id": "pi_radarTestObj", "status": "requires_confirmation"}),
-        MockResponse(200, {"status": "complete"}),
+        MockResponse(200, {"status": "complete", "payment_status": "paid"}),
     ])
     sess.s = mock_sess
 
@@ -607,7 +607,7 @@ async def test_3ds2_frictionless_resolution_loop_flow():
     mock_sess = SequentialMockSession([
         MockResponse(200, text="<html><body>clean acs</body></html>"),             # 3DS method
         MockResponse(200, json_data={"state": "succeeded", "transStatus": "Y"}),  # 3ds2/authenticate
-        MockResponse(200, json_data={"status": "complete"}),                      # poll payment_pages
+        MockResponse(200, json_data={"status": "complete", "payment_status": "paid"}),   # poll payment_pages
     ])
     sess.s = mock_sess
 
@@ -630,7 +630,7 @@ async def test_3ds2_frictionless_resolution_loop_flow():
     # Оплатой считается только подтверждение Stripe: здесь poll вернул status=complete,
     # поэтому APPROVED@PAID обоснован (evidence=session_complete).
     assert verdict == "APPROVED@PAID"
-    assert "session_complete" in detail
+    assert "session_paid" in detail
 
 
 @pytest.mark.asyncio

@@ -451,8 +451,17 @@ class CsHitSession:
             code = (str(err.get("code") or "") + " " + str(err.get("decline_code") or "")).strip()
             msg = str(err.get("message") or "")
             return gc.classify_pi_verdict({"error": {**err, "message": f"{msg} {code}".strip()}})
-        if resp.get("status") in ("complete",) or resp.get("payment_status") == "paid":
-            return "APPROVED@PAID", f"checkout complete ({self.amount}{self.currency})"
+        payment_status = str(resp.get("payment_status") or "")
+        if payment_status in ("paid", "no_payment_required"):
+            return "APPROVED@PAID", f"checkout {payment_status} ({self.amount}{self.currency})"
+        if resp.get("status") in ("complete",) and payment_status != "paid":
+            # Сессия завершилась БЕЗ оплаты. Именно этот случай даёт на странице текст
+            # «Не удалось верифицировать способ оплаты. Выберите другой способ оплаты»
+            # (Stripe: payment_intent_authentication_failure). Раньше мы объявляли здесь
+            # APPROVED@PAID — ложная победа, которую dj поймал на живой странице 2026-09-12.
+            return "CHALLENGE_FAILED", (f"сессия завершена без оплаты "
+                                        f"(payment_status={resp.get('payment_status') or 'unpaid'}) — "
+                                        f"верификация способа оплаты не прошла")
         pi = resp.get("payment_intent") or {}
         pi_st = str(pi.get("status") or "")
         lpe = pi.get("last_payment_error") or {}
@@ -609,11 +618,16 @@ class CsHitSession:
                         # а processing — деньги в пути (PI_PENDING).
                         _log.log_stripe("FRICTIONLESS", self.cs[:14], evidence or "PASSED",
                                         f"{self.amount}{self.currency}")
-                        if evidence in ("session_complete", "pi_succeeded"):
+                        if evidence in ("session_paid", "session_no_payment", "pi_succeeded"):
                             return "APPROVED@PAID", (f"3DS2 frictionless + подтверждение Stripe "
                                                      f"({evidence}, {self.amount}{self.currency})")
                         if evidence == "pi_processing":
                             return "PI_PENDING", "3DS2 frictionless, PI processing (деньги в пути)"
+                        if evidence == "session_complete_unpaid":
+                            # Сессия завершилась без оплаты: верификация не прошла — на странице
+                            # «Не удалось верифицировать способ оплаты».
+                            return "CHALLENGE_FAILED", ("сессия завершена без оплаты — верификация "
+                                                        "способа оплаты не прошла")
                         return "3DS_FRICTIONLESS", (f"3DS2 frictionless passed ({self.amount}{self.currency}) — "
                                                     f"аутентификация, не оплата; ждём подтверждения сессии")
                     elif outcome == "CHALLENGE_REQUIRED":

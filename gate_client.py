@@ -1067,6 +1067,31 @@ def pi_secret_alive(pi_resp: dict) -> bool:
     return err.get("type") == "card_error"
 
 
+RE_AUTH_FAILURE = re.compile(
+    r"authentication[_ ]failure|authentication failed|could not authenticate|"
+    r"unable to verify|could not be verified|verification of your payment|"
+    r"verify your payment method|failed to verify|verification failed|"
+    # Тексты витрин на других языках (карточка ошибки приходит текстом страницы/плагина):
+    # ru — «Не удалось верифицировать способ оплаты. Выберите другой способ оплаты»,
+    # de/fr/es — типовые формулировки того же смысла.
+    r"не удалось верифицировать|верификаци[яи] способа оплаты|не удалось проверить способ оплаты|"
+    r"zahlungsmethode konnte nicht verifiziert|zahlungsmethode überprüft|"
+    r"impossible de vérifier votre moyen de paiement|impossible de verifier votre moyen de paiement|"
+    r"no se pudo verificar (?:el|su) (?:método|metodo) de pago",
+    re.I,
+)
+
+
+def _is_authentication_failure(lowered: str) -> bool:
+    """Провал верификации способа оплаты (3DS/аутентификация) — отдельный класс, не отказ карты.
+
+    Живой случай dj 2026-09-12: страница Stripe показала «Не удалось верифицировать способ оплаты.
+    Выберите другой способ оплаты и повторите попытку», то есть authentication_failure, а отчёт
+    прогона в тот момент объявил APPROVED@PAID. Класс в таксономии — CHALLENGE_FAILED (возвратный).
+    """
+    return bool(RE_AUTH_FAILURE.search(lowered or ""))
+
+
 def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
     """Полная таксономия вердиктов для PI-confirm (план §6.2).
     Возвращает (verdict, detail)."""
@@ -1124,6 +1149,11 @@ def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
         return "INVALID", msg
     if "processing_error" in low or "try again" in low or "processing error" in low:
         return "RETRY", msg
+    # Провал верификации способа оплаты (3DS/аутентификация) — это не отказ карты и не оплата.
+    # На странице Stripe это выглядит как «Не удалось верифицировать способ оплаты. Выберите
+    # другой способ оплаты и повторите попытку» (payment_intent_authentication_failure).
+    if _is_authentication_failure(low):
+        return "CHALLENGE_FAILED", msg
     if err:
         return "DECLINED", msg
     return "UNKNOWN", msg
@@ -1570,6 +1600,9 @@ def classify_verdict(err_msg: str) -> str:
         return "INVALID"
     if "try again" in raw_err or "processing error" in raw_err:
         return "RETRY"
+    # Верификация способа оплаты не прошла (см. _is_authentication_failure) — не отказ карты.
+    if _is_authentication_failure(raw_err):
+        return "CHALLENGE_FAILED"
     # Ошибки несовместимости/сбоя шлюза магазина — это НЕ отказ банка карты
     if any(k in raw_err for k in ("missing payment details", "invalid or missing payment",
                                   "zahlungsangaben", "zahlungsarten", "payment_data",

@@ -407,7 +407,8 @@ async def test_intent_challenge_in_flight_resolution_and_resumption_success():
 
     # Should achieve terminal resolution to APPROVED@PAID
     assert verdict == "APPROVED@PAID"
-    assert "checkout complete" in detail or "PI succeeded" in detail
+    # Деталь называет доказательство оплаты: здесь сессия вернула payment_status=paid.
+    assert "checkout paid" in detail or "PI succeeded" in detail
 
     # Both verify_challenge and resumed confirm must have been dispatched
     assert any("verify_challenge" in c["url"] for c in calls)

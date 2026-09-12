@@ -8,11 +8,16 @@ async def test_classify_success_paid():
     session.amount = 500
     session.currency = "USD"
     
-    verdict, detail = await session._classify_and_resolve_3ds({"status": "complete"})
+    # Оплату подтверждает payment_status, а не один факт завершения сессии: status=complete
+    # при unpaid — это провал верификации способа оплаты (живой случай 2026-09-12).
+    verdict, detail = await session._classify_and_resolve_3ds({"status": "complete", "payment_status": "paid"})
     assert verdict == "APPROVED@PAID"
-    
+
     verdict2, detail2 = await session._classify_and_resolve_3ds({"payment_status": "paid"})
     assert verdict2 == "APPROVED@PAID"
+
+    verdict_unpaid, _ = await session._classify_and_resolve_3ds({"status": "complete", "payment_status": "unpaid"})
+    assert verdict_unpaid == "CHALLENGE_FAILED", verdict_unpaid
     
     verdict3, detail3 = await session._classify_and_resolve_3ds({
         "payment_intent": {"status": "succeeded"}
@@ -153,7 +158,7 @@ async def test_check_card_cascade_survives_message_mismatch(monkeypatch):
                                     "match the latest invoice on the subscription. "
                                     "checkout_amount_mismatch"}}),          # confirm 1
         _Resp(200, {"total_summary": {"due": 1425}, "status": "open"}),    # re-read
-        _Resp(200, {"status": "complete"}),                                # confirm 2
+        _Resp(200, {"status": "complete", "payment_status": "paid"}),      # confirm 2
     ])
     sess.pk, sess.cs, sess.amount, sess.currency = "pk_live_x", "cs_live_t", 1317, "SGD"
     monkeypatch.setattr(BinSteeringEngine, "evaluate_card", _quiet_profile)

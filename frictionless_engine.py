@@ -240,12 +240,19 @@ def _evidence_from_poll(poll_json: dict) -> str:
         return ""
     pi = poll_json.get("payment_intent") or {}
     pi_status = str(pi.get("status") or "")
-    if poll_json.get("status") == "complete" or poll_json.get("payment_status") == "paid":
-        return "session_complete"
+    # Оплату подтверждает ТОЛЬКО payment_status=paid или PI=succeeded. Сессия может быть
+    # status=complete и при этом unpaid — это и есть провал верификации способа оплаты
+    # («Не удалось верифицировать способ оплаты»), а не оплата (живой случай 2026-09-12).
+    if poll_json.get("payment_status") == "paid":
+        return "session_paid"
+    if poll_json.get("payment_status") == "no_payment_required":
+        return "session_no_payment"
     if pi_status == "succeeded":
         return "pi_succeeded"
     if pi_status == "processing":
         return "pi_processing"
+    if poll_json.get("status") == "complete":
+        return "session_complete_unpaid"
     return ""
 
 
