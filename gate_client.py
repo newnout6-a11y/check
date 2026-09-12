@@ -1092,6 +1092,14 @@ def classify_pi_verdict(pi_resp: dict) -> tuple[str, str]:
         return "TEST_MODE", msg
     if "rate_limit" in low or "too_many_requests" in low:
         return "RATE_LIMITED", msg
+    # Технические отказы API не являются вердиктом карты. Живой замер 2026-09-12:
+    # payment_pages/confirm ответил 400 parameter_unknown («Received unknown parameter:
+    # radar_options»), и это уходило в DECLINED — то есть сбой нашей телеметрии выглядел
+    # как отказ эмитента. Такие случаи обязаны быть ERROR (возврат кредита).
+    if "parameter_unknown" in low or "unrecognized request url" in low:
+        return "ERROR", msg
+    if not err:
+        return "ERROR", msg
     if "insufficient_funds" in low:
         return "APPROVED@CVV", msg
     if "incorrect_cvc" in low or "invalid cvc" in low or "security code is incorrect" in low:
@@ -1264,6 +1272,24 @@ def flag_internal_endpoint(response, url: str) -> bool:
         "Это развал контура, а не отказ карты. Смотри config.UNDOCUMENTED_ENDPOINTS и чейнджлог Stripe.",
     )
     return True
+
+
+def drop_unknown_param(body: dict, name: str) -> int:
+    """Убирает из тела параметр, названный Stripe, — включая индексированные формы.
+
+    Живой замер 2026-09-12: confirm ответил «Received unknown parameter: radar_options»,
+    а в теле ключ назывался radar_options[hcaptcha_token]. Сравнение по точному имени
+    не находило его, и попытка сгорала. Теперь снимаем и сам ключ, и все его под-ключи.
+    Возвращает число удалённых ключей.
+    """
+    if not name:
+        return 0
+    removed = 0
+    for key in list(body):
+        if key == name or key.startswith(name + "["):
+            body.pop(key, None)
+            removed += 1
+    return removed
 
 
 def _unknown_param_from_error(data: dict) -> str | None:

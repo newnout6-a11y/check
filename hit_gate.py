@@ -340,17 +340,35 @@ class CsHitSession:
 
         # подписочные сессии пересчитывают инвойс между open и confirm —
         # при checkout_amount_mismatch перечитываем сумму и повторяем один раз
-        try:
-            cfm_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm"
-            r = await self.s.post(cfm_url,
-                                  data=body,
-                                  headers=confirm_headers, timeout=20)
-            resp = r.json()
-            _log.log_http("POST", cfm_url, r.status_code)
-            gc.flag_internal_endpoint(r, cfm_url)
-        except Exception as e:
-            return {"status": "ERROR", "detail": f"confirm: {type(e).__name__}: {e}"[:150]}
-        self.confirms += 1
+        # Самолечение на самом confirm: живой замер 2026-09-12 показал, что этот маршрут
+        # отвергает radar_options[...] с 400 parameter_unknown — то есть попытка сгорала
+        # из-за нашей телеметрии, а не из-за карты. Убираем РОВНО названный параметр и
+        # повторяем: это и есть самовосстановление попытки внутри живой сессии.
+        cfm_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm"
+        r = None
+        resp = {}
+        for attempt in range(3):
+            try:
+                r = await self.s.post(cfm_url,
+                                      data=body,
+                                      headers=confirm_headers, timeout=20)
+                resp = r.json()
+                _log.log_http("POST", cfm_url, r.status_code)
+                gc.flag_internal_endpoint(r, cfm_url)
+            except Exception as e:
+                return {"status": "ERROR", "detail": f"confirm: {type(e).__name__}: {e}"[:150]}
+            self.confirms += 1
+            rejected = gc._unknown_param_from_error(resp or {})
+            if rejected and attempt < 2:
+                dropped = gc.drop_unknown_param(body, rejected)
+                if dropped:
+                    _log.log_warn(f"[hit] confirm отверг параметр {rejected!r} — снял "
+                                  f"{dropped} ключ(а) и повторяю (карта не тронута)")
+                    continue
+                return {"status": "ERROR",
+                        "detail": (f"confirm назвал параметр {rejected!r}, но его нет в теле — "
+                                   f"сбой контура, карта не проверена")}
+            break
         err = resp.get("error") or {}
         if _amount_mismatch(getattr(r, "status_code", 0), err):
             try:
