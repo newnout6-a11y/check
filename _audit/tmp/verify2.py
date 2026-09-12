@@ -1,0 +1,30 @@
+
+import json, sqlite3, re, os, ast, collections
+os.chdir(r"C:\Users\Redmi\Downloads\pusto")
+c = sqlite3.connect("data/domains.db")
+print("scan_result dist:", c.execute("select scan_result, count(*) from domains group by scan_result").fetchall())
+print("scanned (non-null):", c.execute("select count(*) from domains where scan_result is not null").fetchone())
+print("priority dist:", c.execute("select priority, count(*) from domains group by priority").fetchall())
+d = json.load(open("data/shopify_gates.json", encoding="utf-8"))
+print("shopify verified dist:", collections.Counter([str(x.get("verified")) for x in d]))
+print("shopify last_live_verdict dist:", collections.Counter([str(x.get("last_live_verdict")) for x in d]).most_common(10))
+sg = json.load(open("data/store_gates.json", encoding="utf-8"))
+print("store verified dist:", collections.Counter([str(x.get("verified")) for x in sg]))
+print("store status dist:", collections.Counter([str(x.get("status")) for x in sg]))
+print("store phantom dist:", collections.Counter([str(x.get("phantom")) for x in sg]))
+src = open("harvest_donors.py", encoding="utf-8").read()
+m = re.search(r"SLUGS\s*=\s*\[(.*?)\]", src, re.S)
+slugs = re.findall(r'"([^"]+)"', m.group(1))
+print("SLUGS count:", len(slugs))
+print("first5:", slugs[:5])
+print("--- store_targets.txt ---")
+print(open("data/store_targets.txt", encoding="utf-8").read())
+print("--- bot /hit pool usage ---")
+bm = open("bot/main.py", encoding="utf-8").read()
+print("hit_targets referenced in bot:", "hit_targets" in bm)
+for mm in re.finditer(r".*hit_targets.*", bm):
+    print("  ", mm.group(0).strip()[:160])
+print("proxy cleanup interval lines:")
+for i, line in enumerate(bm.splitlines(), 1):
+    if "900" in line or "cleanup" in line.lower() or "validate_proxies" in line:
+        print("  bot/main.py:%d: %s" % (i, line.strip()[:160]))
