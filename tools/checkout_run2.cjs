@@ -131,11 +131,20 @@ function readCard() {
       } catch (e) {}
       const rows = f.locator("text=\"Карта\"");
       const n = await rows.count().catch(() => 0);
+      if (n) {
+        const boxes = [];
+        for (let i = 0; i < Math.min(n, 4); i++) {
+          const b = await rows.nth(i).boundingBox().catch(() => null);
+          const vis = await rows.nth(i).isVisible().catch(() => false);
+          boxes.push({ vis, h: b ? Math.round(b.height) : null, y: b ? Math.round(b.y) : null, headY: Math.round(headingY) });
+        }
+        console.log("    кандидаты «Карта»: " + JSON.stringify(boxes));
+      }
       for (let i = 0; i < n; i++) {
         const el = rows.nth(i);
         let b = null;
         try { if (!(await el.isVisible())) continue; b = await el.boundingBox(); } catch (e) { continue; }
-        if (!b || b.height > 60) continue;
+        if (!b || b.height > 140) continue;   // строка списка, а не весь блок метода
         if (headingY >= 0 && b.y < headingY - 80) continue;
         const cx = Math.round(b.x + b.width / 2), cy = Math.round(b.y + b.height / 2);
         console.log("жму строку «Карта» (" + cx + "," + cy + ", h=" + Math.round(b.height) + ")");
@@ -159,10 +168,29 @@ function readCard() {
 
   await closeModals();
   let opened = await cardsVisible();
-  for (let i = 0; i < 10 && !opened; i++) {
-    opened = await openCard();
-    if (opened) break;
-    await page.waitForTimeout(600);
+  if (!opened) {
+    // /g рисует список способов оплаты поздно: сначала ДОЖИДАЕМСЯ строки «Карта», и только потом жмём —
+    // слепые попытки по пустому DOM давали 17 секунд и лишнюю перезагрузку.
+    let waited = 0, reloaded = false;
+    for (let i = 0; i < 90 && !opened; i++) {
+      let ready = false;
+      for (const f of page.frames()) {
+        try { if (await f.locator("text=\"Карта\"").first().isVisible()) { ready = true; break; } } catch (e) {}
+        try { if (await f.locator("input[value=card]").first().isVisible()) { ready = true; break; } } catch (e) {}
+      }
+      if (ready) {
+        opened = await openCard();
+        if (opened) break;
+      }
+      if (!reloaded && waited >= 12000) {
+        reloaded = true;
+        console.log("списка методов нет 12 с — перезагружаю страницу [" + el() + "]");
+        await page.reload({ waitUntil: "commit", timeout: 60000 }).catch(() => {});
+        await page.waitForTimeout(3000);
+      }
+      await page.waitForTimeout(250);
+      waited += 250;
+    }
   }
   console.log((opened ? "форма карты открыта" : "форма карты НЕ открылась") + " за " + el());
 
@@ -261,6 +289,21 @@ function readCard() {
   };
   await alignX("эталон до заполнения");   // x поля до ввода — эталон, к нему возвращаем панель
 
+  // Возврат панели СРАЗУ после каждого ввода: смещает не только перед кадром, а на каждом шаге —
+  // fill() фокусирует поле, и Stripe подкручивает контейнер под фокус. Гасим фокус и прокрутку в том
+  // фрейме, где вводили, это стоит доли секунды и держит форму на месте весь прогон.
+  const snapBack = async (f) => {
+    try {
+      await f.evaluate(() => {
+        const ae = document.activeElement;
+        if (ae && ae.blur) { try { ae.blur(); } catch (e) {} }
+        const se = document.scrollingElement || document.documentElement;
+        if (se && se.scrollLeft) se.scrollLeft = 0;
+        for (const e of document.querySelectorAll("*")) { if (e.scrollLeft) e.scrollLeft = 0; }
+      });
+    } catch (e) {}
+  };
+
   const val = async (id) => {
     for (const f of page.frames()) {
       try {
@@ -294,6 +337,7 @@ function readCard() {
           await el.fill(v, { timeout: 4000 }).catch(() => {});
           await page.waitForTimeout(70);
         }
+        await snapBack(f);
         return norm(await val(id)) === norm(v);
       } catch (e) {}
     }
@@ -305,6 +349,7 @@ function readCard() {
         const el = f.locator("#" + id).first();
         if (!(await el.count())) continue;
         await el.selectOption(v).catch(() => {});
+        await snapBack(f);
         for (let i = 0; i < 12; i++) { if ((await val(id)) === v) return true; await page.waitForTimeout(250); }
         return (await val(id)) === v;
       } catch (e) {}
@@ -384,6 +429,9 @@ function readCard() {
   console.log("ЗНАЧЕНИЯ: " + JSON.stringify(shown));
   await resetScroll();
   await alignX("перед снимком формы");
+  const shotMid = path.join(TMP, "run_mid.png");
+  await page.screenshot({ path: shotMid, animations: "disabled", caret: "hide" }).catch(() => {});
+  console.log("кадр после заполнения (" + el() + "): " + shotMid);
   const shot1 = path.join(TMP, "run_filled.png");
   await page.screenshot({ path: shot1, animations: "disabled", caret: "hide" }).catch(() => {});
   console.log("вид с формой (" + el() + "): " + shot1);
