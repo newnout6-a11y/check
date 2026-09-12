@@ -33,7 +33,14 @@ function resolvePlaywright() {
   for (const ctx of browser.contexts()) {
     for (const p of ctx.pages()) if (p.url().includes("kimi")) page = p;
   }
-  if (!page) throw new Error("не нашёл открытую вкладку kimi.ai на " + CDP);
+  if (!page) {
+    // Вкладки kimi.ai может не быть (например, вкладку увели на checkout.stripe.com).
+    // Тогда открываем её сами: загрузка SPA как раз и обновит токены через refresh.
+    console.log("вкладки kimi.ai нет — открываю www.kimi.ai/mykimi");
+    page = await browser.contexts()[0].newPage();
+    await page.goto("https://www.kimi.ai/mykimi", { waitUntil: "commit", timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(12000);
+  }
 
   const captured = { headers: {} };
   page.on("request", (r) => {

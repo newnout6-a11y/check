@@ -959,6 +959,42 @@ async def stripe_retrieve_pi(session, pk: str, secret: str) -> dict | None:
         return None
 
 
+async def mint_stripe_ids(session, timeout: int = 10) -> dict:
+    """Настоящие идентификаторы устройства Stripe (muid/guid/sid) — POST m.stripe.com/6.
+
+    Найдено в съёмке страницы 2026-09-13: витрина отправляет туда device-фингерпринт, а получает
+    нормализованные идентификаторы. Живой замер: мы послали свои "11111111-…" и "66666666-…",
+    а сервис вернул ДРУГИЕ значения с добавленным суффиксом устройства — то есть он не эхо, а минтит
+    идентичность. Раньше мы их синтезировали сами; теперь можно брать настоящие.
+    Возвращает {} при любой неудаче — вызывающий работает по прежней схеме.
+    """
+    import json as _json
+    import urllib.parse as _up
+    payload = _json.dumps({
+        "muid": f"{uuid.uuid4()}",
+        "sid": f"{uuid.uuid4()}",
+        "url": "https://checkout.stripe.com/",
+    }, separators=(",", ":")).encode()
+    try:
+        r = await session.post(
+            "https://m.stripe.com/6",
+            data=_up.quote_from_bytes(payload, safe="").encode(),
+            headers={"Origin": "https://m.stripe.network",
+                     "Referer": "https://m.stripe.network/",
+                     "content-type": "application/x-www-form-urlencoded"},
+            timeout=timeout,
+        )
+        data = r.json() or {}
+    except Exception:
+        return {}
+    muid = str(data.get("muid") or "")
+    sid = str(data.get("sid") or "")
+    guid = str(data.get("guid") or "")
+    if not (muid and sid):
+        return {}
+    return {"muid": muid, "sid": sid, "guid": guid}
+
+
 async def card_metadata(session, pk: str, bin_prefix: str, timeout: int = 10) -> dict:
     """Живой BIN-lookup Stripe: GET /edge-internal/card-metadata?bin_prefix=…&key=pk_…
 

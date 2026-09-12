@@ -246,6 +246,19 @@ class CsHitSession:
             if self.amount > self.max_amount:
                 await s.close()
                 return False, f"CHARGE_RISK: {self.amount}{self.currency} > {self.max_amount}c"
+            # Настоящие идентификаторы устройства Stripe (живой замер 2026-09-13): витрина получает
+            # muid/guid/sid именно отсюда, а не выдумывает. Берём их, если сервис ответил; иначе — как раньше.
+            if not self.muid:
+                try:
+                    ids = await gc.mint_stripe_ids(s, timeout=8)
+                    if ids:
+                        self.muid = ids["muid"]
+                        self.sid = ids.get("sid") or self.sid
+                        self.guid = ids.get("guid") or self.guid
+                        _log.log_stripe("DEVICE_IDS", self.cs[:14], "m.stripe.com/6",
+                                        f"muid={self.muid[:12]}… sid={self.sid[:12]}…")
+                except Exception as e:
+                    _log.log_stripe("DEVICE_IDS", self.cs[:14], "fallback", type(e).__name__)
             self.muid = self.muid or str(uuid.uuid4())
             self.sid = self.sid or str(uuid.uuid4())
             self.guid = self.guid or str(uuid.uuid4())

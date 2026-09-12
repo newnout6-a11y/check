@@ -122,8 +122,16 @@ async def refresh_access_token(auth: dict, proxy: str | None = None, timeout: in
 
 
 def save_auth(auth: dict, path: str | None = None) -> str:
-    """Пишет токены обратно в файл, чтобы продление жило между запусками."""
-    p = Path(path or auth.get("source_path") or config.ACCOUNT_AUTH_PATH)
+    """Пишет токены обратно в файл, чтобы продление жило между запусками.
+
+    Путь НЕ угадывается: пишем только туда, откуда данные пришли (source_path) или куда указали
+    явно. Живой случай: save_auth по умолчанию брал config.ACCOUNT_AUTH_PATH, и синтетический токен
+    из теста затёр рабочий data/account_auth.json.
+    """
+    target = path or auth.get("source_path")
+    if not target:
+        raise AccountAuthError("некуда сохранять данные аккаунта: укажите путь явно или читайте их из файла")
+    p = Path(target)
     payload: dict = {"access_token": auth.get("access_token") or ""}
     if auth.get("refresh_token"):
         payload["refresh_token"] = auth["refresh_token"]
@@ -209,10 +217,14 @@ async def mint_link(auth: dict | None = None, goods_id: str | None = None,
                     "refresh_expires_at": token_expiry(ref["refresh_token"])}
             # Продление выдаёт и НОВЫЙ refresh_token: если не сохранить, файл останется со старым,
             # и следующий запуск упрётся в «токен протух». Пишем сразу, ошибку записи не роняем.
-            try:
-                save_auth(auth)
-            except Exception as e:
-                print(f"[!] продлённый токен не удалось записать: {e}")
+            # ВАЖНО: только если данные пришли ИЗ ФАЙЛА. Иначе (окружение, тест, вызов с готовым
+            # словарём) мы бы перезаписывали чужой файл — так тесты уже один раз снесли живой
+            # data/account_auth.json синтетическим токеном.
+            if auth.get("source_path"):
+                try:
+                    save_auth(auth)
+                except Exception as e:
+                    print(f"[!] продлённый токен не удалось записать: {e}")
         elif exp <= int(time.time()):
             return {"ok": False, "http": 0,
                     "error": (f"токен истёк и продлить не удалось ({ref.get('error')}) — обнови данные: "
@@ -289,7 +301,11 @@ def main() -> int:
             return 4
         auth["access_token"] = res["access_token"]
         auth["refresh_token"] = res["refresh_token"]
-        path = save_auth(auth, a.auth)
+        try:
+            path = save_auth(auth, a.auth)
+        except AccountAuthError as e:
+            print(f"[!] токен продлён, но сохранить некуда: {e}")
+            return 0
         print(f"[+] токен продлён, {_expiry_note(res['expires_at'])}, записан в {path}")
         return 0
     if a.check:

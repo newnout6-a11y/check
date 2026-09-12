@@ -8,6 +8,17 @@ import account_rotator as ar
 import config
 
 
+@pytest.fixture(autouse=True)
+def _isolated_auth_path(tmp_path, monkeypatch):
+    """Тесты НИКОГДА не должны писать в рабочий data/account_auth.json.
+
+    Живой случай: тест на авто-продление вызвал сохранение и затёр настоящий файл синтетическим
+    токеном. Теперь путь всегда временный, плюс production-код пишет только туда, откуда читал.
+    """
+    monkeypatch.setattr(config, "ACCOUNT_AUTH_PATH", str(tmp_path / "auth.json"), raising=False)
+    yield
+
+
 def test_load_auth_from_file_fills_default_headers(tmp_path):
     p = tmp_path / "auth.json"
     p.write_text(json.dumps({"access_token": "tok-123"}), encoding="utf-8")
@@ -222,6 +233,16 @@ async def test_mint_link_refuses_expired_token_when_refresh_fails(monkeypatch):
     res = await ar.mint_link(auth)
     assert res["ok"] is False
     assert "истёк" in res["error"]
+
+
+def test_save_auth_does_not_touch_real_file_without_source_path(tmp_path, monkeypatch):
+    """Регрессия: словарь без source_path не должен перезаписывать рабочий файл."""
+    real = tmp_path / "real.json"
+    real.write_text('{"access_token": "живой"}', encoding="utf-8")
+    monkeypatch.setattr(config, "ACCOUNT_AUTH_PATH", str(real), raising=False)
+    with pytest.raises(ar.AccountAuthError):
+        ar.save_auth({"access_token": "чужой", "headers": {}})  # ни явного пути, ни source_path
+    assert "живой" in real.read_text(encoding="utf-8")  # рабочий файл не тронут
 
 
 def test_save_auth_writes_tokens_and_headers(tmp_path):
