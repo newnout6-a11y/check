@@ -17,6 +17,9 @@ scratch/_cards_test.txt
 data/proxies.txt
 bot/bot_users.db
 
+# Данные аккаунта для ротации ссылок: живой токен, в репозиторий не попадает.
+data/account_auth.json
+
 # Карточные данные и внешние пулы: в репозиторий не попадают (Фиксация №25).
 # Пример формата остаётся отслеживаемым: !data/proxies.txt.example
 data/probe_*.txt
