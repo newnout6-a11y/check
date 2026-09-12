@@ -12,6 +12,14 @@ from curl_cffi.requests import AsyncSession
 import gate_client as gc
 import config
 
+# Статусы полосы сканирования: единый источник — config.SCAN_STATUSES, чтобы эти строки
+# не путали с вердиктами карт (аудит 2026-09, M-06).
+_SCAN_READY, _SCAN_CAPTCHA_ADDCARD, _SCAN_BRAINTREE_KEY = config.SCAN_STATUSES
+
+# Статусы полосы сканирования: единый источник — config.SCAN_STATUSES, чтобы эти строки
+# не путали с вердиктами карт (аудит 2026-09, M-06).
+_SCAN_READY, _SCAN_CAPTCHA_ADDCARD, _SCAN_BRAINTREE_KEY = config.SCAN_STATUSES
+
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 
@@ -119,7 +127,7 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
 
                 if gc.looks_like_captcha(pm_html):
                     # Sprint 3.4: капча на add-card — донор жив для PI-confirm, помечаем
-                    return {"domain": domain, "status": "CAPTCHA_ADDCARD",
+                    return {"domain": domain, "status": _SCAN_CAPTCHA_ADDCARD,
                             "captcha_on_add_card": True}
 
                 if "pk_test_" in pm_html and "pk_live_" not in pm_html:
@@ -128,7 +136,7 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 # Фаза 5.1: Braintree-доноры рядом со Stripe
                 bt = gc.extract_braintree_keys(pm_html)
                 if bt["has_braintree"] and "pk_live_" not in pm_html:
-                    return {"domain": domain, "status": "BRAINTREE_KEY",
+                    return {"domain": domain, "status": _SCAN_BRAINTREE_KEY,
                             "braintree_client_token": bool(bt["client_token"]),
                             "braintree_tokenization_key": bt["tokenization_key"]}
 
@@ -212,7 +220,7 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                         "upe_nonce": upe_nonce,
                         "legacy_nonce": legacy_nonce,
                         "updated_at": int(time.time()),
-                        "status": "READY"
+                        "status": _SCAN_READY
                     }
         except Exception:
             return None
@@ -326,9 +334,9 @@ async def main():
         for s in s1_passed
     ]
     deep_results = await asyncio.gather(*deep_tasks)
-    new_ready_gates = [r for r in deep_results if r and r.get("status") == "READY"]
+    new_ready_gates = [r for r in deep_results if r and r.get("status") == _SCAN_READY]
     captcha_hits = {r["domain"]: r for r in deep_results
-                    if r and r.get("status") == "CAPTCHA_ADDCARD"}
+                    if r and r.get("status") == _SCAN_CAPTCHA_ADDCARD}
     if captcha_hits:
         print(f"[*] Captcha on add-card: {len(captcha_hits)} donor(s) marked, kept for PI-confirm vector")
 
@@ -339,14 +347,14 @@ async def main():
             ready_set = {g["domain"] for g in new_ready_gates}
             for d in live_dns_domains:
                 if d in ready_set:
-                    domains_store.mark_scanned(d, "READY")
+                    domains_store.mark_scanned(d, _SCAN_READY)
                     continue
                 r = next((x for x in deep_results
                           if x and x.get("domain") == d), None)
                 if captcha_hits.get(d):
-                    domains_store.mark_scanned(d, "CAPTCHA_ADDCARD")
-                elif r and r.get("status") == "BRAINTREE_KEY":
-                    domains_store.mark_scanned(d, "BRAINTREE_KEY")
+                    domains_store.mark_scanned(d, _SCAN_CAPTCHA_ADDCARD)
+                elif r and r.get("status") == _SCAN_BRAINTREE_KEY:
+                    domains_store.mark_scanned(d, _SCAN_BRAINTREE_KEY)
                     bt_targets.append(r)
                 else:
                     domains_store.mark_scanned(d, "NO_REG")
@@ -369,7 +377,7 @@ async def main():
         if age > GATE_TTL:
             print(f"  [prune] {dom}: TTL expired ({age // 3600}h unconfirmed) — removed from pool", flush=True)
             continue
-        if age > STALE_AFTER and g.get("status") == "READY":
+        if age > STALE_AFTER and g.get("status") == _SCAN_READY:
             g["status"] = "STALE"
             print(f"  [stale] {dom}: unconfirmed {age // 3600}h — marked STALE", flush=True)
         final_ready_gates.append(g)

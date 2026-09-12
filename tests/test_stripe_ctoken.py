@@ -49,7 +49,9 @@ async def test_create_confirmation_token_from_pm():
             return DummyResponse()
 
     res = await gc.create_confirmation_token(DummySession(), "pk_live_test", "pm_live_xyz")
-    assert res["status"] == "OK"
+    # «OK» был статусом вне таксономии: любой путь через coerce_verdict превращал его в UNKNOWN.
+    # Выпущенный confirmation-токен — это PI_MINTED (аудит 2026-09, M-06 / G-10).
+    assert res["status"] == "PI_MINTED"
     assert res["id"] == "ctoken_test_abc123"
     assert res["pm_id"] == "pm_live_xyz"
 
@@ -80,7 +82,7 @@ async def test_create_confirmation_token_from_card():
 
     card = gc.parse_card("5175465382242090|09|2030|018")
     res = await gc.create_confirmation_token(DummySession(), "pk_live_test", card)
-    assert res["status"] == "OK"
+    assert res["status"] == "PI_MINTED"
     assert res["id"] == "ctoken_auto_minted_789"
     assert res["pm_id"] == "pm_auto_minted_456"
     assert posted_urls == [

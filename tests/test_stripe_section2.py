@@ -89,12 +89,39 @@ def test_tokenize_helper_returns_error_without_unknown_param():
     assert len(sess.bodies) == 1
 
 
+ROUTE_GONE = {"error": {"code": "invalid_request_error",
+                       "message": "Unrecognized request URL (GET: /v1/payment_pages/)."}}
+RESOURCE_MISSING = {"error": {"code": "resource_missing",
+                              "message": "No such checkout session: cs_live_probe"}}
+
+
 def test_internal_endpoint_gone_is_flagged_only_for_internal_paths():
     """404 на непубличном маршруте — сигнал развала контура; 404 на обычном — нет."""
     internal = "https://api.stripe.com/v1/payment_intents/pi_1/verify_challenge"
-    assert gc.flag_internal_endpoint(_Resp(404, {}), internal) is True
-    assert gc.flag_internal_endpoint(_Resp(404, {}), "https://api.stripe.com/v1/payment_methods") is False
+    assert gc.flag_internal_endpoint(_Resp(404, ROUTE_GONE), internal) is True
+    assert gc.flag_internal_endpoint(_Resp(404, ROUTE_GONE),
+                                     "https://api.stripe.com/v1/payment_methods") is False
     assert gc.flag_internal_endpoint(_Resp(401, {}), internal) is False
+
+
+def test_route_404_is_distinguished_from_dead_resource():
+    """Живой замер 2026-09-12: роут-404 и ресурс-404 надо различать, иначе алерт станет шумом.
+
+    GET /v1/payment_pages/ и GET /v1/confirmation_tokens отдают «Unrecognized request URL» —
+    это выведенный маршрут. GET /v1/payment_pages/cs_live_bogus с валидным pk_live отдаёт
+    resource_missing — это мёртвая цель, а не развал контура (в пуле /hit мёртвых целей много).
+    """
+    internal = "https://api.stripe.com/v1/payment_pages/cs_live_x"
+    assert gc.flag_internal_endpoint(_Resp(404, RESOURCE_MISSING), internal) is False
+    assert gc.flag_internal_endpoint(_Resp(404, ROUTE_GONE), internal) is True
+    # 404 без доказательств роут-отказа (пустой ответ) алертом не считается
+    assert gc.flag_internal_endpoint(_Resp(404, {}), internal) is False
+    # HTML-страница «Page not found» на внутреннем пути — тоже выведенный маршрут
+    # (так отвечает hooks.stripe.com; сам мёртвый /3ds2/fingerprint/complete в маркеры не входит,
+    # потому что контур на него больше не ходит — см. config.THREE_DS_METHOD_NOTIFICATION_URL).
+    html = _Resp(404, "not json")
+    html.text = "<html><head><title>Stripe: Page not found</title></head></html>"
+    assert gc.flag_internal_endpoint(html, "https://api.stripe.com/v1/payment_pages/") is True
 
 
 def test_technical_challenge_statuses_are_known_error_and_refundable():
@@ -127,3 +154,68 @@ def test_hit_gate_separates_session_state_from_verdicts():
     assert '"pipeline"' in src
     assert '"status": "SUCCESS"' not in src and '"status": "COMPLETED"' not in src
     assert '"status": "INVALID_URL"' not in src
+
+
+def test_payment_pages_requests_are_alert_wired():
+    """Каждый запрос к payment_pages должен проверяться на выведенный маршрут (H-01).
+
+    Живой замер: весь вектор /hit живёт на /v1/payment_pages/{cs} и /confirm, поэтому 404 там
+    обязан кричать «контур развалился». Раньше алерт стоял только на трёх маршрутах из четырёх.
+    """
+    for rel, window in (("hit_gate.py", 24), ("frictionless_engine.py", 24)):
+        lines = (ROOT / rel).read_text(encoding="utf-8").splitlines()
+        req_lines = [i for i, ln in enumerate(lines)
+                     if "api.stripe.com/v1/payment_pages" in ln]
+        assert req_lines, f"{rel}: не найдено обращений к payment_pages — тест потерял смысл"
+        for idx in req_lines:
+            near = "\n".join(lines[idx:idx + window])
+            assert "flag_internal_endpoint" in near, (
+                f"{rel}:{idx + 1} — обращение к payment_pages без проверки на выведенный маршрут"
+            )
+    ctok = (ROOT / "gate_client.py").read_text(encoding="utf-8").splitlines()
+    ctok_lines = [i for i, ln in enumerate(ctok)
+                  if 'ctok_url = "https://api.stripe.com/v1/confirmation_tokens"' in ln]
+    assert ctok_lines, "не найдено обращение к confirmation_tokens"
+    for idx in ctok_lines:
+        near = "\n".join(ctok[idx:idx + 24])
+        assert "flag_internal_endpoint" in near, (
+            f"gate_client.py:{idx + 1} — ctoken без проверки на выведенный маршрут"
+        )
+
+
+def test_no_status_literals_outside_taxonomy():
+    """Ни один прод-модуль не имеет права отдавать статус вне таксономии (M-06 / G-10).
+
+    Скан был разовым при проверке раздела; теперь это постоянный сторож: статус-литералы
+    из корневых модулей и bot/ обязаны лежать в config.VERDICTS или config.SCAN_STATUSES.
+    """
+    rx_status = re.compile(r"['\"]status['\"]\s*:\s*['\"]([A-Z][A-Z0-9_@]*)")
+    rx_return = re.compile(r"return\s*\(?\s*['\"]([A-Z][A-Z0-9_@]{2,})['\"]")
+    allowed = set(config.VERDICTS) | set(config.SCAN_STATUSES)
+    offenders: list[str] = []
+    modules = [p for p in ROOT.glob("*.py") if not p.name.startswith("_")]
+    modules += [p for p in (ROOT / "bot").rglob("*.py") if not p.name.startswith("_")]
+    for path in modules:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for rx in (rx_status, rx_return):
+            for m in rx.finditer(text):
+                if m.group(1) not in allowed:
+                    offenders.append(f"{path.name}: {m.group(1)}")
+    assert not offenders, (
+        "статусы вне таксономии и SCAN_STATUSES: " + ", ".join(sorted(set(offenders))[:15])
+    )
+
+
+def test_scan_statuses_are_not_verdicts():
+    """Статусы сканера — отдельное множество: их нельзя принять за вердикт карты."""
+    assert config.SCAN_STATUSES, "SCAN_STATUSES не должен быть пустым"
+    assert not (set(config.SCAN_STATUSES) & set(config.VERDICTS)), \
+        "статусы сканера не должны пересекаться с вердиктами"
+    for st in ("CAPTCHA_CHECKOUT", "GUEST_CHECKOUT_DISABLED"):
+        assert st in config.VERDICTS, f"{st} должен быть в таксономии"
+        assert st in config.VERDICT_ICONS, f"{st} без иконки"
+        assert config.coerce_verdict(st) == "ERROR"
+        assert config.is_refundable(st) is True
+    assert "CHALLENGE_PASSED" in config.VERDICTS
+    assert "CHALLENGE_PASSED" in config.VERDICT_ICONS
+    assert config.coerce_verdict("CHALLENGE_PASSED") == "CHALLENGE_PASSED"

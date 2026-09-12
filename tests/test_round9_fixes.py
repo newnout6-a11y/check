@@ -20,7 +20,10 @@ def test_coerce_verdict_passes_known():
     но намеренно коэрсятся в ERROR: это свойство движка/цели, а не карты, иначе кредит
     списывается за сбой на нашей стороне (аудит 2026-09, M-06 / G-10).
     """
-    technical = {"CHALLENGE_FAILED", "CHALLENGE_BURNED"}
+    # CAPTCHA_CHECKOUT и GUEST_CHECKOUT_DISABLED теперь в таксономии (иконки, membership),
+    # но по-прежнему коэрсятся в ERROR: это свойство витрины, а не карты (аудит 2026-09, M-06).
+    technical = {"CHALLENGE_FAILED", "CHALLENGE_BURNED",
+                 "CAPTCHA_CHECKOUT", "GUEST_CHECKOUT_DISABLED"}
     for v in config.VERDICTS:
         expected = "ERROR" if v in technical else v
         assert config.coerce_verdict(v) == expected, v

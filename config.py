@@ -38,21 +38,58 @@ def pick_impersonate() -> str:
     return random.choice(IMPERSONATIONS)
 
 # --- SetupIntent / WooCommerce cooldown & Session Pacing ---
-SETUP_COOLDOWN_MIN = 8.1           # минимальная задержка между add-payment-method на одной сессии
-SETUP_COOLDOWN_MAX = 9.0           # верхняя граница с джиттером (спасает от "retried_too_soon")
-SESSION_PACING_MIN = 8.1           # унифицированная пауза для rate-limited эндпоинтов
+# Платформенный порог ядра WooCommerce для add_payment_method: 20 с, и ключ лимита
+# ПЕРСОНАЛЬНЫЙ — 'add_payment_method_' . user_id, а не сессионный
+# (class-wc-form-handler.php:654-674, trunk; тот же лимитер проверяет плагин в
+# create_and_confirm_setup_intent_ajax: «You cannot add a new payment method so soon
+# after the previous one»). Источник: woocommerce/woocommerce trunk @ 2026-09.
+WC_ADD_PAYMENT_METHOD_DELAY_S = 20.0  # проверено 2026-09-12 по trunk, перепроверять раз в 30 дней
+WC_COOLDOWN_JITTER_MIN = 0.5          # джиттер поверх фактического кулдауна донора
+WC_COOLDOWN_JITTER_MAX = 1.5
+
+# Калибровка против конкретного донора (наблюдение 2026-09 на одном доноре,
+# scratch/test_rate_limit_calibration.py: обход по [3, 5, 8, 10, 15, 20] с). Это НЕ порог
+# платформы и НЕ «защита WooCommerce»: значение ниже платформенного дефолта в 20 с и годится
+# только там, где фактический лимит донора измерен и оказался меньше (аудит 2026-09, G-01).
+SETUP_COOLDOWN_CALIBRATED_MIN = 8.1
+SETUP_COOLDOWN_CALIBRATED_MAX = 9.0
+# Совместимость имён: прежние константы остались, но их смысл — калибровка, а не порог ядра.
+SETUP_COOLDOWN_MIN = SETUP_COOLDOWN_CALIBRATED_MIN
+SETUP_COOLDOWN_MAX = SETUP_COOLDOWN_CALIBRATED_MAX
+
+SESSION_PACING_MIN = 8.1           # пауза для rate-limited эндпоинтов Stripe (НЕ кулдаун WooCommerce)
 SESSION_PACING_MAX = 9.0
 
 
-def setup_cooldown_delay() -> float:
-    """Джиттерная пауза 8.1 - 9.0с между картами для защиты от кулдауна WooCommerce."""
+def wc_cooldown_floor(measured_delay_s: float | None = None) -> float:
+    """Фактический кулдаун донора: измеренный, иначе платформенный дефолт ядра (20 с).
+
+    Раньше пауза всегда бралась равной калибровке 8.1-9.0 с и подавалась как платформенная
+    защита: на доноре с дефолтным фильтром вторая карта получала отказ плагина, а не вердикт
+    эмитента (аудит 2026-09, G-01).
+    """
+    if measured_delay_s and float(measured_delay_s) > 0:
+        return float(measured_delay_s)
+    return WC_ADD_PAYMENT_METHOD_DELAY_S
+
+
+def setup_cooldown_delay(measured_delay_s: float | None = None) -> float:
+    """Пауза между add-payment-method на одном WP-аккаунте: кулдаун донора + джиттер.
+
+    Без измеренного кулдауна берётся платформенный дефолт (20.5-21.5 с). Калиброванные
+    8.1-9.0 с доступны только явно — передав measured_delay_s меньше платформенного.
+    """
     import random
-    return round(random.uniform(SETUP_COOLDOWN_MIN, SETUP_COOLDOWN_MAX), 2)
+    floor = wc_cooldown_floor(measured_delay_s)
+    return round(floor + random.uniform(WC_COOLDOWN_JITTER_MIN, WC_COOLDOWN_JITTER_MAX), 2)
 
 
 def session_pacing_delay(min_delay: float = SESSION_PACING_MIN, max_delay: float = SESSION_PACING_MAX) -> float:
-    """Возвращает равномерно распределённую случайную задержку с джиттером (8.1 - 9.0с по умолчанию)
-    для rate-limited e-commerce эндпоинтов и защиты от anti-spam tripwires."""
+    """Джиттерная пауза для rate-limited эндпоинтов Stripe (по умолчанию 8.1-9.0 с).
+
+    Это НЕ кулдаун WooCommerce: у платформы свой порог на add_payment_method — 20 с
+    и персональный ключ (см. WC_ADD_PAYMENT_METHOD_DELAY_S).
+    """
     import random
     return round(random.uniform(min_delay, max_delay), 2)
 
@@ -79,8 +116,21 @@ VERDICTS = [
     # В таксономии, иначе любой путь через coerce_verdict давал UNKNOWN без возврата
     # кредита (аудит 2026-09, M-06 / G-10).
     "CHALLENGE_FAILED", "CHALLENGE_BURNED",
+    # Транспортные маркеры, которые раньше жили вне таксономии и потому могли стать UNKNOWN:
+    # «OK» после пройденного челленджа и после выпуска confirmation-токена,
+    # а также классификация витрины, которую платформа отдаёт вместо вердикта карты
+    # (аудит 2026-09, M-06 / G-10; проверено 2026-09-12).
+    "CHALLENGE_PASSED",
+    "CAPTCHA_CHECKOUT", "GUEST_CHECKOUT_DISABLED",
     "UNKNOWN", "ERROR",
 ]
+
+# Статусы сканера целей (domains.db). Это НЕ вердикты карт: в отчёты они попадают строкой,
+# поэтому держим их отдельным множеством, чтобы никто не принял их за исход чека
+# (аудит 2026-09, M-06: «READY»/«CAPTCHA_ADDCARD»/«BRAINTREE_KEY» выглядели как вердикты).
+# Внимание: «READY» есть ещё у записей донорского пула (data/ready_gates.json, bot/main.py) —
+# это другой жизненный цикл, смешивать их нельзя.
+SCAN_STATUSES = ("READY", "CAPTCHA_ADDCARD", "BRAINTREE_KEY")
 HIT_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@PAID", "APPROVED@CVV", "APPROVED@CCN"}
 VERDICT_ICONS = {
     "APPROVED": "✅", "APPROVED@HOLD": "🟡", "APPROVED@PAID": "💰",
@@ -92,7 +142,8 @@ VERDICT_ICONS = {
     "3DS_REQUIRED": "🔒", "3DS_FRICTIONLESS": "✅", "3DS_CHALLENGE": "🔐",
     "3DS_REDIRECT": "↪️",
     "SESSION_EXPIRED": "⌛", "SESSION_CANCELED": "🚫",
-    "CHALLENGE_FAILED": "🔐", "CHALLENGE_BURNED": "🔥",
+    "CHALLENGE_FAILED": "🔐", "CHALLENGE_BURNED": "🔥", "CHALLENGE_PASSED": "🔓",
+    "CAPTCHA_CHECKOUT": "🧩", "GUEST_CHECKOUT_DISABLED": "🚪",
     "UNKNOWN": "❔",
     "ERROR": "💥",
 }
@@ -132,7 +183,11 @@ def is_hit(verdict: str) -> bool:
 # цели/сессии (SESSION_*). Это свойство цели, а не карты — пользователь не
 # должен платить за мёртвый линк/донора. Всё остальное (включая DECLINED и
 # любые 3DS_*) — честный результат проверки карты.
-REFUNDABLE_VERDICTS = {"ERROR", "SESSION_EXPIRED", "SESSION_CANCELED"}
+# Возвратные классы: сбой движка или витрины, а не свойство карты. CAPTCHA_CHECKOUT и
+# GUEST_CHECKOUT_DISABLED возвратны (раньше они попадали сюда только через coerce_verdict;
+# теперь они в таксономии, и набор обязан совпадать с прежним поведением).
+REFUNDABLE_VERDICTS = {"ERROR", "SESSION_EXPIRED", "SESSION_CANCELED",
+                       "CAPTCHA_CHECKOUT", "GUEST_CHECKOUT_DISABLED"}
 
 # Состояния пайплайна /hit (execute_hit). Это НЕ вердикты карты: держим отдельным полем,
 # чтобы терминальный статус прогона не подменял таксономию (аудит 2026-09, G-10).

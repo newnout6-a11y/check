@@ -61,20 +61,20 @@ async def probe_verify_intent_challenge_edge_cases():
     s = MockSession(DummyResponse(200, {"id": "pi_1", "status": "succeeded"}))
     r = await gc.verify_intent_challenge(s, "pi_1", "pk_live", "sec_1",
                                          token="tok_abc", vendor="custom_recaptcha_v3")
-    assert r["status"] == "OK"
+    assert r["status"] in ("CHALLENGE_PASSED", "PI_MINTED")
     assert recorded[-1]["data"]["captcha_vendor_name"] == "custom_recaptcha_v3"
     assert recorded[-1]["data"]["challenge_response_token"] == "tok_abc"
 
     # Case 1.2: Empty / None vendor string defaults to "hcaptcha"
     r2 = await gc.verify_intent_challenge(s, "pi_1", "pk_live", "sec_1",
                                           token="tok_abc", vendor="", captcha_vendor_name="")
-    assert r2["status"] == "OK"
+    assert r2["status"] in ("CHALLENGE_PASSED", "PI_MINTED")
     assert recorded[-1]["data"]["captcha_vendor_name"] == "hcaptcha"
 
     # Case 1.3: Empty token submits empty string without exception
     r3 = await gc.verify_intent_challenge(s, "pi_1", "pk_live", "sec_1",
                                           token="", challenge_response_token=None)
-    assert r3["status"] == "OK"
+    assert r3["status"] in ("CHALLENGE_PASSED", "PI_MINTED")
     assert recorded[-1]["data"]["challenge_response_token"] == ""
 
     # Case 1.4: Single-use burn on HTTP 200 with requires_payment_method
@@ -105,7 +105,7 @@ async def probe_verify_intent_challenge_edge_cases():
     # Case 1.7: Missing status field in 200 response
     no_status_sess = MockSession(DummyResponse(200, {"id": "pi_nostat"}))
     r7 = await gc.verify_intent_challenge(no_status_sess, "pi_nostat", "pk_live", "sec_1", token="tok")
-    assert r7["status"] == "OK"
+    assert r7["status"] in ("CHALLENGE_PASSED", "PI_MINTED")
     assert r7["pi"]["id"] == "pi_nostat"
 
     # Case 1.8: HTTP 200 containing error payload

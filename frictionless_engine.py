@@ -307,12 +307,20 @@ async def attempt_frictionless_resolution(
     if cs:
         try:
             # Непубличный маршрут Stripe: 404 здесь означает выведенный путь, а не отказ карты
+            pp_url = f"https://api.stripe.com/v1/payment_pages/{cs}"
             r_poll = await session.get(
-                f"https://api.stripe.com/v1/payment_pages/{cs}",
+                pp_url,
                 params={"key": pk},
                 headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/", "Accept": "application/json"},
                 timeout=10
             )
+            # 404 здесь — выведенный маршрут Stripe, а не отказ карты (аудит 2026-09, H-01).
+            # Импорт ленивый: gate_client не должен тянуть frictionless на импорте.
+            try:
+                import gate_client as _gc
+                _gc.flag_internal_endpoint(r_poll, pp_url)
+            except Exception:
+                pass
             poll_json = r_poll.json() or {}
             pi = poll_json.get("payment_intent") or {}
             pi_status = pi.get("status")

@@ -1215,15 +1215,48 @@ TOKENIZE_HEADERS = {
 }
 
 
+# Признаки того, что 404 означает «маршрут выведен», а не «ресурса нет»:
+#   * Stripe отвечает ошибкой «Unrecognized request URL (GET: /v1/...)» (проверено живьём
+#     2026-09-12: GET /v1/payment_pages/ и GET /v1/confirmation_tokens);
+#   * либо отдаёт HTML-страницу «Page not found» (так отвечает hooks.stripe.com).
+# 404 с кодом resource_missing — это НЕ выведенный маршрут, а мёртвая цель (проверено живьём:
+# /v1/payment_pages/cs_live_bogus с валидным pk_live даёт именно resource_missing). Поэтому
+# алерт обязан различать эти два случая: иначе он кричал бы на каждой закрытой сессии, а в
+# пуле /hit мёртвых целей всегда много.
+RE_STRIPE_ROUTE_GONE = re.compile(r"unrecognized request url|unknown url|page not found", re.I)
+
+
+def _is_route_removal(response) -> bool:
+    """Роут-404 (выведенный маршрут) против ресурс-404 (мёртвый объект)."""
+    try:
+        payload = response.json()
+    except Exception:
+        payload = None
+    if isinstance(payload, dict):
+        err = payload.get("error") or {}
+        code = str(err.get("code") or "")
+        message = str(err.get("message") or "")
+        if code == "resource_missing":
+            return False
+        if RE_STRIPE_ROUTE_GONE.search(message):
+            return True
+        return False
+    text = str(getattr(response, "text", "") or "")
+    return bool(RE_STRIPE_ROUTE_GONE.search(text))
+
+
 def flag_internal_endpoint(response, url: str) -> bool:
     """Проверяет, не выведен ли непубличный маршрут Stripe из маршрутизации.
 
-    Возвращает True, если это 404 по известному внутреннему пути: логируем ALERT, чтобы
-    деградация не выглядела как отказ карты (аудит 2026-09, H-01/H-08/H-09).
+    Возвращает True только для роут-404 по известному внутреннему пути: логируем ALERT, чтобы
+    деградация не выглядела как отказ карты (аудит 2026-09, H-01/H-08/H-09). 404 на ресурс
+    (resource_missing, мёртвая сессия) — не наш случай, иначе алерт превратился бы в шум.
     """
     if getattr(response, "status_code", None) != 404:
         return False
     if not any(mark in url for mark in _STRIPE_INTERNAL_PATH_MARKS):
+        return False
+    if not _is_route_removal(response):
         return False
     _log.log_error(
         "stripe-internal",
@@ -1338,9 +1371,20 @@ async def create_confirmation_token(session, pk: str, pm_id_or_card,
 
     body = confirmation_token_body(pm_id, pk, return_url=return_url, shipping=shipping)
     try:
-        r = await session.post("https://api.stripe.com/v1/confirmation_tokens",
-                               data=body, headers=TOKENIZE_HEADERS, timeout=timeout)
-        _log.log_http("POST", "https://api.stripe.com/v1/confirmation_tokens", r.status_code)
+        ctok_url = "https://api.stripe.com/v1/confirmation_tokens"
+        r = await session.post(ctok_url, data=body, headers=TOKENIZE_HEADERS, timeout=timeout)
+        _log.log_http("POST", ctok_url, r.status_code)
+        # Раньше 404 здесь не отличался от отказа: возвращался общий ERROR, и развал контура
+        # выглядел как проблема карты (аудит 2026-09, H-01/H-08).
+        if flag_internal_endpoint(r, ctok_url):
+            return {
+                "status": "ERROR",
+                "detail": ("маршрут /v1/confirmation_tokens выведен из маршрутизации Stripe (404) — "
+                           "контур ctoken развалился, это не отказ карты. Смотри "
+                           "config.UNDOCUMENTED_ENDPOINTS и чейнджлог Stripe."),
+                "error": {"code": "internal_endpoint_gone"},
+                "pm_id": pm_id,
+            }
         tok_data = r.json()
     except Exception as e:
         _log.log_stripe("CTOKEN_EXC", pm_id, type(e).__name__, str(e)[:100])
@@ -1364,8 +1408,9 @@ async def create_confirmation_token(session, pk: str, pm_id_or_card,
         }
     ctoken_id = tok_data["id"]
     _log.log_stripe("CTOKEN_OK", ctoken_id, detail=pm_id)
+    # Тот же перевод «OK» в таксономию: ctoken выпущен — это PI_MINTED, а не безымянный успех.
     return {
-        "status": "OK",
+        "status": "PI_MINTED",
         "id": ctoken_id,
         "token": tok_data,
         "pm_id": pm_id,
@@ -1436,8 +1481,11 @@ async def verify_intent_challenge(session, pi_id: str, pk: str, client_secret: s
                     "http_status": 200,
                 }
             _log.log_stripe("CHALLENGE_OK", pi_id[:14], pi_status or "verified", "Challenge successfully verified")
+            # «OK» был статусом вне таксономии: любой путь через coerce_verdict превращал его
+            # в UNKNOWN без возврата кредита (аудит 2026-09, M-06 / G-10). Теперь это
+            # первоклассный исход таксономии.
             return {
-                "status": "OK",
+                "status": "CHALLENGE_PASSED",
                 "pi": data,
                 "http_status": 200,
             }
@@ -2222,7 +2270,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         ctoken_id = None
         try:
             ctok_res = await create_confirmation_token(s, pk or telem["key"], pm_id, timeout=10)
-            if ctok_res.get("status") == "OK":
+            if ctok_res.get("status") == "PI_MINTED":
                 ctoken_id = ctok_res.get("id")
         except Exception as _e_ct:
             _log.log_warn(f"[store_api_confirm] ctoken generation skipped: {_e_ct}")

@@ -51,7 +51,7 @@ async def test_verify_intent_challenge_success():
         challenge_response_ekey="ekey_456",
     )
 
-    assert res["status"] == "OK"
+    assert res["status"] == "CHALLENGE_PASSED"
     assert res["http_status"] == 200
     assert res["pi"]["id"] == "pi_3Qmock123"
     assert res["pi"]["status"] == "requires_confirmation"
@@ -84,7 +84,7 @@ async def test_verify_intent_challenge_parameter_aliases():
         token="token_via_alias",
         vendor="hcaptcha_enterprise",
     )
-    assert res["status"] == "OK"
+    assert res["status"] == "CHALLENGE_PASSED"
     assert recorded["data"]["challenge_response_token"] == "token_via_alias"
     assert recorded["data"]["captcha_vendor_name"] == "hcaptcha_enterprise"
 
