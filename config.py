@@ -198,6 +198,19 @@ PIPELINE_STATES = ("SUCCESS", "COMPLETED", "PARTIAL", "FAILED")
 # (200 ОК). Пока значение берётся из ответа Stripe, но дефолт обязан быть живым.
 THREE_DS_METHOD_NOTIFICATION_URL = "https://hooks.stripe.com/3d_secure_2/hosted/complete"
 
+# Сколько раз опрашивать сессию ПОСЛЕ исполнения 3DS-Method и с какой паузой.
+# Живой замер 2026-09-13: одного опроса мало — ACS подтверждает не мгновенно, и движок успевал
+# прочитать ещё «stripe_3ds2_fingerprint», из-за чего «frictionless» не отличался от челленджа.
+THREE_DS_METHOD_POLL_ROUNDS = 4
+THREE_DS_METHOD_POLL_DELAY_S = 2.5
+
+# Отправлять ли radar_options[hcaptcha_token] в payment_pages/confirm.
+# Живой замер 2026-09-13 на двух разных витринах: маршрут отвечает 400 parameter_unknown
+# («Received unknown parameter: radar_options») на первом же confirm, а сама страница Stripe
+# отправляет токен капчи верхним уровнем как passive_captcha_token. Пока держим False — иначе
+# каждая попытка начинается со сгоревшего запроса; флаг оставлен для отката мимикрии.
+CONFIRM_SEND_RADAR_OPTIONS = False
+
 # Версия протокола 3DS. Интенты создаёт мерчант (мы работаем на донорских сессиях), поэтому
 # версию выбирает не наш контур — но фиксировать её обязательно: аудит 2026-09 (E-33) показал,
 # что она не отражалась нигде, хотя Stripe с релиза clover/2026-01-28 принимает её явно.

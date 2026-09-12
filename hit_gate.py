@@ -28,6 +28,25 @@ import pusto_logger as _log
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
 
+def presentment_amount(data: dict) -> int:
+    """Сумма сессии в валюте ВИТРИНЫ (presentment) — то, что ждёт payment_pages/confirm.
+
+    Живой замер 2026-09-13 (Kimi/Stripe, adaptive pricing): PaymentIntent живёт в валюте интеграции
+    (1900 USD), а инвойс сессии — в валюте витрины (2504 SGD). Confirm сверяет expected_amount
+    именно с инвойсом и на старой сумме отвечает 400 checkout_amount_mismatch — то есть попытка
+    сгорает не из-за карты. Здесь собираем презентационную сумму из total_summary.due или invoice.
+    """
+    if not isinstance(data, dict):
+        return 0
+    due = (data.get("total_summary") or {}).get("due")
+    inv = data.get("invoice")
+    if not due and isinstance(inv, dict):
+        due = inv.get("amount_due")
+    try:
+        return int(due or 0)
+    except (TypeError, ValueError):
+        return 0
+
 def _amount_mismatch(status_code: int, err: dict) -> bool:
     """checkout_amount_mismatch живёт в error.code, error.decline_code ИЛИ в хвосте
     error.message (живой кейс 06.09.2026: code=None, message='...subscription.
@@ -123,6 +142,8 @@ class CsHitSession:
         self.pi_id = ""
         self.secret = ""
         self.amount = 0
+        # Сумма для payment_pages/confirm — в валюте ВИТРИНЫ (presentment), а не в валюте PI.
+        self.expected_amount = 0
         self.currency = ""
         self.checksum = ""
         self.confirms = 0
@@ -192,6 +213,10 @@ class CsHitSession:
             self.amount = int(pi.get("amount") or 0)
             self.currency = str(pi.get("currency") or "").upper()
             self.checksum = str(data.get("init_checksum") or "")
+            # Живой замер 2026-09-13: PI в валюте интеграции (1900 USD), а инвойс сессии — в валюте
+            # витрины (2504 SGD). confirm сверяет именно презентационную сумму, поэтому берём её сразу:
+            # иначе первая же попытка тратится на 400 checkout_amount_mismatch.
+            self.expected_amount = presentment_amount(data) or self.amount
 
             cust = data.get("customer") or {}
             self.customer_email = str(data.get("customer_email") or cust.get("email") or "")
@@ -306,16 +331,7 @@ class CsHitSession:
             except Exception:
                 self.hcaptcha_token = None
 
-        body = {
-            "key": self.pk,
-            "eid": str(uuid.uuid4()),
-            "payment_method": td["id"],
-            "expected_payment_method_type": "card",
-            "expected_amount": str(self.amount),
-            "return_url": self.url.split("#")[0],
-        }
-        if self.hcaptcha_token:
-            body["radar_options[hcaptcha_token]"] = self.hcaptcha_token
+        body = self.confirm_body(td, telem)
         if self.use_ctoken:
             try:
                 ct_res = await gc.create_confirmation_token(self.s, self.pk, td["id"], return_url=self.url.split("#")[0])
@@ -327,8 +343,6 @@ class CsHitSession:
                     _log.log_stripe("CTOKEN_FALLBACK", td["id"], str(ct_res.get("status", "FAIL")), "fallback to raw payment_method")
             except Exception as e:
                 _log.log_stripe("CTOKEN_FALLBACK", td["id"], type(e).__name__, f"ctoken error: {e}, fallback to raw payment_method")
-        if self.checksum:
-            body["init_checksum"] = self.checksum
 
         confirm_headers = {
             "Origin": "https://js.stripe.com",
@@ -404,8 +418,9 @@ class CsHitSession:
 
                 if new_amt and int(new_amt) != self.amount:
                     self.amount = int(new_amt)
+                    self.expected_amount = int(new_amt)
                     self.currency = str(pi0.get("currency") or data0.get("currency") or self.currency).upper()
-                    body["expected_amount"] = str(self.amount)
+                    body["expected_amount"] = str(self.expected_amount)
                     body["eid"] = str(uuid.uuid4())
                     if "confirmation_token" not in body:
                         body["payment_method"] = td["id"]
@@ -559,7 +574,7 @@ class CsHitSession:
                                     "key": self.pk,
                                     "eid": str(uuid.uuid4()),
                                     "expected_payment_method_type": "card",
-                                    "expected_amount": str(self.amount),
+                                    "expected_amount": str(self.expected_amount or self.amount),
                                     "return_url": self.url.split("#")[0],
                                 }
                                 if self.checksum:
@@ -633,6 +648,12 @@ class CsHitSession:
                     elif outcome == "CHALLENGE_REQUIRED":
                         _log.log_stripe("FRICTIONLESS", self.cs[:14], "CHALLENGE", "issuer requires OTP")
                         return "3DS_CHALLENGE", "3DS2 challenge (transStatus=C, enrolled)"
+                    elif outcome == "METHOD_ONLY":
+                        # Method ушёл в ACS, но Stripe не подтвердил НИ проход, НИ челлендж. Выдавать
+                        # это за frictionless нельзя, а «enrolled» без деталей — терять информацию:
+                        # вердикт тот же (нужен 3DS), деталь честная (живой случай 2026-09-13).
+                        _log.log_stripe("FRICTIONLESS", self.cs[:14], "METHOD_ONLY", evidence or "no ACS confirmation")
+                        return "3DS_CHALLENGE", str(f_res.get("detail") or "3DS2 Method без подтверждения ACS")
                 
                 # Fallback по типу SDK
                 if sdk_type == "stripe_3ds2_fingerprint":
@@ -648,6 +669,33 @@ class CsHitSession:
             return "3DS_REQUIRED", f"3DS action required (type={na_type})"
             
         return gc.classify_pi_verdict(resp)
+
+    def confirm_body(self, td: dict, telem: dict) -> dict:
+        """Тело payment_pages/confirm для этого маршрута.
+
+        Два живых факта 2026-09-13 (Kimi/Stripe, hosted checkout), каждый стоил нам лишней попытки:
+          * сумма должна быть ПРЕЗЕНТАЦИОННОЙ (валюта витрины), а не валютой PI: PI 1900 USD против
+            инвойса 2504 SGD — на старой сумме confirm отвечает 400 checkout_amount_mismatch, то
+            есть попытка сгорала не из-за карты;
+          * параметр radar_options этот маршрут не принимает вообще («Received unknown parameter:
+            radar_options»), а сама страница шлёт токен капчи верхним уровнем как
+            passive_captcha_token. Поэтому по умолчанию не отправляем; откат — флаг
+            config.CONFIRM_SEND_RADAR_OPTIONS.
+        """
+        body = {
+            "key": self.pk,
+            "eid": str(uuid.uuid4()),
+            "payment_method": td["id"],
+            "expected_payment_method_type": "card",
+            "expected_amount": str(self.expected_amount or self.amount),
+            "return_url": self.url.split("#")[0],
+        }
+        if self.hcaptcha_token and getattr(config, "CONFIRM_SEND_RADAR_OPTIONS", False):
+            body["radar_options[hcaptcha_token]"] = self.hcaptcha_token
+        if self.checksum:
+            body["init_checksum"] = self.checksum
+        return body
+
 
     async def close(self):
         if self.s is not None:
