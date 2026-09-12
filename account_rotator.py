@@ -46,6 +46,7 @@ DEFAULT_HEADERS = {
 
 ENV_KEYS = {
     "access_token": "KIMI_ACCESS_TOKEN",
+    "refresh_token": "KIMI_REFRESH_TOKEN",
     "x-msh-session-id": "KIMI_MSH_SESSION_ID",
     "x-msh-device-id": "KIMI_MSH_DEVICE_ID",
     "x-traffic-id": "KIMI_TRAFFIC_ID",
@@ -83,6 +84,57 @@ def _expiry_note(exp: int) -> str:
     return f"токен живой ещё {left // 60} мин"
 
 
+REFRESH_URL = ("https://auth.kimi.ai/api/account.gateway.v1.AuthService/RefreshToken")
+
+
+async def refresh_access_token(auth: dict, proxy: str | None = None, timeout: int = 20) -> dict:
+    """Продлевает access_token по refresh_token — без браузера.
+
+    Найдено 2026-09-13 разбором бандла SPA: страница держит токен через Connect-RPC на
+    AUTH_API_HOST (= https://auth.kimi.ai), сервис account.gateway.v1.AuthService, метод RefreshToken,
+    тело {"refreshToken": ...} (jsonOptions.useProtoFieldName). Живой ответ: 200 и пара
+    {accessToken, refreshToken} с новым сроком 15 минут. Все прежние догадки про www.kimi.ai/apiv2
+    были неверны именно из-за хоста и имени сервиса.
+    """
+    rt = str(auth.get("refresh_token") or "")
+    if not rt:
+        return {"ok": False, "error": ("нет refresh_token: снять заново — node tools/grab_account_auth.cjs "
+                                      f"или положи refresh_token в {config.ACCOUNT_AUTH_PATH}")}
+    headers = {"content-type": "application/json", "accept": "application/json",
+               "connect-protocol-version": "1", "origin": "https://www.kimi.ai",
+               "referer": "https://www.kimi.ai/"}
+    try:
+        async with AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=proxy) as s:
+            r = await s.post(REFRESH_URL, json={"refreshToken": rt}, headers=headers, timeout=timeout)
+    except Exception as e:
+        return {"ok": False, "http": 0, "error": f"{type(e).__name__}: {e}"[:200]}
+    try:
+        data = r.json() or {}
+    except Exception:
+        data = {}
+    access = str(data.get("accessToken") or "")
+    if r.status_code != 200 or not access:
+        msg = str(data.get("message") or data.get("code") or r.text[:160])
+        return {"ok": False, "http": r.status_code, "error": msg[:300]}
+    return {"ok": True, "http": r.status_code, "access_token": access,
+            "refresh_token": str(data.get("refreshToken") or rt),
+            "expires_at": token_expiry(access)}
+
+
+def save_auth(auth: dict, path: str | None = None) -> str:
+    """Пишет токены обратно в файл, чтобы продление жило между запусками."""
+    p = Path(path or config.ACCOUNT_AUTH_PATH)
+    payload: dict = {"access_token": auth.get("access_token") or ""}
+    if auth.get("refresh_token"):
+        payload["refresh_token"] = auth["refresh_token"]
+    headers = dict(auth.get("headers") or {})
+    if headers:
+        payload["headers"] = headers
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return str(p)
+
+
 def default_headers() -> dict:
     return dict(DEFAULT_HEADERS)
 
@@ -109,6 +161,7 @@ def load_auth(path: str | None = None) -> dict:
         headers = default_headers()
         headers.update({str(k): str(v) for k, v in ((raw or {}).get("headers") or {}).items()})
         return {"access_token": token, "headers": headers, "source": f"файл {p}",
+                "refresh_token": str((raw or {}).get("refresh_token") or ""),
                 "expires_at": token_expiry(token)}
 
     token = os.environ.get(ENV_KEYS["access_token"], "").strip()
@@ -123,6 +176,7 @@ def load_auth(path: str | None = None) -> dict:
             headers[header] = val
     return {"access_token": token, "headers": headers,
             "source": f"окружение {ENV_KEYS['access_token']}",
+            "refresh_token": os.environ.get("KIMI_REFRESH_TOKEN", "").strip(),
             "expires_at": token_expiry(token)}
 
 
@@ -142,10 +196,18 @@ async def mint_link(auth: dict | None = None, goods_id: str | None = None,
     if auth is None:
         auth = load_auth()
     exp = int(auth.get("expires_at") or token_expiry(auth.get("access_token") or ""))
-    if exp and exp <= int(time.time()):
-        return {"ok": False, "http": 0,
-                "error": ("токен аккаунта истёк — обнови данные: node tools/grab_account_auth.cjs "
-                          f"или положи новый access_token в {config.ACCOUNT_AUTH_PATH}")}
+    # Токен живёт 15 минут, поэтому продлеваем его сами, если он на исходе или уже истёк:
+    # refresh_token даёт новую пару без браузера (живой замер 2026-09-13).
+    if exp and exp - int(time.time()) < 60:
+        ref = await refresh_access_token(auth, proxy=proxy)
+        if ref.get("ok"):
+            print(f"[*] токен продлён автоматически ({_expiry_note(ref['expires_at'])})")
+            auth = {**auth, "access_token": ref["access_token"],
+                    "refresh_token": ref["refresh_token"], "expires_at": ref["expires_at"]}
+        elif exp <= int(time.time()):
+            return {"ok": False, "http": 0,
+                    "error": (f"токен истёк и продлить не удалось ({ref.get('error')}) — обнови данные: "
+                              "node tools/grab_account_auth.cjs")}
     note = _expiry_note(exp)
     if note and exp - int(time.time()) < 120:
         print(f"[!] {note}: обновить можно так — node tools/grab_account_auth.cjs")
@@ -167,11 +229,20 @@ async def mint_link(auth: dict | None = None, goods_id: str | None = None,
         data = r.json() or {}
     except Exception:
         data = {}
+    if r.status_code in (401, 403) and not auth.get("_retried"):
+        # Первая попытка могла уйти с токеном, который истёк между проверкой и запросом.
+        ref = await refresh_access_token(auth, proxy=proxy)
+        if ref.get("ok"):
+            print("[*] сервер сказал 401 — продлил токен и повторяю")
+            retry_auth = {**auth, "access_token": ref["access_token"],
+                          "refresh_token": ref["refresh_token"],
+                          "expires_at": ref["expires_at"], "_retried": True}
+            return await mint_link(retry_auth, goods_id=goods, proxy=proxy, timeout=timeout)
     if r.status_code != 200:
         detail = str((data.get("debug") or {}).get("reason") or data.get("code") or r.text[:160])
         if r.status_code in (401, 403) or "unauthenticated" in json.dumps(data, ensure_ascii=False):
-            detail = (f"{detail} — токен аккаунта протух. Обнови данные: "
-                      f"{config.ACCOUNT_AUTH_PATH} или node tools/grab_account_auth.cjs")
+            detail = (f"{detail} — токен аккаунта протух. Продлить: python account_rotator.py --refresh, "
+                      f"снять заново: node tools/grab_account_auth.cjs")
         return {"ok": False, "http": r.status_code, "error": detail[:300]}
     link = str(data.get("redirectUrl") or "")
     sub = ((data.get("subscription") or {}).get("subscriptionId") or "")
@@ -187,6 +258,8 @@ def main() -> int:
     ap.add_argument("--goods", default=None, help="id товара (по умолчанию месячный Moderato)")
     ap.add_argument("--proxy", default=None)
     ap.add_argument("--check", action="store_true", help="только проверить данные аккаунта, без выпуска")
+    ap.add_argument("--refresh", action="store_true",
+                    help="продлить access_token по refresh_token и записать файл (браузер не нужен)")
     a = ap.parse_args()
     try:
         auth = load_auth(a.auth)
@@ -195,6 +268,16 @@ def main() -> int:
         return 2
     print(f"[+] данные аккаунта: {auth['source']}, токен {len(auth['access_token'])} симв."
           + (f", {_expiry_note(int(auth.get('expires_at') or 0))}" if auth.get("expires_at") else ""))
+    if a.refresh:
+        res = asyncio.run(refresh_access_token(auth, proxy=a.proxy))
+        if not res.get("ok"):
+            print(f"[x] продлить не удалось (HTTP {res.get('http')}): {res.get('error')}")
+            return 4
+        auth["access_token"] = res["access_token"]
+        auth["refresh_token"] = res["refresh_token"]
+        path = save_auth(auth, a.auth)
+        print(f"[+] токен продлён, {_expiry_note(res['expires_at'])}, записан в {path}")
+        return 0
     if a.check:
         return 0
     res = asyncio.run(mint_link(auth, goods_id=a.goods, proxy=a.proxy))
