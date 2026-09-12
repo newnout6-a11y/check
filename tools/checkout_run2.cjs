@@ -181,21 +181,32 @@ function readCard() {
 
   // Съезд формы влево — следствие прокрутки элемента внутри вложенного фрейма: она тянет и горизонталь
   // контейнера. Перед снимком и кликом гасим горизонтальные смещения и ставим блок оплаты под шапку.
-  const dirtyFrames = new Set();
+  // Сдвиг влево — это scrollLeft контейнера панели: Stripe прокручивает его сам, чтобы показать поле
+  // В ФОКУСЕ, а сброс прокрутки при живом фокусе бесполезен — браузер тут же возвращает её обратно.
+  // Поэтому порядок такой: снять фокус -> обнулить scrollLeft во всех фреймах -> проверить, что чисто.
   const resetScroll = async () => {
-    for (let i = 0; i < page.frames().length; i++) {
-      if (dirtyFrames.size && !dirtyFrames.has(i)) continue;   // чистим только те фреймы, где был сдвиг
-      const f = page.frames()[i];
-      try {
-        const touched = await f.evaluate(() => {
-          const se = document.scrollingElement || document.documentElement;
-          let touched = false;
-          if (se && se.scrollLeft) { se.scrollLeft = 0; touched = true; }
-          for (const e of document.querySelectorAll("*")) { if (e.scrollLeft) { e.scrollLeft = 0; touched = true; } }
-          return touched;
-        });
-        if (touched) dirtyFrames.add(i);
-      } catch (e) {}
+    const sizes = [];
+    for (let pass = 1; pass <= 4; pass++) {
+      let residual = 0, worstX = null;
+      for (const f of page.frames()) {
+        try {
+          const r = await f.evaluate(() => {
+            const ae = document.activeElement;
+            if (ae && ae.blur) { try { ae.blur(); } catch (e) {} }
+            const se = document.scrollingElement || document.documentElement;
+            if (se && se.scrollLeft) se.scrollLeft = 0;
+            let n = 0;
+            for (const e of document.querySelectorAll("*")) { if (e.scrollLeft) { e.scrollLeft = 0; n++; } }
+            const box = document.querySelector(".p-AccordionPanel, #payment-numberInput, #cardNumber");
+            return { n, x: box ? Math.round(box.getBoundingClientRect().x) : null };
+          });
+          residual += r.n;
+          if (r.x !== null) worstX = r.x;
+        } catch (e) {}
+      }
+      if (residual === 0) { sizes.push("чисто с " + pass + " раза (поле x=" + worstX + ")"); break; }
+      sizes.push("пасс " + pass + ": снято " + residual + ", поле x=" + worstX);
+      await page.waitForTimeout(200);
     }
     try {
       await page.evaluate(() => {
@@ -203,8 +214,52 @@ function readCard() {
         if (h) window.scrollTo(0, h.getBoundingClientRect().top + window.scrollY - 90);
       });
     } catch (e) {}
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(250);
   };
+
+  // Прокрутку сбрасывает одно, а смещает ещё и transform предка панели: Stripe въезжает панелью через
+  // translateX и при снятии фокуса не всегда возвращает её на место. Поэтому держим БАЗОВУЮ ЛИНИЮ —
+  // x поля карты сразу после разворота — и перед каждым кадром возвращаем панель на неё.
+  let baseX = null;
+  const alignX = async (tag) => {
+    for (let pass = 1; pass <= 4; pass++) {
+      let x = null, fixes = [];
+      for (const f of page.frames()) {
+        try {
+          const r = await f.evaluate(() => {
+            const ae = document.activeElement;
+            if (ae && ae.blur) { try { ae.blur(); } catch (e) {} }
+            const se = document.scrollingElement || document.documentElement;
+            if (se && se.scrollLeft) se.scrollLeft = 0;
+            for (const e of document.querySelectorAll("*")) { if (e.scrollLeft) e.scrollLeft = 0; }
+            const box = document.querySelector("#payment-numberInput, #cardNumber");
+            if (!box) return null;
+            const fixed = [];
+            let n = box.parentElement, guard = 0;
+            while (n && guard++ < 14) {
+              const tr = getComputedStyle(n).transform;
+              const m = tr && tr.match(/matrix\(([^)]+)\)/);
+              if (m) {
+                const p = m[1].split(",").map(Number);
+                if (Math.abs(p[4]) > 0.4) { n.style.transform = "none"; fixed.push(String(n.className).slice(0, 28) + " tx=" + Math.round(p[4])); }
+              }
+              n = n.parentElement;
+            }
+            return { x: Math.round(box.getBoundingClientRect().x), fixed };
+          });
+          if (!r) continue;
+          x = r.x;
+          fixes = fixes.concat(r.fixed);
+        } catch (e) {}
+      }
+      if (x === null) return;
+      if (baseX === null) { baseX = x; console.log("    базовая линия поля: x=" + x); return; }
+      if (x === baseX) { console.log("    выравнивание ок (x=" + x + (fixes.length ? ", снято: " + fixes.join("; ") : "") + ")"); return; }
+      console.log("    " + tag + ": поле x=" + x + " вместо " + baseX + (fixes.length ? ", снято: " + fixes.join("; ") : ""));
+      await page.waitForTimeout(200);
+    }
+  };
+  await alignX("эталон до заполнения");   // x поля до ввода — эталон, к нему возвращаем панель
 
   const val = async (id) => {
     for (const f of page.frames()) {
@@ -230,6 +285,10 @@ function readCard() {
           await page.keyboard.type(v, { delay: 30 });
         }
         await page.waitForTimeout(90);
+        if (/address/i.test(id)) {   // панель подсказок перекрывает кнопку оплаты — гасим сразу
+          await page.keyboard.press("Escape").catch(() => {});
+          await page.waitForTimeout(160);
+        }
         if (norm(await val(id)) !== norm(v)) {
           // второй шанс без клавиатуры
           await el.fill(v, { timeout: 4000 }).catch(() => {});
@@ -324,6 +383,7 @@ function readCard() {
   for (const [id] of [...plan, [IDS.a1]]) shown[id] = (await val(id)).slice(0, 20);
   console.log("ЗНАЧЕНИЯ: " + JSON.stringify(shown));
   await resetScroll();
+  await alignX("перед снимком формы");
   const shot1 = path.join(TMP, "run_filled.png");
   await page.screenshot({ path: shot1, animations: "disabled", caret: "hide" }).catch(() => {});
   console.log("вид с формой (" + el() + "): " + shot1);
@@ -361,21 +421,49 @@ function readCard() {
   };
 
   console.log("заполнение закончено — жму кнопку [" + el() + "]");
+  const centerOwner = async () => {
+    try {
+      return await btn.evaluate((b) => {
+        const r = b.getBoundingClientRect();
+        const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        if (!el) return "none";
+        return el.closest("button") === b ? "self" : el.tagName + "." + String(el.className).slice(0, 30);
+      });
+    } catch (e) { return "?"; }
+  };
+
   let clicked = 0;
   watching = true;
   const watcher = watch3ds();
   for (let attempt = 1; attempt <= 3; attempt++) {
     if (confirms.some((c) => c.kind === "req")) break;
+    let owner = await centerOwner();
+    for (let t = 0; t < 4 && owner !== "self"; t++) {
+      console.log("центр кнопки перекрыт (" + owner + ") — закрываю подсказки");
+      await page.keyboard.press("Escape").catch(() => {});
+      await page.mouse.click(10, 10).catch(() => {});
+      await page.waitForTimeout(220);
+      owner = await centerOwner();
+    }
     await resetScroll();
+    await alignX("перед кликом");
     try {
       await btn.click({ timeout: 10000 });   // Playwright сам прокручивает к кнопке и жмёт центр   // нативный клик: Playwright сам наводит мышь в центр кнопки
       clicked++;
       console.log("КЛИК #" + attempt + " (нативный, центр кнопки) через " + el() + " от старта");
     } catch (e) { console.log("клик #" + attempt + " не прошёл: " + e.message.split("\n")[0].slice(0, 70)); }
-    for (let w = 0; w < 30; w++) {
-      await page.waitForTimeout(300);
+    // Ждём не «вообще», а по состоянию страницы: если кнопка ушла в обработку — ждём её,
+    // если за 2.5 с не изменилось ничего — бьём снова немедленно, вместо мёртвой паузы.
+    let reacted = false;
+    for (let w = 0; w < 40; w++) {
+      await page.waitForTimeout(250);
       if (confirms.some((c) => c.kind === "req")) break;
-      if (w % 5 === 4) console.log("    ждём confirm " + ((w + 1) * 0.3).toFixed(1) + "с [" + el() + "]");
+      const st = await btn.evaluate((b) => ((b.disabled ? "disabled" : "") + "|" + (b.innerText || "").replace(/\s+/g, " ").trim()).slice(0, 60)).catch(() => "");
+      if (/обработк|Processing|disabled/i.test(st)) {
+        reacted = true;
+        if (w % 8 === 7) console.log("    кнопка в обработке, ждём [" + el() + "]");
+      }
+      if (!reacted && w >= 9) { console.log("    реакции нет за 2.5с — повторяю клик [" + el() + "]"); break; }
     }
     if (confirms.some((c) => c.kind === "req")) break;
     console.log("  confirm не пришёл после клика #" + attempt);
@@ -388,6 +476,7 @@ function readCard() {
   for (let i = 0; i < 40; i++) { await page.waitForTimeout(500); if (confirms.some((c) => c.kind === "res")) break; }
   await page.waitForTimeout(1500);
   await resetScroll();
+  await alignX("перед снимком результата");
   const shot2 = path.join(TMP, "run_result.png");
   await page.screenshot({ path: shot2, animations: "disabled", caret: "hide" }).catch(() => {});
   console.log("вид после клика: " + shot2);
@@ -410,6 +499,17 @@ function readCard() {
   console.log("итог: вариант=" + kind + " кликов=" + clicked + " confirm=" + confirms.length + " pm=" + out.ids.pm + " время=" + el() + " отчёт=" + name);
   for (const c of confirms) console.log("--- " + (c.kind === "res" ? ("RES " + c.status + " " + (c.response || "").slice(0, 260)) : ("REQ " + c.body.slice(0, 300))));
   console.log("СООБЩЕНИЯ: " + JSON.stringify(msgs));
+  const offs = [];
+  for (const f of page.frames()) {
+    try {
+      const o2 = await f.evaluate(() => {
+        const se = document.scrollingElement || document.documentElement;
+        return { x: Math.round(window.scrollX), l: Math.round(se ? se.scrollLeft : 0) };
+      });
+      if (o2.x || o2.l) offs.push({ frame: String(f.url()).slice(0, 45) || "(пусто)", ...o2 });
+    } catch (e) {}
+  }
+  console.log("горизонтальные смещения в конце: " + (offs.length ? JSON.stringify(offs) : "нет ни в одном фрейме"));
   console.log("СЕТЬ 3DS (" + net3ds.length + "):");
   for (const n of net3ds.slice(-14)) console.log("  " + n.d + " " + (n.status || "") + " " + n.u);
   process.exit(0);
