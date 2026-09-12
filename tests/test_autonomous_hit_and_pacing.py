@@ -627,8 +627,51 @@ async def test_3ds2_frictionless_resolution_loop_flow():
     }
 
     verdict, detail = await sess._classify_and_resolve_3ds(sdk_action_resp)
+    # Оплатой считается только подтверждение Stripe: здесь poll вернул status=complete,
+    # поэтому APPROVED@PAID обоснован (evidence=session_complete).
     assert verdict == "APPROVED@PAID"
-    assert "frictionless passed" in detail
+    assert "session_complete" in detail
+
+
+@pytest.mark.asyncio
+async def test_frictionless_auth_only_is_not_payment():
+    """Пройденная аутентификация без подтверждения Stripe — это 3DS_FRICTIONLESS, не оплата.
+
+    Живой замер 2026-09-12: ветка объявляла APPROVED@PAID на transStatus=Y, а сессия оставалась
+    payment_status=unpaid. Ложный успех хуже ложного отказа.
+    """
+    sess = hg.CsHitSession("https://checkout.stripe.com/c/pay/cs_live_3ds2b#fid")
+    sess.pk = "pk_live_frictionless"
+    sess.cs = "cs_live_frictionless"
+    sess.amount = 1900
+    sess.currency = "SGD"
+
+    mock_sess = SequentialMockSession([
+        MockResponse(200, text="<html><body>clean acs</body></html>"),             # 3DS method
+        MockResponse(200, json_data={"state": "succeeded", "transStatus": "Y"}),  # аутентификация прошла
+        MockResponse(200, json_data={"status": "open", "payment_status": "unpaid",
+                                     "payment_intent": {"status": "requires_payment_method"}}),
+    ])
+    sess.s = mock_sess
+
+    sdk_action_resp = {
+        "payment_intent": {
+            "status": "requires_action",
+            "next_action": {
+                "type": "use_stripe_sdk",
+                "use_stripe_sdk": {
+                    "type": "stripe_3ds2_fingerprint",
+                    "three_ds_method_url": "https://acs.bank.com/method",
+                    "server_transaction_id": "srv_trans_0002",
+                    "three_d_secure_2_source": "src_3ds2_source_67890",
+                }
+            }
+        }
+    }
+
+    verdict, detail = await sess._classify_and_resolve_3ds(sdk_action_resp)
+    assert verdict == "3DS_FRICTIONLESS", (verdict, detail)
+    assert "не оплата" in detail
 
 
 @pytest.mark.asyncio

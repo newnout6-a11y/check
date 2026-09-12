@@ -208,6 +208,47 @@ async def execute_3ds_method(
                 "three_ds_protocol": three_ds_protocol_info()}
 
 
+async def _poll_checkout_session(session, pk: str, cs: str) -> dict:
+    """Читает состояние сессии чекаута. Возвращает {} при любой неудаче (не бросает).
+
+    Живой замер 2026-09-12: именно этот опрос отличает «аутентификация прошла» от «оплачено»,
+    поэтому его результат отдаётся наружу как evidence, а не остаётся внутренним делом.
+    """
+    if not (session and pk and cs):
+        return {}
+    try:
+        pp_url = f"https://api.stripe.com/v1/payment_pages/{cs}"
+        r_poll = await session.get(
+            pp_url,
+            params={"key": pk},
+            headers={"Origin": "https://js.stripe.com", "Referer": "https://js.stripe.com/", "Accept": "application/json"},
+            timeout=10,
+        )
+        try:
+            import gate_client as _gc
+            _gc.flag_internal_endpoint(r_poll, pp_url)
+        except Exception:
+            pass
+        return r_poll.json() or {}
+    except Exception:
+        return {}
+
+
+def _evidence_from_poll(poll_json: dict) -> str:
+    """Какое подтверждение оплаты дал Stripe: session_complete / pi_succeeded / pi_processing / ""."""
+    if not poll_json:
+        return ""
+    pi = poll_json.get("payment_intent") or {}
+    pi_status = str(pi.get("status") or "")
+    if poll_json.get("status") == "complete" or poll_json.get("payment_status") == "paid":
+        return "session_complete"
+    if pi_status == "succeeded":
+        return "pi_succeeded"
+    if pi_status == "processing":
+        return "pi_processing"
+    return ""
+
+
 async def attempt_frictionless_resolution(
     session: AsyncSession,
     pk: str,
@@ -285,10 +326,18 @@ async def attempt_frictionless_resolution(
     state = str(auth_res.get("state") or auth_res.get("status") or "").lower()
 
     if trans_status == "Y" or state in ("succeeded", "approved"):
+        # Аутентификация прошла — но это ещё НЕ оплата. Проверяем, подтвердил ли Stripe деньги:
+        # сессия complete/paid или PI succeeded. Раньше здесь сразу объявлялся APPROVED@PAID, и
+        # живой замер 2026-09-12 дал ложную победу при payment_status=unpaid.
+        poll_json = await _poll_checkout_session(session, pk, cs)
+        evidence = _evidence_from_poll(poll_json) or "auth_only"
         return {
             "outcome": "FRICTIONLESS_PASSED",
+            "evidence": evidence,
             "pi_status": "succeeded",
-            "detail": "Frictionless 3DS2 authenticated successfully (transStatus=Y)",
+            "detail": ("Frictionless 3DS2 authenticated successfully (transStatus=Y)"
+                       + (f"; подтверждение Stripe: {evidence}" if evidence != "auth_only"
+                          else "; подтверждения оплаты от Stripe нет")),
             "auth_res": auth_res,
             "method_res": method_res,
             "three_ds_protocol": three_ds_protocol_info(),
@@ -326,8 +375,17 @@ async def attempt_frictionless_resolution(
             pi_status = pi.get("status")
 
             if pi_status in ("succeeded", "processing") or poll_json.get("status") == "complete":
+                # evidence: здесь есть подтверждение от Stripe — сессия завершена или PI дошёл
+                # до succeeded/processing. Только это и даёт право говорить об оплате.
+                if poll_json.get("status") == "complete":
+                    evidence = "session_complete"
+                elif pi_status == "succeeded":
+                    evidence = "pi_succeeded"
+                else:
+                    evidence = "pi_processing"
                 return {
                     "outcome": "FRICTIONLESS_PASSED",
+                    "evidence": evidence,
                     "pi_status": pi_status,
                     "detail": f"Frictionless authentication approved ({pi_status})",
                     "auth_res": auth_res,
