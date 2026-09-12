@@ -22,9 +22,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from curl_cffi.requests import AsyncSession
@@ -54,6 +56,33 @@ class AccountAuthError(RuntimeError):
     """Нет данных аккаунта или они неполные — ротация невозможна, и об этом надо сказать прямо."""
 
 
+def token_expiry(token: str) -> int:
+    """Момент истечения токена из его же payload. 0 — если не разобрать.
+
+    Подписи здесь не проверяем: это подсказка для человека, а не контроль доступа. Живой замер
+    2026-09-13: токен аккаунта живёт считанные минуты, и 401 на ротации выглядел загадочно —
+    теперь про истечение говорим заранее и тем же тоном, что и о других отказах.
+    """
+    try:
+        part = str(token).split(".")[1]
+        part += "=" * (-len(part) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(part.encode()).decode("utf-8", "replace"))
+        return int(payload.get("exp") or 0)
+    except Exception:
+        return 0
+
+
+def _expiry_note(exp: int) -> str:
+    if not exp:
+        return ""
+    left = exp - int(time.time())
+    if left <= 0:
+        return "токен уже истёк"
+    if left < 120:
+        return f"токен истекает через {left} с"
+    return f"токен живой ещё {left // 60} мин"
+
+
 def default_headers() -> dict:
     return dict(DEFAULT_HEADERS)
 
@@ -79,7 +108,8 @@ def load_auth(path: str | None = None) -> dict:
             raise AccountAuthError(f"в файле {p} нет поля access_token. {auth_hint(path)}")
         headers = default_headers()
         headers.update({str(k): str(v) for k, v in ((raw or {}).get("headers") or {}).items()})
-        return {"access_token": token, "headers": headers, "source": f"файл {p}"}
+        return {"access_token": token, "headers": headers, "source": f"файл {p}",
+                "expires_at": token_expiry(token)}
 
     token = os.environ.get(ENV_KEYS["access_token"], "").strip()
     if not token:
@@ -92,7 +122,8 @@ def load_auth(path: str | None = None) -> dict:
         if val:
             headers[header] = val
     return {"access_token": token, "headers": headers,
-            "source": f"окружение {ENV_KEYS['access_token']}"}
+            "source": f"окружение {ENV_KEYS['access_token']}",
+            "expires_at": token_expiry(token)}
 
 
 def _tracking_msg(goods_id: str) -> str:
@@ -110,6 +141,14 @@ async def mint_link(auth: dict | None = None, goods_id: str | None = None,
     """
     if auth is None:
         auth = load_auth()
+    exp = int(auth.get("expires_at") or token_expiry(auth.get("access_token") or ""))
+    if exp and exp <= int(time.time()):
+        return {"ok": False, "http": 0,
+                "error": ("токен аккаунта истёк — обнови данные: node tools/grab_account_auth.cjs "
+                          f"или положи новый access_token в {config.ACCOUNT_AUTH_PATH}")}
+    note = _expiry_note(exp)
+    if note and exp - int(time.time()) < 120:
+        print(f"[!] {note}: обновить можно так — node tools/grab_account_auth.cjs")
     goods = goods_id or config.ACCOUNT_ROTATION_GOODS_ID
     body = {
         "goods_id": goods,
@@ -154,7 +193,8 @@ def main() -> int:
     except AccountAuthError as e:
         print(f"[x] {e}")
         return 2
-    print(f"[+] данные аккаунта: {auth['source']}, токен {len(auth['access_token'])} симв.")
+    print(f"[+] данные аккаунта: {auth['source']}, токен {len(auth['access_token'])} симв."
+          + (f", {_expiry_note(int(auth.get('expires_at') or 0))}" if auth.get("expires_at") else ""))
     if a.check:
         return 0
     res = asyncio.run(mint_link(auth, goods_id=a.goods, proxy=a.proxy))

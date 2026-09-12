@@ -125,6 +125,52 @@ async def test_mint_link_without_redirect_url_reports_format_change(monkeypatch)
     assert "redirectUrl" in res["error"]
 
 
+
+
+def _jwt(exp: int) -> str:
+    import base64 as b64
+
+    def enc(obj: dict) -> str:
+        raw = json.dumps(obj).encode()
+        return b64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+    return enc({"alg": "HS256", "typ": "JWT"}) + "." + enc({"exp": exp}) + ".sig"
+
+
+def test_token_expiry_reads_exp_from_payload():
+    exp = 1_800_000_000
+    assert ar.token_expiry(_jwt(exp)) == exp
+
+
+def test_token_expiry_returns_zero_on_garbage():
+    assert ar.token_expiry("не-jwt") == 0
+    assert ar.token_expiry("") == 0
+
+
+def test_expiry_note_marks_dead_and_live_tokens():
+    assert "истёк" in ar._expiry_note(int(__import__("time").time()) - 10)
+    assert "мин" in ar._expiry_note(int(__import__("time").time()) + 600)
+    assert ar._expiry_note(0) == ""
+
+
+@pytest.mark.asyncio
+async def test_mint_link_refuses_expired_token_without_network(monkeypatch):
+    """Истёкший токен: отказ сразу и с инструкцией, а не загадочный 401 после запроса."""
+    called = []
+
+    def factory(*a, **kw):
+        called.append(1)
+        raise AssertionError("сеть не должна была вызываться")
+
+    monkeypatch.setattr(ar, "AsyncSession", factory)
+    auth = {"access_token": _jwt(1_700_000_000), "headers": ar.default_headers(), "expires_at": 1_700_000_000}
+    res = await ar.mint_link(auth)
+    assert res["ok"] is False
+    assert "истёк" in res["error"]
+    assert "grab_account_auth" in res["error"]
+    assert called == []
+
+
 @pytest.mark.asyncio
 async def test_mint_link_network_error_is_returned_not_raised(monkeypatch):
     class _Boom(_Session):

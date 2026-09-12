@@ -50,14 +50,20 @@ function resolvePlaywright() {
   try { await page.reload({ waitUntil: "commit", timeout: 60000 }); } catch (e) {}
   await page.waitForTimeout(6000);
 
-  if (!captured.token) {
-    captured.token = await page.evaluate(() => localStorage.getItem("access_token") || "");
-  }
+  const store = await page.evaluate(() => ({
+    access: localStorage.getItem("access_token") || "",
+    refresh: localStorage.getItem("refresh_token") || "",
+  }));
+  if (!captured.token) captured.token = store.access;
   if (!captured.token) throw new Error("токен не найден: ни в запросах, ни в localStorage");
 
   const outPath = path.resolve(process.cwd(), OUT);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   const payload = { access_token: captured.token };
+  // refresh_token кладём рядом: ручка обновления пока не найдена (живой перебор имён дал 404), но данные
+  // не помешают, когда она понадобится. Токен доступа живёт считанные минуты, поэтому файл обновляют
+  // повторным запуском этого скрипта.
+  if (store.refresh) payload.refresh_token = store.refresh;
   if (Object.keys(captured.headers).length) payload.headers = captured.headers;
   fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
   console.log("токен аккаунта сохранён: " + outPath);
