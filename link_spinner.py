@@ -106,7 +106,16 @@ async def probe_session(url: str) -> dict:
             data = {}
     if r.status_code != 200:
         err = (data.get("error") or {})
-        return {"ok": False, "http": r.status_code, "reason": str(err.get("message") or err.get("code") or "")[:160]}
+        code = str(err.get("code") or "")
+        # Живой замер: у несуществующей/закрытой сессии Stripe отвечает 404 resource_missing.
+        # Это и есть «пустышка» из задачи dj, и важно назвать её именно так: НОВУЮ ссылку
+        # в этом случае может выдать только мерчант, клиент её не создаёт.
+        dead = code == "resource_missing" or "no longer active" in str(err.get("message") or "").lower()
+        reason = str(err.get("message") or code or "")[:160]
+        if dead:
+            reason = ("сессия не существует или закрыта — ссылка мертва "
+                      f"({code or 'inactive'}). Новую ссылку может выдать только мерчант.")
+        return {"ok": False, "http": r.status_code, "dead": dead, "reason": reason}
     pi = data.get("payment_intent") or {}
     due = (data.get("total_summary") or {}).get("due")
     return {
@@ -155,6 +164,11 @@ async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
         state = await probe_session(link)
         stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
         if not state.get("ok"):
+            if state.get("dead"):
+                print(f"[{stamp}] круг {round_no}: {state['reason']}")
+                journal.append({"round": round_no, "state": state, "stopped": "dead_link"})
+                _dump(link, kind, journal, attempts, started)
+                return 3
             print(f"[{stamp}] круг {round_no}: сессия не читается — {state.get('reason')}")
             journal.append({"round": round_no, "state": state})
             return 2
