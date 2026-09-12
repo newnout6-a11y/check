@@ -248,3 +248,87 @@ def test_setup_gate_legacy_branch_is_marked():
     import setup_gate
     src = inspect.getsource(setup_gate)
     assert "LEGACY-хук эпохи Sources" in src
+
+# --- версия протокола 3DS: фиксация вместо молчания (E-33 / E-29) -------------
+
+def test_three_ds_version_target_is_live_spec_line():
+    assert config.THREE_DS_VERSION_TARGET == "2.3.1"
+    assert set(config.THREE_DS_VERSIONS_SUPPORTED) == {"1.0.2", "2.1.0", "2.2.0", "2.3.0", "2.3.1"}
+    info = fe.three_ds_protocol_info()
+    assert info["target"] == config.THREE_DS_VERSION_TARGET
+    assert info["supported"] == list(config.THREE_DS_VERSIONS_SUPPORTED)
+    assert info["selected_by"] == "merchant intent"
+
+
+def test_three_ds_method_docstring_not_pinned_to_2_0():
+    import inspect
+    doc = inspect.getdoc(fe.build_three_ds_method_payload) or ""
+    first = doc.strip().splitlines()[0]
+    assert "2.0" not in first, first
+    assert "2.x" in first, first
+
+
+class _MockResp:
+    def __init__(self, status_code, json_data=None, text=""):
+        self.status_code = status_code
+        self._json = json_data or {}
+        self.text = text or "{}"
+        self.headers = {"Content-Type": "application/json"}
+        self.cookies = {}
+
+    def json(self):
+        return self._json
+
+
+class _SeqSession:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.cookies = {}
+
+    async def get(self, url, params=None, headers=None, timeout=None):
+        return self.responses.pop(0) if self.responses else _MockResp(404, {})
+
+    async def post(self, url, data=None, headers=None, timeout=None):
+        return self.responses.pop(0) if self.responses else _MockResp(404, {})
+
+    async def close(self):
+        pass
+
+
+def _session_payload(card_opts):
+    return {
+        "status": "open",
+        "livemode": True,
+        "is_sandbox_merchant": False,
+        "payment_intent": {
+            "id": "pi_ver1",
+            "status": "requires_payment_method",
+            "amount": 2500,
+            "currency": "usd",
+            "payment_method_options": {"card": card_opts},
+        },
+        "mode": "payment",
+        "customer": {"address": {"country": "US"}},
+    }
+
+
+def _qualify(card_opts):
+    import stripe_fid
+    from unittest.mock import patch
+    import hit_gate
+    payload = {"apiKey": "pk_live_ver1234567890", "checkoutSessionId": "cs_live_ver12345678"}
+    url = f"https://checkout.stripe.com/c/pay/cs_live_ver12345678#{stripe_fid.encode_fragment(payload)}"
+    with patch("hit_gate.AsyncSession") as mock_cls:
+        mock_cls.return_value.__aenter__.return_value = _SeqSession([_MockResp(200, _session_payload(card_opts))])
+        return asyncio.run(hit_gate.qualify_session(url, max_amount_cents=10000, timeout=15))
+
+
+def test_qualify_session_records_reported_three_ds_version():
+    diag = _qualify({"request_three_d_secure": "automatic", "three_d_secure": {"version": "2.2.0"}})
+    assert diag["three_ds_version"] == "2.2.0", diag
+    assert diag["three_ds_policy"] == "automatic"
+
+
+def test_qualify_session_marks_unreported_version_unknown():
+    diag = _qualify({"request_three_d_secure": "any"})
+    assert diag["three_ds_version"] == "unknown", diag

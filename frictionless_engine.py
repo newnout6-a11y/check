@@ -38,13 +38,34 @@ COMMON_SCREEN_RESOLUTIONS = [
 
 
 def build_three_ds_method_payload(server_trans_id: str, notification_url: str) -> str:
-    """Генерирует base64url-encoded threeDSMethodData по стандарту EMVCo 3DS 2.0."""
+    """Генерирует base64url-encoded threeDSMethodData по EMVCo 3DS 2.x.
+
+    Раньше docstring называл целевым стандартом «EMVCo 3DS 2.0», тогда как действующая линия
+    спецификации — 2.3.1 (EMVCo SB n° 279; Stripe принимает version 2.3.0 / 2.3.1 с релиза
+    clover/2026-01-28). Само поле threeDSMethodData версии не несёт — оно уходит в AReq, который
+    собирает Stripe, — поэтому здесь честное «2.x», а фактическая версия фиксируется
+    в three_ds_protocol_info() и в диагностике (аудит 2026-09, E-29 / E-33).
+    """
     data = {
         "threeDSServerTransID": server_trans_id,
         "threeDSMethodNotificationURL": notification_url
     }
     dumped = json.dumps(data, separators=(",", ":"))
     return base64.urlsafe_b64encode(dumped.encode()).decode().rstrip("=")
+
+
+def three_ds_protocol_info() -> dict[str, Any]:
+    """Что контур знает о версии протокола 3DS: цель, поддержанные значения, кто выбирает.
+
+    Интент создаёт мерчант, поэтому версию выставляем не мы — но до этой правки она не
+    отражалась вообще нигде (аудит 2026-09, E-33). Возвращаем словарь, который кладётся
+    в результаты и в диагностику гейтов.
+    """
+    return {
+        "target": config.THREE_DS_VERSION_TARGET,
+        "supported": list(config.THREE_DS_VERSIONS_SUPPORTED),
+        "selected_by": "merchant intent",
+    }
 
 
 def build_browser_telemetry(country_code: str = "US", user_agent: str | None = None,
@@ -178,11 +199,13 @@ async def execute_3ds_method(
             "success": r.status_code == 200,
             "status_code": r.status_code,
             "cookies": dict(session.cookies) if hasattr(session, "cookies") else {},
-            "server_trans_id": server_trans_id
+            "server_trans_id": server_trans_id,
+            "three_ds_protocol": three_ds_protocol_info(),
         }
     except Exception as e:
         _log.log_error("frictionless_engine", f"3ds_method error on {method_url}", e)
-        return {"success": False, "error": str(e), "server_trans_id": server_trans_id}
+        return {"success": False, "error": str(e), "server_trans_id": server_trans_id,
+                "three_ds_protocol": three_ds_protocol_info()}
 
 
 async def attempt_frictionless_resolution(
@@ -268,6 +291,7 @@ async def attempt_frictionless_resolution(
             "detail": "Frictionless 3DS2 authenticated successfully (transStatus=Y)",
             "auth_res": auth_res,
             "method_res": method_res,
+            "three_ds_protocol": three_ds_protocol_info(),
         }
     if trans_status == "C" or state in ("challenge_required",) or "acs_url" in str(auth_res):
         return {
@@ -276,6 +300,7 @@ async def attempt_frictionless_resolution(
             "detail": "Issuer requires OTP / app challenge (transStatus=C)",
             "auth_res": auth_res,
             "method_res": method_res,
+            "three_ds_protocol": three_ds_protocol_info(),
         }
 
     # 4. Проверка состояния сессии чекаута
@@ -299,6 +324,7 @@ async def attempt_frictionless_resolution(
                     "detail": f"Frictionless authentication approved ({pi_status})",
                     "auth_res": auth_res,
                     "method_res": method_res,
+                    "three_ds_protocol": three_ds_protocol_info(),
                 }
             elif pi_status == "requires_action":
                 na = pi.get("next_action") or {}
@@ -310,6 +336,7 @@ async def attempt_frictionless_resolution(
                         "detail": "Issuer requires OTP / app challenge",
                         "auth_res": auth_res,
                         "method_res": method_res,
+                        "three_ds_protocol": three_ds_protocol_info(),
                     }
         except Exception:
             pass
@@ -317,5 +344,6 @@ async def attempt_frictionless_resolution(
     return {
         "outcome": "IN_PROGRESS",
         "method_res": method_res,
-        "auth_res": auth_res
+        "auth_res": auth_res,
+        "three_ds_protocol": three_ds_protocol_info(),
     }

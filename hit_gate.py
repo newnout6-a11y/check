@@ -666,6 +666,13 @@ async def qualify_session(target_url: str, proxy: str | None = None,
             pm_opts = pi.get("payment_method_options") or {}
             card_opts = pm_opts.get("card") or {}
             three_ds_req = card_opts.get("request_three_d_secure", "automatic")
+            # Версия протокола 3DS: интент создаёт мерчант, поэтому выбираем её не мы — но
+            # фиксировать фактическую обязаны. До этой правки версия не отражалась нигде
+            # (аудит 2026-09, E-33), хотя Stripe принимает её явно в
+            # payment_method_options.card.three_d_secure.version (clover/2026-01-28).
+            _tds = card_opts.get("three_d_secure")
+            three_ds_ver = str((_tds or {}).get("version") or "") if isinstance(_tds, dict) else ""
+            three_ds_ver = three_ds_ver or "unknown"
             cust_country = str((data.get("customer") or {}).get("address", {}).get("country") or (data.get("tax_context") or {}).get("customer_tax_country") or "")
 
             if not livemode or is_sandbox:
@@ -676,6 +683,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
                     "currency": currency,
                     "three_d_secure": three_ds_req,
                     "three_ds_policy": three_ds_req,
+                    "three_ds_version": three_ds_ver,
                     "pi_status": pi_status,
                     "mode": mode,
                     "recommendation": "SKIP: Мерчант в sandbox-режиме, реальные списания отключены",
@@ -690,6 +698,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
                     "currency": currency,
                     "three_d_secure": three_ds_req,
                     "three_ds_policy": three_ds_req,
+                    "three_ds_version": three_ds_ver,
                     "pi_status": pi_status,
                     "mode": mode,
                     "recommendation": f"FAIL: Сессия уже {sess_status} (завершена или просрочена)",
@@ -717,6 +726,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
                 "currency": currency,
                 "three_d_secure": three_ds_req,
                 "three_ds_policy": three_ds_req,
+                "three_ds_version": three_ds_ver,
                 "is_over_cap": is_over_cap,
                 "customer_country": cust_country,
                 "recommendation": rec,
@@ -734,6 +744,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
             "currency": "",
             "three_d_secure": "unknown",
             "three_ds_policy": "unknown",
+            "three_ds_version": "unknown",
             "recommendation": f"FAIL: Исключение при анализе сессии: {type(e).__name__}: {e}",
             "details": {"error": str(e)}
         }
