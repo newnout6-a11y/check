@@ -154,9 +154,8 @@ async def probe_stage2_3_4_qualification(domain: str, base: str, initial_nonce: 
                 probe = gc.gen_probe_card()
                 tok_body = gc.tokenize_body(probe, telem, base)
 
-                r_tok = await s.post("https://api.stripe.com/v1/payment_methods",
-                                     data=tok_body, headers=gc.TOKENIZE_HEADERS, timeout=8)
-                tok_data = r_tok.json()
+                tok_data = await gc.tokenize_payment_method(
+                    s, tok_body, headers=gc.TOKENIZE_HEADERS, timeout=8, label="scanner")
                 if "id" not in tok_data:
                     return None
 

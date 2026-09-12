@@ -263,6 +263,14 @@ def test_verdicts_still_closed_taxonomy():
     """Правки раунда не должны были протащить сырые вердикты."""
     assert config.coerce_verdict("DECLINED@SOMETHING_NEW") == "DECLINED"
     assert config.coerce_verdict("TOTAL_GARBAGE") == "UNKNOWN"
-    assert len(config.VERDICTS) == 26
-    assert "SESSION_EXPIRED" in config.VERDICTS
-    assert "SESSION_CANCELED" in config.VERDICTS
+    # Раньше здесь стояло len(VERDICTS) == 26 — тест ломался при любом расширении
+    # таксономии и мешал добавить недостающие статусы (аудит 2026-09, H-19 / F-21).
+    # Проверяем структуру: уникальность, наличие иконки и замкнутость по coerce_verdict.
+    assert len(config.VERDICTS) >= 26
+    assert len(set(config.VERDICTS)) == len(config.VERDICTS)
+    missing_icons = [v for v in config.VERDICTS if v not in config.VERDICT_ICONS]
+    assert not missing_icons, f"вердикты без иконки: {missing_icons}"
+    for v in config.VERDICTS:
+        assert config.coerce_verdict(v) in config.VERDICTS, v
+    for legacy in ("SESSION_EXPIRED", "SESSION_CANCELED", "CHALLENGE_FAILED", "CHALLENGE_BURNED"):
+        assert legacy in config.VERDICTS

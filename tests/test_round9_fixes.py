@@ -14,8 +14,16 @@ import gate_client as gc
 # --- таксономия вердиктов ---
 
 def test_coerce_verdict_passes_known():
+    """Класс таксономии возвращается как есть, кроме технических исходов.
+
+    Технические исходы (провал челленджа Radar) остаются в VERDICTS для точного лога,
+    но намеренно коэрсятся в ERROR: это свойство движка/цели, а не карты, иначе кредит
+    списывается за сбой на нашей стороне (аудит 2026-09, M-06 / G-10).
+    """
+    technical = {"CHALLENGE_FAILED", "CHALLENGE_BURNED"}
     for v in config.VERDICTS:
-        assert config.coerce_verdict(v) == v
+        expected = "ERROR" if v in technical else v
+        assert config.coerce_verdict(v) == expected, v
 
 
 def test_coerce_verdict_collapses_unknown_suffix():

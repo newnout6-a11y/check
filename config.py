@@ -4,7 +4,9 @@
 
 # --- Stripe (первоисточник — менять ЗДЕСЬ) ---
 STRIPE_API_VERSION = "2026-08-26.dahlia"   # актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major, потребует аудита
-STRIPE_JS_BUILD = "fe705f067f"
+# Соль сборки stripe.js. Обновляется скриптом: python scratch/refresh_stripe_salt.py --write
+# (--check вернёт exit 1, если значение разошлось с живым бандлом js.stripe.com/v3).
+STRIPE_JS_BUILD = "f0a6d7cfcd"
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------
@@ -73,6 +75,10 @@ VERDICTS = [
     "TEST_MODE", "RATE_LIMITED", "RETRY", "PI_MINTED", "PI_PENDING",
     "3DS_REQUIRED", "3DS_FRICTIONLESS", "3DS_CHALLENGE", "3DS_REDIRECT",
     "SESSION_EXPIRED", "SESSION_CANCELED",
+    # Внутренние исходы антибот-челленджа Radar (gate_client.verify_intent_challenge).
+    # В таксономии, иначе любой путь через coerce_verdict давал UNKNOWN без возврата
+    # кредита (аудит 2026-09, M-06 / G-10).
+    "CHALLENGE_FAILED", "CHALLENGE_BURNED",
     "UNKNOWN", "ERROR",
 ]
 HIT_VERDICTS = {"APPROVED", "APPROVED@HOLD", "APPROVED@PAID", "APPROVED@CVV", "APPROVED@CCN"}
@@ -86,6 +92,7 @@ VERDICT_ICONS = {
     "3DS_REQUIRED": "🔒", "3DS_FRICTIONLESS": "✅", "3DS_CHALLENGE": "🔐",
     "3DS_REDIRECT": "↪️",
     "SESSION_EXPIRED": "⌛", "SESSION_CANCELED": "🚫",
+    "CHALLENGE_FAILED": "🔐", "CHALLENGE_BURNED": "🔥",
     "UNKNOWN": "❔",
     "ERROR": "💥",
 }
@@ -103,7 +110,11 @@ def coerce_verdict(verdict: str) -> str:
     if v in ("GUEST_CHECKOUT_DISABLED", "GUEST_CHECKOUT_OFF", "CAPTCHA_CHECKOUT",
              "NO_PM_SLUG", "PM_SLUG_MISSING", "NO_PRODUCT_UNDER_CAP", "NO_PRODUCTS",
              "ADD_ITEM_NO_JSON", "VARIATION_REQUIRED", "CHARGE_RISK",
-             "OUT_OF_STOCK", "CART_EMPTY", "CHECKPOINT_DENIED"):
+             "OUT_OF_STOCK", "CART_EMPTY", "CHECKPOINT_DENIED",
+             # Технические исходы, которые раньше уходили в UNKNOWN и не возвращали кредит:
+             # провал челленджа, невалидный линк, исключение движка, провал пайплайна.
+             "CHALLENGE_FAILED", "CHALLENGE_BURNED",
+             "INVALID_URL", "EXCEPTION", "FAILED"):
         return "ERROR"
     if v in VERDICTS:
         return v
@@ -122,6 +133,21 @@ def is_hit(verdict: str) -> bool:
 # должен платить за мёртвый линк/донора. Всё остальное (включая DECLINED и
 # любые 3DS_*) — честный результат проверки карты.
 REFUNDABLE_VERDICTS = {"ERROR", "SESSION_EXPIRED", "SESSION_CANCELED"}
+
+# Состояния пайплайна /hit (execute_hit). Это НЕ вердикты карты: держим отдельным полем,
+# чтобы терминальный статус прогона не подменял таксономию (аудит 2026-09, G-10).
+PIPELINE_STATES = ("SUCCESS", "COMPLETED", "PARTIAL", "FAILED")
+
+# Известные НЕПУБЛИЧНЫЕ эндпоинты Stripe, на которых стоит боевой контур. В API-референсе
+# их нет (docs.stripe.com отдаёт 404), но маршруты живы и отвечают 401 без ключа. Начал
+# отдавать 404 — Stripe убрал маршрут: это сломанный контур, а не отказ карты.
+UNDOCUMENTED_ENDPOINTS = {
+    "/v1/payment_pages/{cs}": "Stripe Checkout hosted pages (чтение сессии)",
+    "/v1/payment_pages/{cs}/confirm": "Stripe Checkout hosted pages (подтверждение)",
+    "/v1/payment_intents/{pi}/verify_challenge": "Radar hCaptcha Enterprise challenge",
+    "/v1/confirmation_tokens": "ConfirmationToken из pk (документирован только клиентский путь)",
+    "/v1/3ds2/authenticate": "3DS2 из эпохи Sources API (официально деприкейтнут)",
+}
 
 
 def is_refundable(verdict: str) -> bool:

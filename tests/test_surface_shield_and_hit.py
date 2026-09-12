@@ -329,7 +329,7 @@ async def test_surface_shield_inspect_target_timeout_handling():
 async def test_hit_qualify_session_invalid_url():
     res = await hg.qualify_session("https://example.com/not-a-stripe-link")
     assert res["viable"] is False
-    assert res["status"] == "INVALID_URL"
+    assert res["session_status"] == "INVALID_URL"
 
 @pytest.mark.asyncio
 async def test_hit_qualify_session_open_viable():
@@ -389,7 +389,7 @@ async def test_hit_qualify_session_expired():
 
         res = await hg.qualify_session(test_url)
         assert res["viable"] is False
-        assert res["status"] == "EXPIRED"
+        assert res["session_status"] == "EXPIRED"
 
 @pytest.mark.asyncio
 async def test_hit_session_radar_token_injection():

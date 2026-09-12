@@ -389,9 +389,8 @@ class GateSession:
         tok_body = gc.tokenize_body(card, telem, self.u["base"])
 
         try:
-            r_tok = await self.s.post("https://api.stripe.com/v1/payment_methods",
-                                      data=tok_body, headers=gc.TOKENIZE_HEADERS, timeout=10)
-            tok_data = r_tok.json()
+            tok_data = await gc.tokenize_payment_method(
+                self.s, tok_body, headers=gc.TOKENIZE_HEADERS, timeout=10, label="setupwoo")
         except Exception as e:
             return {"card": card_raw, "status": "ERROR",
                     "detail": f"Stripe tokenize error: {e}", "retry_next_gate": False}

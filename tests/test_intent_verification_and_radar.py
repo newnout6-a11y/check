@@ -580,7 +580,8 @@ async def test_execute_hit_integration_with_ctoken_and_settlement(monkeypatch):
     monkeypatch.setattr(hg, "AsyncSession", lambda **kwargs: MockSession())
 
     out = await hg.execute_hit(test_url, ["5175465382242090|09|2030|018"], use_ctoken=True)
-    assert out["status"] == "SUCCESS"
+    assert out["pipeline"] == "SUCCESS"
+    assert out["status"] in config.VERDICTS
     assert out["viable"] is True
     assert out["terminal_hit"] is not None
     assert out["terminal_hit"]["status"] == "APPROVED@PAID"

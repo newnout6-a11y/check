@@ -84,7 +84,7 @@ async def test_qualify_session_viable_open():
         diag = await hg.qualify_session(url, max_amount_cents=10000, timeout=15)
 
         assert diag["viable"] is True
-        assert diag["status"] == "open"
+        assert diag["session_status"] == "open"
         assert diag["amount_cents"] == 2500
         assert diag["currency"] == "USD"
         assert diag["three_d_secure"] == "automatic"
@@ -116,7 +116,7 @@ async def test_qualify_session_extract_url_query_parameters():
 
         diag = await hg.qualify_session(url, timeout=15)
         assert diag["viable"] is True
-        assert diag["status"] == "open"
+        assert diag["session_status"] == "open"
         assert diag["amount_cents"] == 4900
         assert diag["currency"] == "EUR"
 
@@ -140,7 +140,7 @@ async def test_qualify_session_expired_or_complete():
 
         diag = await hg.qualify_session(url)
         assert diag["viable"] is False
-        assert diag["status"] == "COMPLETE"
+        assert diag["session_status"] == "COMPLETE"
         assert "Сессия уже complete" in diag["recommendation"]
 
 
@@ -164,7 +164,7 @@ async def test_qualify_session_test_mode_sandbox():
 
         diag = await hg.qualify_session(url)
         assert diag["viable"] is False
-        assert diag["status"] == "TEST_MODE"
+        assert diag["session_status"] == "TEST_MODE"
         assert "sandbox" in diag["recommendation"]
 
 
@@ -230,7 +230,7 @@ async def test_qualify_session_invalid_url_and_exceptions():
     """Проверяет обработку некорректного URL и сетевого исключения без выброса unhandled exception."""
     diag_inv = await hg.qualify_session("not_a_stripe_url")
     assert diag_inv["viable"] is False
-    assert diag_inv["status"] == "INVALID_URL"
+    assert diag_inv["session_status"] == "INVALID_URL"
     assert "three_d_secure" in diag_inv
     assert "amount_cents" in diag_inv
 
@@ -242,7 +242,7 @@ async def test_qualify_session_invalid_url_and_exceptions():
         mock_sess_cls.return_value.__aenter__.side_effect = TimeoutError("Connection timed out after 15s")
         diag_err = await hg.qualify_session(url, timeout=15)
         assert diag_err["viable"] is False
-        assert diag_err["status"] == "EXCEPTION"
+        assert diag_err["session_status"] == "EXCEPTION"
         assert "TimeoutError" in diag_err["recommendation"]
 
 
@@ -695,7 +695,9 @@ async def test_execute_hit_pacing_integration():
             with patch("asyncio.sleep", AsyncMock()) as mock_sleep:
                 res = await hg.execute_hit("https://checkout.stripe.com/c/pay/cs_live_pace#fid", cards, pacing=True)
 
-                assert res["status"] == "COMPLETED"
+                # status — класс таксономии, состояние прогона — pipeline (аудит 2026-09, G-10)
+                assert res["pipeline"] == "COMPLETED"
+                assert res["status"] in config.VERDICTS
                 assert len(res["results"]) == 2
                 assert mock_sleep.call_count == 1
                 slept_duration = mock_sleep.call_args[0][0]

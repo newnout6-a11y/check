@@ -159,10 +159,8 @@ class ConfirmGateSession:
             telem.update(gc.geo_identity_fields(bin_alpha2))
         tok_body = gc.tokenize_body(card, telem, self.target)
         try:
-            r_tok = await self.s.post("https://api.stripe.com/v1/payment_methods",
-                                      data=tok_body, headers=gc.TOKENIZE_HEADERS, timeout=10)
-            log.log_http("POST", "https://api.stripe.com/v1/payment_methods", r_tok.status_code, proxy=self.proxy)
-            tok_data = r_tok.json()
+            tok_data = await gc.tokenize_payment_method(
+                self.s, tok_body, headers=gc.TOKENIZE_HEADERS, timeout=10, label="piconfirm")
         except Exception as e:
             log.log_error("confirm_gate", f"Stripe tokenize network error for {pan_masked}", e)
             return {"card": card_raw, "status": "ERROR",

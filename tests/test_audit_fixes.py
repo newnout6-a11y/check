@@ -290,9 +290,16 @@ def test_coerce_charge_risk_is_error():
 
 
 def test_stripe_constants_current():
-    """Живые константы сентября 2026: API 2026-08-26.dahlia, соль fe705f067f."""
+    """Константы Stripe: версия API — конкретный живой релиз, соль — формат, а не значение.
+
+    Раньше тест цементировал конкретную соль и падал при каждом её обновлении, то есть
+    охранял устаревшее состояние вместо контракта (аудит 2026-09, C-01 / M-07).
+    Формат проверяется здесь; актуальность — scratch/refresh_stripe_salt.py --check
+    против живого бандла js.stripe.com/v3.
+    """
+    import re
     assert config.STRIPE_API_VERSION == "2026-08-26.dahlia"
-    assert config.STRIPE_JS_BUILD == "fe705f067f"
+    assert re.fullmatch(r"[0-9a-f]{10}", config.STRIPE_JS_BUILD), config.STRIPE_JS_BUILD
 
 
 def test_hit_gate_session_accepts_proxy_attribute():
