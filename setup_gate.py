@@ -359,6 +359,12 @@ class GateSession:
             }
             url = self.u["ajax_url"]
         else:
+            # Legacy-контракт эпохи Stripe Sources: плагин держит хук wc_stripe_create_setup_intent
+            # только для совместимости, а сам Sources API объявлен деприкейтным с планом удаления
+            # (аудит 2026-09, G-05). Современный хук — wc_stripe_create_and_confirm_setup_intent;
+            # если донор дошёл сюда, значит на витрине нет UPE-nonce и плагин старый.
+            print("[!] setupwoo: используется LEGACY-хук эпохи Sources (нет UPE-nonce у донора) — "
+                  "цель на старом плагине, вердикт может потерять телеметрию Radar.")
             body = {"stripe_source_id": pm_id, "nonce": self.legacy_nonce, **attribution}
             url = f"{self.u['base']}/?wc-ajax=wc_stripe_create_setup_intent"
         try:

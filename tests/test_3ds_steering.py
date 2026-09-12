@@ -103,8 +103,18 @@ def test_frictionless_build_method_payload():
 
 
 def test_frictionless_build_browser_telemetry():
-    t_us = frictionless_engine.build_browser_telemetry(country_code="US")
+    """threeDSCompInd честный: «Y» только когда 3DS Method реально исполнен.
+
+    Раньше тест требовал «Y» безусловно и тем закреплял ложное подтверждение ACS
+    (аудит 2026-09, E-08). Теперь проверяем оба состояния.
+    """
+    t_idle = frictionless_engine.build_browser_telemetry(country_code="US")
+    assert t_idle["threeDSCompInd"] == "U", "без исполненного Method должно быть U"
+    assert t_idle["fingerprintAttempted"] is False
+
+    t_us = frictionless_engine.build_browser_telemetry(country_code="US", method_executed=True)
     assert t_us["threeDSCompInd"] == "Y"
+    assert t_us["fingerprintAttempted"] is True
     assert t_us["browserColorDepth"] == "24"
     assert int(t_us["browserTZ"]) in (240, 300, 360, 420, 480)
     assert "en-US" in t_us["browserLanguage"]

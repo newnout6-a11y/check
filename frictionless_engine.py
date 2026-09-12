@@ -8,6 +8,8 @@ import re
 from typing import Any
 
 from curl_cffi.requests import AsyncSession
+
+import config
 import pusto_logger as _log
 
 
@@ -45,8 +47,13 @@ def build_three_ds_method_payload(server_trans_id: str, notification_url: str) -
     return base64.urlsafe_b64encode(dumped.encode()).decode().rstrip("=")
 
 
-def build_browser_telemetry(country_code: str = "US", user_agent: str | None = None) -> dict[str, Any]:
-    """Генерирует реалистичный и согласованный профиль браузера для 3DS2."""
+def build_browser_telemetry(country_code: str = "US", user_agent: str | None = None,
+                            method_executed: bool = False) -> dict[str, Any]:
+    """Генерирует реалистичный и согласованный профиль браузера для 3DS2.
+
+    method_executed=True только если 3DS Method реально прошёл: от этого зависит
+    threeDSCompInd (Y/U). Раньше признак подставлялся авансом (аудит 2026-09, E-08).
+    """
     cc = (country_code or "US").upper()
     tz_pool = GEO_TIMEZONES.get(cc, GEO_TIMEZONES["US"])
     tz_offset = random.choice(tz_pool)
@@ -65,8 +72,11 @@ def build_browser_telemetry(country_code: str = "US", user_agent: str | None = N
         lang = "en-US,en;q=0.9"
 
     return {
-        "threeDSCompInd": "Y",  # Подтверждает успешное исполнение 3DS Method
-        "fingerprintAttempted": True,
+        # threeDSCompInd выдаётся авансом только когда Method реально исполнен:
+        # «Y» — завершён, «U» — неизвестно. Раньше всегда стояло «Y», даже если Method
+        # не запускался (аудит 2026-09, E-08), и ACS получал ложное подтверждение.
+        "threeDSCompInd": "Y" if method_executed else "U",
+        "fingerprintAttempted": bool(method_executed),
         "challengeWindowSize": "05",
         "browserJavaEnabled": False,
         "browserJavascriptEnabled": True,
@@ -94,9 +104,15 @@ async def execute_3ds_method(
     session: AsyncSession,
     method_url: str,
     server_trans_id: str,
-    notification_url: str = "https://hooks.stripe.com/3ds2/fingerprint/complete"
+    notification_url: str = "",
 ) -> dict[str, Any]:
-    """Исполняет 3DS-Method (скрытый iframe фингерпринтинга ACS эмитента)."""
+    """Исполняет 3DS-Method (скрытый iframe фингерпринтинга ACS эмитента).
+
+    notification_url по умолчанию — живой маршрут Stripe (/3d_secure_2/hosted/complete).
+    Прежний /3ds2/fingerprint/complete отдаёт 404: цепочка method -> notification не замыкалась
+    (аудит 2026-09, H-30).
+    """
+    notification_url = notification_url or config.THREE_DS_METHOD_NOTIFICATION_URL
     b64_data = build_three_ds_method_payload(server_trans_id, notification_url)
     
     try:
@@ -205,7 +221,7 @@ async def attempt_frictionless_resolution(
         sdk_data.get("three_ds_method_notification_url")
         or stripe_js.get("three_ds_method_notification_url")
         or sdk_data.get("notification_url")
-        or "https://hooks.stripe.com/3ds2/fingerprint/complete"
+        or config.THREE_DS_METHOD_NOTIFICATION_URL
     )
 
     # 1. Запуск 3DS Method, если он есть
@@ -213,8 +229,10 @@ async def attempt_frictionless_resolution(
     if method_url and server_trans_id:
         method_res = await execute_3ds_method(session, method_url, server_trans_id, notification_url=notification_url)
 
-    # 2. Формирование согласованной телеметрии
-    browser_data = build_browser_telemetry(country_code=country_code)
+    # 2. Формирование согласованной телеметрии. Признак исполнения Method берём из его
+    #    же результата, а не подставляем авансом (аудит 2026-09, E-08).
+    method_ok = bool(method_url and server_trans_id and method_res.get("success"))
+    browser_data = build_browser_telemetry(country_code=country_code, method_executed=method_ok)
 
     # 3. Вызов /v1/3ds2/authenticate (если доступен source)
     auth_res = {}
@@ -263,6 +281,7 @@ async def attempt_frictionless_resolution(
     # 4. Проверка состояния сессии чекаута
     if cs:
         try:
+            # Непубличный маршрут Stripe: 404 здесь означает выведенный путь, а не отказ карты
             r_poll = await session.get(
                 f"https://api.stripe.com/v1/payment_pages/{cs}",
                 params={"key": pk},

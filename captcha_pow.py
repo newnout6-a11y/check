@@ -1,12 +1,20 @@
-﻿# language: Python, file: captcha_pow.py
+# language: Python, file: captcha_pow.py
 """
 Proof-of-Work (PoW) Pure Python Captcha Engine.
-Solves modern non-interactive/lightweight PoW captchas without external paid APIs or local ML models:
-1. Altcha (SHA-256 / SHA-512)
-2. Friendly Captcha v1/v2 (Blake2b-256)
-3. Hashcash / Leading-zeros PoW
 
-Zero-cost, ultra-fast CPython C-accelerated hashing (OpenSSL / hashlib).
+Что покрыто на сентябрь 2026 (после разбора аудита, раздел 3):
+1. Altcha — ДВА поколения:
+   * v3 (Widget v3, апрель 2026) — memory/CPU-bound KDF: DerivedKey = KDF(algorithm, salt,
+     cost, password), password = nonce + counter; сервер проверяет одним прогоном KDF
+     (по документации ALTCHA). Реализован здесь как solve_altcha_kdf()/solve_altcha_any().
+   * legacy — SHA-256/512(salt + str(n)) == challenge; оставлен для старых виджетов.
+2. Friendly Captcha v1 (Blake2b-256, локальный puzzle). v2 (iframe <host>.frcapi.com)
+   локально НЕ решается — detect_pow_type это честно сообщает, а не молчит.
+3. Hashcash / Leading-zeros PoW.
+
+Честная оговорка: KDF-путь в CPython считается на порядки медленнее legacy-брутфорса
+(каждая гипотеза — полный PBKDF2-прогон), поэтому по умолчанию поиск ограничен
+max_counter и рассчитан на челленджи с малым counter. Замеры — в tests/test_captcha_pow.py.
 """
 
 import time
@@ -50,6 +58,93 @@ def solve_altcha(
                 "hash_rate": hash_rate,
                 "algorithm": algorithm
             }
+    return None
+
+
+# --- ALTCHA v3 (Widget v3, 2026): KDF-схема вместо равенства хеша ---
+# Соответствие «algorithm -> (hashlib-имя, длина ключа в байтах)». Сервер ALTCHA проверяет
+# решение одним прогоном KDF: DerivedKey = KDF(Algorithm, Salt, Cost, Password),
+# пароль = nonce + counter, сверяется сам ключ или его keyPrefix.
+ALTCHA_V3_ALGORITHMS: Dict[str, tuple[str, int]] = {
+    "PBKDF2/SHA-1": ("sha1", 20),
+    "PBKDF2/SHA-256": ("sha256", 32),
+    "PBKDF2/SHA-512": ("sha512", 64),
+    "SHA-256": ("sha256", 32),
+    "SHA-512": ("sha512", 64),
+}
+
+
+def altcha_kdf_key(password: str, salt: str, cost: int, algorithm: str = "PBKDF2/SHA-256") -> bytes:
+    """Один прогон KDF по параметрам челленджа ALTCHA v3."""
+    hash_name, dklen = ALTCHA_V3_ALGORITHMS.get(str(algorithm).upper(), ("sha256", 32))
+    iterations = max(1, int(cost or 5000))
+    return hashlib.pbkdf2_hmac(hash_name, password.encode("utf-8"), salt.encode("utf-8"), iterations, dklen=dklen)
+
+
+def solve_altcha_kdf(
+    challenge_data: Dict[str, Any],
+    max_counter: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """Ищет counter для ALTCHA v3: KDF(nonce + counter) даёт challenge (или его keyPrefix).
+
+    Принимает поле в нескольких вариантах имён (nonce/number/prefix), потому что публичного
+    контракта у полей нет: API ALTCHA отдаёт объект челленджа виджету и менял имена между
+    версиями. Если поле не найдено — None, и вызывающий код продолжает legacy-путём.
+    """
+    algorithm = str(challenge_data.get("algorithm") or "PBKDF2/SHA-256")
+    salt = str(challenge_data.get("salt") or "")
+    nonce = str(challenge_data.get("nonce") or "")
+    cost = int(challenge_data.get("cost") or challenge_data.get("iterations") or 5000)
+    expected = str(challenge_data.get("challenge") or "")
+    prefix = str(challenge_data.get("keyPrefix") or challenge_data.get("key_prefix") or "")
+    limit = int(max_counter or challenge_data.get("maxnumber") or challenge_data.get("maxNumber") or 20_000)
+    if not salt or (not expected and not prefix):
+        return None
+
+    t0 = time.perf_counter()
+    prefix_l = prefix.lower()
+    expected_l = expected.lower().rstrip("=")
+    for counter in range(limit + 1):
+        key = altcha_kdf_key(f"{nonce}{counter}", salt, cost, algorithm)
+        hex_key = key.hex()
+        b64_key = base64.b64encode(key).decode("utf-8").rstrip("=")
+        hit = (hex_key.startswith(prefix_l) or b64_key.startswith(prefix_l)) if prefix_l else \
+            (hex_key == expected_l or b64_key == expected_l)
+        if hit:
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            return {
+                "solution": counter,
+                "algorithm": algorithm,
+                "cost": cost,
+                "attempts": counter + 1,
+                "elapsed_ms": round(elapsed_ms, 2),
+                "attempt_rate": int((counter + 1) / (elapsed_ms / 1000.0)) if elapsed_ms > 0 else 0,
+                "mode": "kdf",
+            }
+    return None
+
+
+def solve_altcha_any(
+    challenge_data: Dict[str, Any],
+    max_number: int = 1_000_000,
+) -> Optional[Dict[str, Any]]:
+    """Диспетчер ALTCHA: сначала v3 (KDF), затем legacy (равенство хеша).
+
+    Так старые и новые виджеты обслуживаются одним вызовом, и никто не «решает» схему,
+    которой в проде уже нет (аудит 2026-09, E-01: раньше солвер знал только снятую схему).
+    """
+    algo = str(challenge_data.get("algorithm") or "").upper()
+    looks_v3 = bool(challenge_data.get("cost") or challenge_data.get("iterations") or
+                    challenge_data.get("keyPrefix") or challenge_data.get("key_prefix") or
+                    "PBKDF2" in algo or "ARGON" in algo or "SCRYPT" in algo)
+    if looks_v3:
+        res = solve_altcha_kdf(challenge_data)
+        if res:
+            return res
+    legacy_challenge = challenge_data.get("challenge")
+    legacy_salt = challenge_data.get("salt")
+    if legacy_challenge and legacy_salt:
+        return solve_altcha(legacy_challenge, legacy_salt, max_number, challenge_data.get("algorithm", "SHA-256"))
     return None
 
 
@@ -168,24 +263,40 @@ def solve_hashcash(
     return None
 
 
-RE_ALTCHA = re.compile(r"<(?:altcha-widget|div)[^>]+(?:data-)?challengeurl=['\"]([^'\"]+)['\"]", re.IGNORECASE)
-RE_FRIENDLY = re.compile(r"class=['\"][^'\"]*frc-captcha[^'\"]*['\"][^>]*data-sitekey=['\"]([^'\"]+)['\"]", re.IGNORECASE)
+# Детекторы виджетов. Прежний RE_ALTCHA требовал атрибут challengeurl, который из виджета
+# убрали, поэтому современные формы не детектировались вовсе (аудит 2026-09, E-11).
+RE_ALTCHA = re.compile(r"<(altcha-widget|altcha\b)[^>]*>|dist/altcha(?:\.min)?\.js", re.IGNORECASE)
+RE_ALTCHA_CHALLENGEURL = re.compile(r"(?:data-)?challengeurl=['\"]([^'\"]+)['\"]", re.IGNORECASE)
+RE_FRIENDLY_V1 = re.compile(r"class=['\"][^'\"]*frc-captcha", re.IGNORECASE)
+# v2 отдаётся SDK и работает внутри iframe <host>.frcapi.com — локально не решается
+RE_FRIENDLY_V2 = re.compile(r"frcapi\.com|@friendlycaptcha/sdk|friendlycaptcha\.com/sdk", re.IGNORECASE)
 
 
 def detect_pow_type(html: str) -> Optional[Dict[str, str]]:
-    """
-    Inspects HTML for PoW captcha widgets (Altcha or Friendly Captcha).
-    Returns dict with type and endpoint/sitekey, or None.
+    """Определяет PoW-виджет и честно сообщает, решается ли он локально.
+
+    Возвращает {"type", "solvable", ...}. Friendly Captcha v2 (iframe frcapi.com) помечается
+    solvable=False: локального пазла там нет, и тихий None означал бы «капчи не нашли» вместо
+    «нашли, но не нашим методом» (аудит 2026-09, E-10).
     """
     if not html:
         return None
 
-    m_alt = RE_ALTCHA.search(html)
-    if m_alt:
-        return {"type": "altcha", "challenge_url": m_alt.group(1)}
+    if RE_FRIENDLY_V2.search(html):
+        m_site = re.search(r"data-sitekey=['\"]([^'\"]+)['\"]", html)
+        return {"type": "friendly_captcha_v2", "solvable": "false",
+                "sitekey": m_site.group(1) if m_site else "",
+                "note": "v2 живёт в iframe <host>.frcapi.com — локальный solver покрывает только v1"}
 
-    m_frc = RE_FRIENDLY.search(html)
-    if m_frc:
-        return {"type": "friendly_captcha", "sitekey": m_frc.group(1)}
+    if RE_ALTCHA.search(html):
+        m_url = RE_ALTCHA_CHALLENGEURL.search(html)
+        return {"type": "altcha", "solvable": "true",
+                "challenge_url": m_url.group(1) if m_url else "",
+                "note": "v3 (KDF) и legacy обслуживаются solve_altcha_any()"}
+
+    if RE_FRIENDLY_V1.search(html):
+        m_site = re.search(r"data-sitekey=['\"]([^'\"]+)['\"]", html)
+        return {"type": "friendly_captcha_v1", "solvable": "true",
+                "sitekey": m_site.group(1) if m_site else ""}
 
     return None

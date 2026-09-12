@@ -138,6 +138,16 @@ REFUNDABLE_VERDICTS = {"ERROR", "SESSION_EXPIRED", "SESSION_CANCELED"}
 # чтобы терминальный статус прогона не подменял таксономию (аудит 2026-09, G-10).
 PIPELINE_STATES = ("SUCCESS", "COMPLETED", "PARTIAL", "FAILED")
 
+# 3DS Method notification URL. Прежний хардкод https://hooks.stripe.com/3ds2/fingerprint/complete
+# отдаёт 404 (проверено боем 2026-09-12), а живой маршрут того же семейства — /3d_secure_2/...
+# (200 ОК). Пока значение берётся из ответа Stripe, но дефолт обязан быть живым.
+THREE_DS_METHOD_NOTIFICATION_URL = "https://hooks.stripe.com/3d_secure_2/hosted/complete"
+
+# Сколько страниц /products.json обходить при поиске самого дешёвого варианта:
+# эндпоинт отдаёт максимум 250 товаров на страницу без пагинации, у крупных каталогов
+# дешёвые позиции лежат дальше первой страницы (аудит 2026-09, G-28).
+SHOPIFY_CATALOG_PAGES = 3
+
 # Известные НЕПУБЛИЧНЫЕ эндпоинты Stripe, на которых стоит боевой контур. В API-референсе
 # их нет (docs.stripe.com отдаёт 404), но маршруты живы и отвечают 401 без ключа. Начал
 # отдавать 404 — Stripe убрал маршрут: это сломанный контур, а не отказ карты.
