@@ -78,8 +78,13 @@ function readCard() {
   const radio = f.locator("input[value=card]").first();
   if (await radio.count()) await radio.click({ force: true }).catch(() => {});
   await page.waitForTimeout(3000);
-  const plan = [["cardNumber", card ? card.pan : ""], ["cardExpiry", card ? card.mm + card.yy : ""], ["cardCvc", card ? card.cvc : ""],
-                ["billingName", "JOSHUA SMITH"], ["billingAddressLine1", "1401 Oak Street"],
+  // Порядок и способ ввода важны (живой замер 2026-09-13):
+  //  * страница НЕ отправляет платёж, пока адрес выставления счёта неполный (город, индекс, штат);
+  //  * открытый автокомплит адреса перекрывает поля, поэтому город и индекс вводим через fill(),
+  //    а строку адреса — последней, после чего закрываем подсказки Escape;
+  //  * штат — это SELECT (billingAdministrativeArea), по значению TX.
+  const plan = [["cardNumber", card ? card.pan : ""], ["cardExpiry", card ? card.mm + card.yy : ""],
+                ["cardCvc", card ? card.cvc : ""], ["billingName", "JOSHUA SMITH"],
                 ["billingLocality", "Austin"], ["billingPostalCode", "73301"]];
   const filled = [];
   for (const ff of page.frames()) {
@@ -90,15 +95,36 @@ function readCard() {
       if (!hit) continue;
       try {
         const el = ff.locator("input,select").nth(i);
-        await el.click({ timeout: 5000 });
-        await page.keyboard.press("Control+A"); await page.keyboard.press("Backspace");
-        await page.keyboard.type(hit[1], { delay: 45 });
-        await page.waitForTimeout(300);
+        try {
+          await el.click({ timeout: 4000 });
+          await page.keyboard.press("Control+A"); await page.keyboard.press("Backspace");
+          await page.keyboard.type(hit[1], { delay: 45 });
+        } catch (e) {
+          await el.fill(hit[1], { timeout: 5000 }).catch(() => {});   // поле может быть перекрыто подсказками адреса
+        }
+        await page.waitForTimeout(250);
         const v = await el.inputValue().catch(() => "?");
         filled.push(names[i] + "=" + v);
       } catch (e) {}
     }
   }
+  // штат — SELECT, отдельно от прочих полей
+  for (const ff of page.frames()) {
+    const st = ff.locator("#billingAdministrativeArea");
+    if (await st.count().catch(() => 0)) {
+      try { await st.first().selectOption({ value: "TX" }); } catch (e) { await st.first().selectOption({ label: "Texas" }).catch(() => {}); }
+      filled.push("billingAdministrativeArea=" + await st.first().inputValue().catch(() => "?"));
+    }
+  }
+  // строку адреса — последней, чтобы автокомплит не мешал остальным полям
+  for (const ff of page.frames()) {
+    const a1 = ff.locator("#billingAddressLine1");
+    if (await a1.count().catch(() => 0)) {
+      try { await a1.first().click({ timeout: 4000 }); await page.keyboard.type("1401 Oak Street", { delay: 45 }); } catch (e) { await a1.first().fill("1401 Oak Street").catch(() => {}); }
+      filled.push("billingAddressLine1=" + await a1.first().inputValue().catch(() => "?"));
+    }
+  }
+  await page.keyboard.press("Escape").catch(() => {});
   console.log("заполнено: " + JSON.stringify(filled));
   for (const sel of ["[aria-label=\"Close\"]", "button[aria-label*=\"акрыть\"]", "[data-testid*=close]"]) {
     const el = f.locator(sel).first();
@@ -107,11 +133,18 @@ function readCard() {
   await page.keyboard.press("Escape").catch(() => {});
   await page.waitForTimeout(800);
   const btn = f.locator("button:has-text(\"Подписаться\")").first();
+  await page.waitForTimeout(2500);   // даём странице пересчитать налог и снять подсказки адреса
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.waitForTimeout(1000);
   try { await btn.scrollIntoViewIfNeeded().catch(() => {}); await btn.click({ force: true, timeout: 12000 }); console.log("клик выполнен"); }
   catch (e) { console.log("клик не прошёл: " + e.message.split("\n")[0].slice(0, 60)); await btn.dispatchEvent("click").catch(() => {}); }
   for (let i = 0; i < WATCH_S; i += 3) {
     await page.waitForTimeout(3000);
     if (confirms.some((c) => c.body)) break;
+    if (i === 12) {   // второй шанс: первый клик мог попасть в подсказку адреса
+      await page.keyboard.press("Escape").catch(() => {});
+      await btn.click({ force: true, timeout: 8000 }).catch(() => {});
+    }
   }
   const cap = {};
   for (const ff of page.frames()) { try { const c = await ff.evaluate(() => window.__cap || null); if (c && c.length) cap[(ff.url() || "main").slice(0, 60)] = c.slice(-25); } catch (e) {} }
