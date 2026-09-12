@@ -95,12 +95,33 @@ def test_pick_target_unknown_fallback_random():
 
 
 def test_targets_filter_dead_surfaces():
-    # _dead_domains сам строит путь от __file__ — достаточно вызвать
+    """Мёртвые цели отсекаются — проверяем поведение, а не конкретные домены.
+
+    Раньше тест требовал три конкретных имени (cherryarts.org, madatshop.com, herbaura.fr).
+    После боевой переаттестации 2026-09-12 эти домены ожили и были внесены в ротацию,
+    и тест упал — то есть охранял протухший рантайм-список вместо контракта (аудит 2026-09,
+    F-18). Теперь проверяем сам инвариант: множество мёртвых строится по флагам каталога,
+    и ни одна мёртвая цель не попадает в выборку ротации.
+    """
+    import json
+    import pathlib
+
     from bot.gates import storegate as sg
+
     dead = sg._dead_domains()
-    assert "cherryarts.org" in dead
-    assert "madatshop.com" in dead
-    assert "herbaura.fr" in dead
+    assert isinstance(dead, set)
+
+    catalog = json.loads((pathlib.Path(__file__).resolve().parents[1] / "data" / "store_gates.json").read_text(encoding="utf-8"))
+    flagged = {
+        str(g.get("domain", "")).lower()
+        for g in catalog
+        if g.get("dead_surface") or g.get("phantom") or g.get("verified") is False
+    }
+    assert dead == flagged, "множество мёртвых должно строиться ровно по флагам каталога"
+
+    targets = sg._targets()
+    leaked = [t for t in targets if t.replace("https://", "").lower() in dead]
+    assert not leaked, f"мёртвые цели просочились в ротацию: {leaked}"
 
 
 # --- A7: доступность гейтов ---

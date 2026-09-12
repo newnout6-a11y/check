@@ -252,11 +252,14 @@ async def main():
 
     if not raw_domains:
         domains = []
+        # Ручные цели (data/probe_targets.txt) сюда больше НЕ подмешиваются: все 17 доменов
+        # лежат в domains.db со статусом NO_REG и в ротации их нет — как fallback они только
+        # засоряли очередь мёртвыми целями (решение dj, Фиксация №27). Файл остаётся ручным
+        # сид-листом и читается полосой unified_harvester.
         candidates = [
             "data/harvested_domains.txt",   # forums harvester lane
             "data/dork_harvested.txt",      # dork harvesters lane
-            "data/probe_targets.txt",       # manual targets
-            "harvested_domains.txt", "probe_targets.txt",  # legacy cwd fallbacks
+            "harvested_domains.txt",        # legacy cwd fallback
         ]
         for fn in candidates:
             if os.path.exists(fn):

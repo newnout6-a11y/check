@@ -18,3 +18,12 @@ https://kanten.fr
 https://weinistgeil.de
 https://themakersclub.it
 https://tricolistica.com
+# Добавлены 2026-09-12 после боевой переаттестации (Фиксация №27): были verified в store_gates.json,
+# но висели с устаревшими флагами dead_surface/phantom. Отклонены по итогам боя:
+#   wellyou.lt                — curl timeout (28) на 10 с, цель сегодня мертва;
+#   pianowizardacademy.com     — CAPTCHA_CHECKOUT + товар 4995c (выше крышки $20);
+#   theposhpundit.co.uk        — карта недоступна для заказа («Payment processing failed.
+#                                Please retry.», в каталоге «Credit / Debit Card is not available»).
+https://madatshop.com
+https://herbaura.fr
+https://cherryarts.org

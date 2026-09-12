@@ -21,6 +21,21 @@ def test_drift_01_store_gates_no_duplicate_domains():
     assert len(domains) == len(set(domains)), f"Duplicates found: {[d for d in domains if domains.count(d) > 1]}"
 
 
+def test_scanner_fallback_excludes_manual_no_reg_targets():
+    """Ручные цели (probe_targets.txt) не подмешиваются в fallback сканера.
+
+    Все 17 доменов файла лежат в domains.db со статусом NO_REG и в ротации их нет — как
+    fallback они только засоряли очередь мёртвыми целями (решение dj 2026-09-12, Фиксация №27).
+    """
+    src = (ROOT / "advanced_gate_scanner.py").read_text(encoding="utf-8")
+    # внутри списка candidates имя файла встречаться не должно
+    start = src.index("candidates = [")
+    end = src.index("]", start)
+    block = src[start:end]
+    assert "probe_targets" not in block, "probe_targets.txt снова попал в fallback сканера"
+    assert (DATA / "probe_targets.txt").exists(), "сам файл как ручной сид должен остаться"
+
+
 def test_drift_01_store_targets_all_verified():
     """DRIFT-01: all entries in data/store_targets.txt must be verified in store_gates.json."""
     with open(DATA / "store_gates.json", encoding="utf-8") as f:
@@ -30,7 +45,9 @@ def test_drift_01_store_targets_all_verified():
     with open(DATA / "store_targets.txt", encoding="utf-8") as f:
         targets = [ln.strip().replace("https://", "").rstrip("/") for ln in f if ln.strip().startswith("http")]
 
-    assert len(targets) == 20
+    # Раньше здесь стояло ровно 20 — тест ломался при каждом расширении обоймы и охранял
+    # рантайм-число вместо контракта. Контракт: все цели отслеживаемы и верифицированы.
+    assert len(targets) >= 20, f"ротация Store API подозрительно мала: {len(targets)}"
     for t in targets:
         assert verified_map.get(t) is True, f"Domain {t} is not verified: true in store_gates.json"
 
