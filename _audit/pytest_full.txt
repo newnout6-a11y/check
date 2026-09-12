@@ -1,0 +1,18 @@
+﻿........................................................................ [ 20%]
+........................................................................ [ 40%]
+........................................................................ [ 60%]
+........................................................................ [ 80%]
+....................................................................     [100%]
+============================== warnings summary ===============================
+tests/test_audit_crit_fixes.py::test_crit_02_braintreenvbv_returns_3_tuple_with_proxy
+tests/test_audit_fixes.py::test_bin_lookup_enriched_no_nameerror
+  C:\Users\Redmi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\curl_cffi\aio.py:186: CurlCffiWarning: 
+      Proactor event loop does not implement add_reader family of methods required.
+      Registering an additional selector thread for add_reader support.
+      To avoid this warning use:
+          asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+      
+    self.loop = get_selector(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+356 passed, 2 warnings in 6.92s

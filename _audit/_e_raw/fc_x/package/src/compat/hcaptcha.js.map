@@ -1,0 +1,1 @@
+{"version":3,"file":"hcaptcha.js","sourceRoot":"","sources":["../../../../src/compat/hcaptcha.ts"],"names":[],"mappings":"AAOA,OAAO,EAAE,eAAe,EAAE,MAAM,UAAU,CAAC;AAiB3C;;;;GAIG;AACH,MAAM,OAAO,gCAAiC,SAAQ,eAAe;IACnE,YAAY,GAAuB;QACjC,KAAK,CAAC,GAAG,CAAC,CAAC;IACb,CAAC;IAED;;;OAGG;IACI,UAAU,CAAC,QAAiB;QACjC,OAAO,EAAE,CAAC;IACZ,CAAC;CACF"}

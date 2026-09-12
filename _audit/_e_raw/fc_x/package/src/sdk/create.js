@@ -1,0 +1,186 @@
+import { sessionCount, sessionId } from "./persist";
+import { supportAllowClipboardWrite } from "./supports";
+import { encodeQuery } from "../util/url";
+import { findFirstParentLangAttribute } from "./dom";
+import { getLocalizedText, getLocalizedWidgetTitle, isRTLLanguage } from "./localization";
+const FRAME_ID_DATASET_FIELD = "FrcFrameId";
+export const AGENT_FRAME_CLASSNAME = "frc-i-agent";
+const WIDGET_FRAME_CLASSNAME = "frc-i-widget";
+const WIDGET_PLACEHOLDER_CLASSNAME = "frc-widget-placeholder";
+/**
+ * @internal
+ */
+export function createAgentIFrame(frcSDK, agentId, src, guardContext) {
+    const frameParams = {
+        origin: document.location.origin,
+        sess_id: sessionId(),
+        sess_c: sessionCount(true),
+        comm_id: agentId,
+        sdk_v: SDK_VERSION,
+        v: "1",
+        agent_id: agentId,
+        ts: Date.now().toString(),
+    };
+    if (guardContext) {
+        frameParams.guard_c = guardContext;
+    }
+    const el = document.createElement("iframe");
+    el.className = AGENT_FRAME_CLASSNAME;
+    el.dataset[FRAME_ID_DATASET_FIELD] = agentId;
+    el.src = src + "?" + encodeQuery(frameParams);
+    el.frcSDK = frcSDK;
+    const s = el.style;
+    s.width = s.height = s.border = s.visibility = "0";
+    s.display = "none";
+    return el;
+}
+export function createWidgetIFrame(agentId, widgetId, widgetUrl, opts, guardContext) {
+    const el = document.createElement("iframe");
+    const language = getLanguageFromOptionsOrParent(opts);
+    const frameData = {
+        origin: document.location.origin,
+        sess_id: sessionId(),
+        sess_c: sessionCount(true),
+        comm_id: widgetId,
+        sdk_v: SDK_VERSION,
+        v: "1",
+        agent_id: agentId,
+        lang: language,
+        sitekey: opts.sitekey || "",
+        ts: Date.now().toString(),
+    };
+    if (opts.theme) {
+        frameData.theme = opts.theme;
+    }
+    if (guardContext) {
+        frameData.guard_c = guardContext;
+    }
+    if (supportAllowClipboardWrite) {
+        el.allow = "clipboard-write";
+    }
+    el.frameBorder = "0";
+    el.src = widgetUrl + "?" + encodeQuery(frameData);
+    el.className = WIDGET_FRAME_CLASSNAME;
+    el.title = getLocalizedWidgetTitle(language);
+    el.dataset[FRAME_ID_DATASET_FIELD] = widgetId;
+    const s = el.style;
+    s.border = s.visibility = "0";
+    s.position = "absolute";
+    s.height = s.width = "100%";
+    s.userSelect = "none";
+    s["-webkit-tap-highlight-color"] = "transparent";
+    s.display = "none";
+    // Note: we must use `appendChild` instead of `append` for IE11.
+    opts.element.appendChild(el);
+    return el;
+}
+/**
+ * Creates a placeholder box that is shown while the widget is loading.
+ * This is useful if the widget takes a while to load, or never ends up loading: the user will see a box with some text
+ * explaining what is going on instead of a blank error page.
+ * @internal
+ */
+export function createWidgetPlaceholder(opts) {
+    const el = document.createElement("div");
+    el.classList.add(WIDGET_PLACEHOLDER_CLASSNAME);
+    const s = el.style;
+    const isDark = opts.theme === "dark" ||
+        (opts.theme === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    s.color = isDark ? "#fff" : "#222";
+    s.backgroundColor = isDark ? "#171717" : "#fafafa";
+    s.borderRadius = "4px";
+    s.border = "1px solid";
+    s.borderColor = "#ddd";
+    s.padding = "8px";
+    s.height = s.width = "100%";
+    s.fontSize = "14px";
+    s.boxSizing = "border-box";
+    setCommonTextStyles(s);
+    opts.element.appendChild(el);
+    return el;
+}
+/**
+ * Set text styles that are common to the banner and the widget placeholder.
+ */
+function setCommonTextStyles(s) {
+    s.textDecoration = s.fontStyle = "none";
+    s.fontWeight = "500";
+    s.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+    s.lineHeight = "1";
+    s.letterSpacing = "-0.0125rem";
+}
+export function createBanner(opts) {
+    const el = document.createElement("div");
+    el.classList.add("frc-banner");
+    const language = getLanguageFromOptionsOrParent(opts);
+    const isDark = opts.theme === "dark" ||
+        (opts.theme === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    let primaryColor = "#565656";
+    let secondaryColor = "#a2a2a2";
+    if (isDark) {
+        primaryColor = "#a2a2a2";
+        secondaryColor = "#565656";
+    }
+    const els = el.style;
+    els.position = "absolute";
+    els.bottom = "6px";
+    if (isRTLLanguage(language)) {
+        els.left = "6px";
+    }
+    else {
+        els.right = "6px";
+    }
+    els.lineHeight = "1";
+    const a = document.createElement("a");
+    a.href = "https://friendlycaptcha.com";
+    a.rel = "noopener";
+    const s = a.style;
+    setCommonTextStyles(s);
+    s.color = primaryColor;
+    s.fontSize = "10px";
+    s.userSelect = "none";
+    s.textDecorationLine = "underline";
+    s.textDecorationThickness = "1px";
+    s.textDecorationColor = secondaryColor;
+    s.letterSpacing = "-0.0125rem";
+    a.target = "_blank";
+    a.textContent = "Friendly Captcha";
+    a.ariaLabel = "Friendly Captcha (" + getLocalizedText(language, "newTab") + ")";
+    // A poor man's hover, we can't use the :hover pseudoclass with inline css.
+    a.onmouseenter = () => (s.textDecorationColor = primaryColor);
+    a.onmouseleave = () => (s.textDecorationColor = secondaryColor);
+    // Note: we must use `appendChild` instead of `append` for IE11.
+    el.appendChild(a);
+    opts.element.appendChild(el);
+}
+export function getLanguageFromOptionsOrParent(opts) {
+    let language = opts.language;
+    if (!language || language === "html") {
+        language = findFirstParentLangAttribute(opts.element) || "";
+    }
+    return language;
+}
+/**
+ * Replaces element with a fallback message (ie, after all retries failed).
+ */
+export function createFallback(el, apiOrigin, language) {
+    const link = (href, text) => {
+        const l = document.createElement("a");
+        l.href = href;
+        l.target = "_blank";
+        l.rel = "noopener";
+        l.textContent = text;
+        const style = l.style;
+        setCommonTextStyles(style);
+        style.textDecoration = "underline";
+        style.color = "#565656";
+        l.onmouseenter = () => (style.textDecoration = "none");
+        l.onmouseleave = () => (style.textDecoration = "underline");
+        return l;
+    };
+    const failedText = getLocalizedText(language, "failed");
+    const els = [link(`${apiOrigin}/connectionTest`, failedText)];
+    el.textContent = "";
+    els.forEach((e) => el.appendChild(e));
+}
+//# sourceMappingURL=create.js.map

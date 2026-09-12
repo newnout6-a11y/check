@@ -26,7 +26,7 @@
 
 ```bash
 # Карта через $0 SetupIntent-вектор (пул из data/ready_gates.json):
-python setup_gate.py "5175465382242090|09|2030|018"
+python setup_gate.py "PAN|MM|YY|CVC"          # подставь свою карту; в README PAN не храним
 python setup_gate.py cards.txt                      # файл с картами
 python setup_gate.py https://target-donor.com "CARD|MM|YY|CVC"   # свой донор
 
@@ -64,8 +64,11 @@ python -m pytest tests/ -q
 Телеграм-бот — отдельным блоком, это PowerShell, а не bash:
 
 ```powershell
+$env:PUSTO_TG_API_ID = "12345"                      # свои креды с https://my.telegram.org
+$env:PUSTO_TG_API_HASH = "<hash>"
 $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 # без токена бот стартует по сессии bot/pusto_bot.session, если файл существует
+# api_id/api_hash обязательны: публичной пары официального клиента в коде больше нет
 ```
 
 Без аргумента-карты любой CLI-гейт берёт случайный Luhn-валидный пробник — это штатный

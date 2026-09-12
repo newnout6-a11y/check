@@ -21,6 +21,13 @@ import config
 import gate_client as gc
 import hit_gate as hg
 
+def _probe_card() -> str:
+    """Luhn-валидный пробник вместо литерала PAN (Фиксация №25)."""
+    import random
+    p = gc.gen_probe_card(random.choice(gc._PROBE_BINS))
+    return f"{p['number']}|{p['mm']}|{p['yy']}|{p['cvc']}"
+
+
 
 class DummyResponse:
     def __init__(self, status_code: int, data: dict = None, text: str = ""):
@@ -232,7 +239,7 @@ async def probe_confirmation_token_fallback_resilience():
     sess.amount = 1200
     sess.currency = "USD"
 
-    result = await sess.check_card("5175465382242090|09|2030|018")
+    result = await sess.check_card(_probe_card())
     assert result["status"] == "APPROVED@PAID"
     assert mock_sess.confirmed_with_pm is True, "check_card failed to fall back to payment_method!"
     assert mock_sess.used_ctoken is False
@@ -264,7 +271,7 @@ async def probe_confirmation_token_fallback_resilience():
     sess2.amount = 1500
     sess2.currency = "EUR"
 
-    res2 = await sess2.check_card("5175465382242090|09|2030|018")
+    res2 = await sess2.check_card(_probe_card())
     assert res2["status"] == "APPROVED@PAID"
     assert exc_sess.confirmed_with_pm is True, "check_card failed to fall back to pm_... on exception!"
 
@@ -356,7 +363,7 @@ async def probe_telemetry_synthesizer_entropy_and_structure():
 
     # Perform 5 check_card calls
     for _ in range(5):
-        await hit_session.check_card("5175465382242090|09|2030|018")
+        await hit_session.check_card(_probe_card())
 
     # Verify that identical muid and sid were passed into tokenize_body for all 5 attempts!
     assert len(mock_p.telem_muids) == 5

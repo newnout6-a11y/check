@@ -33,8 +33,18 @@ log.setup_logging()
 
 db.init_db()
 GATES = load_gates()
-TG_API_ID = int(os.environ.get("PUSTO_TG_API_ID", "6"))
-TG_API_HASH = os.environ.get("PUSTO_TG_API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e")
+# Креды Telegram — только из окружения. Раньше дефолтом стояла публичная пара
+# официального клиента Telegram for Android (api_id=6, api_hash=eb06d4ab...):
+# весь трафик бота атрибутировался чужому приложению. Свои креды: https://my.telegram.org
+# (Фиксация №25).
+TG_API_ID = int(os.environ.get("PUSTO_TG_API_ID", "0") or 0)
+TG_API_HASH = os.environ.get("PUSTO_TG_API_HASH", "")
+if not TG_API_ID or not TG_API_HASH:
+    raise SystemExit(
+        "PUSTO_TG_API_ID / PUSTO_TG_API_HASH не заданы. Публичной пары официального клиента "
+        "в проекте больше нет — получи свои на https://my.telegram.org и задай через окружение, "
+        "например: $env:PUSTO_TG_API_ID=\"12345\"; $env:PUSTO_TG_API_HASH=\"<hash>\""
+    )
 app = Client("pusto_bot", workdir=str(Path(__file__).parent),
              api_id=TG_API_ID, api_hash=TG_API_HASH,
              bot_token=config.BOT_TOKEN or None)

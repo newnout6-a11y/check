@@ -184,7 +184,7 @@ def extract_pan(card_raw: str) -> str:
     # 2. Если в строке несколько токенов через пробелы
     tokens = first_chunk.split()
     if len(tokens) >= 4:
-        # Проверяем: это 4 блока номера карты (например 4937 2410 0664 3332) или CC MM YY CVV?
+        # Проверяем: это 4 блока номера карты (например 4111 1111 1111 1111) или CC MM YY CVV?
         if all(len(t) == 4 and t.isdigit() for t in tokens[:4]):
             return "".join(tokens[:4])
         if len(tokens[0]) >= 13 and tokens[0].isdigit():
@@ -247,7 +247,7 @@ def fmt_latency(ms) -> str:
 
 
 def fmt_pan(card_raw: str) -> str:
-    """Маскирует номер карты: 4937241006643332 -> 4937 24** **** 3332"""
+    """Маскирует номер карты: 4111111111111111 -> 4111 11** **** 1111"""
     digits = extract_pan(card_raw)
     if len(digits) < 13:
         # мусорный ввод не показываем как есть — глухая маска

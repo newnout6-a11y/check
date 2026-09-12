@@ -157,7 +157,7 @@ F-06 | .gitignore:16-17 vs data/proxies_https_60k.txt | CRITICAL | в git зак
 F-07 | .gitignore:13-14 vs data/probe_20_cards.txt, data/amex_379363.txt | CRITICAL | .gitignore закрывает только scratch/_cards_test.txt, а списки Luhn-валидных карт-зондов лежат в data/ и закоммичены
 ```
 - ДОКАЗАТЕЛЬСТВО (.gitignore): `# Живые тест-карты (расходник, не код)` / `scratch/_cards_test.txt` (строки 13-14).
-- ДОКАЗАТЕЛЬСТВО (live, L20 + чтение): `git ls-files data` отдаёт `data/probe_20_cards.txt` и `data/amex_379363.txt`; содержимое первой строки `probe_20_cards.txt`: `5422513701513260|09|2028|618`, `amex_379363.txt`: `379363037433153|11|27|9179`. То же в коде: `scratch/_retest_failed.py:26` — `'4559516073479539|01|2029|277'`, `scratch/_batch_scout_battle.py:18` — `card = "4539274558237997|06|2029|981"`.
+- ДОКАЗАТЕЛЬСТВО (live, L20 + чтение): `git ls-files data` отдаёт `data/probe_20_cards.txt` и `data/amex_379363.txt`; содержимое первой строки `probe_20_cards.txt`: `542251******3260|09|2028|618`, `amex_379363.txt`: `379363******3153|11|27|9179`. То же в коде: `scratch/_retest_failed.py:26` — `'455951******9539|01|2029|277'`, `scratch/_batch_scout_battle.py:18` — `card = "4539274558237997|06|2029|981"`.
 - ЗАМЕНА: закрыть `.gitignore` правилом `data/*cards*.txt`, `data/amex_*.txt`; зонды генерировать на лету (`gc.gen_probe_card()`), а не хранить; в scratch заменить литералы PAN на `gc.gen_probe_card(bin)`.
 - ИСТОЧНИК: собственный репозиторий (git index + чтение файлов).
 

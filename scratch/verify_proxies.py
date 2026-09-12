@@ -31,7 +31,10 @@ async def check_proxy(proxy: str, sem: asyncio.Semaphore, results: list):
 
 
 async def main():
-    source_file = r"C:\Users\Redmi\.gemini\antigravity\brain\2db8c2a8-7c93-4c38-b82b-b0d3166a117c\.user_uploaded\media_1788452916738.txt"
+    # Источник — аргумент или env, по умолчанию рабочий пул проекта. Раньше здесь был
+    # захардкожен абсолютный путь внутрь служебного каталога другой машины,
+    # который не существует нигде, кроме неё (Фиксация №25).
+    source_file = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PUSTO_PROXY_SOURCE", "data/proxies.txt")
     with open(source_file, "r", encoding="utf-8") as f:
         raw = [l.strip() for l in f if l.strip() and not l.startswith("#")]
 
