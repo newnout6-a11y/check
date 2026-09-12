@@ -121,6 +121,32 @@ def build_browser_telemetry(country_code: str = "US", user_agent: str | None = N
     }
 
 
+def snapshot_cookies(session: Any) -> dict:
+    """Снимок cookie-jar без падения на CookieConflict.
+
+    Живой случай: ACS эмитента (Arcot) и hCaptcha ставят ОДИНАКОВОЕ имя __cf_bm на разных доменах
+    (.arcot.com и .hcaptcha.com), и тогда dict(session.cookies) бросает CookieConflict — ровно после
+    успешного 3DS-Method (HTTP 200). Из-за этого обход 3DS обрывался и вердикт всегда съезжал в
+    «3DS_CHALLENGE» (проверено 2026-09-13: execute_3ds_method отдавал success=False сразу после 200).
+
+    Поэтому имя квалифицируем доменом только при настоящем конфликте: обычно ключи остаются чистыми,
+    а дубликаты различимы и не теряются.
+    """
+    jar = getattr(getattr(session, "cookies", None), "jar", None)
+    if jar is None:
+        return {}
+    out: dict = {}
+    for c in jar:
+        name = getattr(c, "name", "")
+        if not name:
+            continue
+        value = getattr(c, "value", "")
+        if name in out and out[name] != value:
+            out[f"{name}@{getattr(c, 'domain', '') or ''}"] = value
+        else:
+            out[name] = value
+    return out
+
 async def execute_3ds_method(
     session: AsyncSession,
     method_url: str,
@@ -198,7 +224,7 @@ async def execute_3ds_method(
         return {
             "success": r.status_code == 200,
             "status_code": r.status_code,
-            "cookies": dict(session.cookies) if hasattr(session, "cookies") else {},
+            "cookies": snapshot_cookies(session),
             "server_trans_id": server_trans_id,
             "three_ds_protocol": three_ds_protocol_info(),
         }
