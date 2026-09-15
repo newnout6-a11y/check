@@ -98,6 +98,7 @@ function readCard() {
 
   console.log("навигация: " + LINK.split("#")[0].slice(0, 80));
   await page.goto(LINK, { waitUntil: "commit", timeout: 90000 }).catch((e) => console.log("goto: " + e.message.split("\n")[0]));
+  console.log("адрес после перехода: " + String(page.url()).split("#")[0].slice(0, 80));   // видно, переписал ли Stripe путь (/f -> /d)
   // Секция карты на свежей странице СВЁРНУТА: полей карты до нажатия строки «Карта» не существует.
   // Ловушка: широкий text=Карта матчится и в блоке Link/эл. почты — тогда открывается окно
   // «Использовать сохранённые данные» и накрывает форму. Поэтому кандидат обязан лежать НИЖЕ заголовка
@@ -299,6 +300,22 @@ function readCard() {
   // Живьём проверено: кнопка «✕» в панели подсказок — это «Очистить», она СТИРАЕТ адрес.
   // Поэтому панель закрываем выбором подсказки: страница сама проставляет улицу, город, штат, индекс,
   // и панель исчезает. Это и есть нормальный путь этой формы.
+  // Панель подсказок гасится Escape'ом ПО САМОМУ ПОЛЮ (проверено живьём: 29 -> 0, значение сохраняется).
+  // Она умеет всплывать уже ПОСЛЕ ввода — запрос Google уходит с задержкой, поэтому проверяем ещё и перед кликом.
+  const escAddress = async () => {
+    let touched = false;
+    for (const f of page.frames()) {
+      try {
+        const el = f.locator("#" + (typeof IDS === "object" && IDS ? IDS.a1 : "billingAddressLine1")).first();
+        if (!(await el.count())) continue;
+        await el.press("Escape").catch(() => {});
+        touched = true;
+      } catch (e) {}
+    }
+    await page.waitForTimeout(400);
+    return touched;
+  };
+
   const acceptSuggestion = async () => {
     for (let i = 0; i < 12; i++) {
       for (const f of page.frames()) {
@@ -563,6 +580,11 @@ function readCard() {
   const watcher = watch3ds();
   for (let attempt = 1; attempt <= 2; attempt++) {
     if (confirms.some((c) => c.kind === "req")) break;
+    if (await suggestionsOpen()) {
+      await escAddress();
+      console.log("    панель подсказок перед кликом: " + (await suggestionsOpen() ? "осталась, закрываю иначе" : "закрыта Escape'ом по полю"));
+      if (await suggestionsOpen()) console.log("    панель: " + (await dismissSuggestions()));
+    }
     if (attempt === 1) {
       console.log("    жму кнопку оплаты [" + el() + "]");
     } else {
@@ -632,6 +654,7 @@ function readCard() {
     } catch (e) {}
   }
   console.log("горизонтальные смещения в конце: " + (offs.length ? JSON.stringify(offs) : "нет ни в одном фрейме"));
+  console.log("адрес в конце прогона: " + String(page.url()).split("#")[0].slice(0, 80));   // сюда Stripe переписывает путь
   console.log("СЕТЬ 3DS (" + net3ds.length + "):");
   for (const n of net3ds.slice(-14)) console.log("  " + n.d + " " + (n.status || "") + " " + n.u);
   process.exit(0);
