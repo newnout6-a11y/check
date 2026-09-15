@@ -41,6 +41,11 @@ class ConfirmGateSession:
         self.confirm_count = 0
         self.telem: dict | None = None
         self.charge_risk = False
+        # Пейсинг на один client_secret. В боте пять конкурентных confirm шли на один и тот
+        # же секрет одновременно (Semaphore(5) в bot/gates/piconfirm.py) — залп без паузы
+        # (аудит 2026-09, G-31). Пауза здесь — Stripe-side, не кулдаун WooCommerce.
+        self.last_check_ts: float = 0.0
+        self._pace_lock = asyncio.Lock()
 
     async def open(self) -> tuple[bool, str]:
         s = AsyncSession(impersonate=config.pick_impersonate(), verify=False, proxy=self.proxy)
@@ -162,6 +167,15 @@ class ConfirmGateSession:
 
     async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
         pan_masked = gc.mask_pan(card_raw)
+        # Сериализация доступов к одному client_secret: без неё подтверждения уходят залпом.
+        async with self._pace_lock:
+            if self.last_check_ts > 0:
+                elapsed = time.time() - self.last_check_ts
+                if elapsed < config.SESSION_PACING_MIN:
+                    wait_sec = max(0.0, config.session_pacing_delay() - elapsed)
+                    if wait_sec > 0:
+                        await asyncio.sleep(wait_sec)
+            self.last_check_ts = time.time()
         # Sprint 2.4 guard: чужой PI дороже MAX_PI_AMOUNT_CENTS не подтверждаем —
         # это реальная авторизация на сумму товара, а не $0-auth (README §confirm_gate)
         if self.charge_risk and self.pi_info:

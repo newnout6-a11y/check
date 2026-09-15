@@ -1,1 +1,0 @@
-{"version":3,"file":"recaptcha.js","sourceRoot":"","sources":["../../../../src/compat/recaptcha.ts"],"names":[],"mappings":"AAOA,OAAO,EAAE,eAAe,EAAE,MAAM,UAAU,CAAC;AAG3C;;;;GAIG;AACH,MAAM,OAAO,iCAAkC,SAAQ,eAAe;IACpE,YAAY,GAAuB;QACjC,KAAK,CAAC,GAAG,CAAC,CAAC;IACb,CAAC;CACF"}

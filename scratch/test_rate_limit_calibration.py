@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
 
+import config
 import gate_client as gc
 import setup_gate as supg
 
@@ -30,8 +31,13 @@ async def test_session_cooldown():
     r1 = await gs.check_card(card1_str)
     print(f"[Карта 1] -> {r1.get('status')} | {r1.get('detail')} ({int((time.perf_counter()-t0)*1000)}ms)")
 
-    # Пробуем слать запросы с шагом в секундах, пока не снимется кулдаун
-    for delay in [3, 5, 8, 10, 15, 20]:
+    # Пробуем слать запросы с шагом в секундах, пока не снимется кулдаун.
+    # Шаг — производная от платформенного дефолта, а не список-магия (F-46), и результат
+    # годен как measured_cooldown_s только если он НИЖЕ платформенного порога (G-01).
+    probe_delays = [d for d in (3, 5, 8, 10, 15, 20) if d <= config.WC_ADD_PAYMENT_METHOD_DELAY_S]
+    print(f"[*] Платформенный дефолт кулдауна: {config.WC_ADD_PAYMENT_METHOD_DELAY_S}s; "
+          f"щупаем {probe_delays}")
+    for delay in probe_delays:
         print(f"\n[*] Ждем {delay} секунд...")
         await asyncio.sleep(delay)
         
@@ -46,7 +52,9 @@ async def test_session_cooldown():
         print(f"[Попытка через {delay}s] -> {st} | {det} ({ms}ms)")
         
         if "so soon after" not in det:
-            print(f"\n[+] КУЛДАУН СПАЛ! Точная задержка для этого сайта: {delay} секунд!")
+            print(f"\n[+] КУЛДАУН СПАЛ на {delay}s. Прописать донору rate_limit_delay_s={delay} "
+                  f"можно только если это НИЖЕ платформенного дефолта "
+                  f"({config.WC_ADD_PAYMENT_METHOD_DELAY_S}s): иначе держим платформенное значение.")
             break
 
     await gs.close()

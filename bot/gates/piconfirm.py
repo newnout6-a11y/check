@@ -15,7 +15,10 @@ NAME = "piconfirm"
 COST = 2
 
 _lock = asyncio.Lock()          # только создание/смена глобальной сессии
-_sem = asyncio.Semaphore(5)     # A6: параллельные чеки на одной сессии
+# Кап на одновременные чеки. Внутри одной сессии/секрета подтверждения сериализуются
+# локом ConfirmGateSession._pace_lock с паузой: раньше пять задач уходили на один
+# client_secret залпом, и пейсинг в боте не работал (аудит 2026-09, G-31).
+_sem = asyncio.Semaphore(5)
 _gs: ConfirmGateSession | None = None
 
 

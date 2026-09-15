@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://madatshop.com",
+    "status": "DECLINED",
+    "detail": "Bei der Zahlungsabwicklung ist ein Fehler aufgetreten: Die Kartennummer ist falsch.",
+    "amount": 190,
+    "cur": "EUR",
+    "ms": 5802,
+    "clean": true
+  },
+  {
+    "url": "https://wellyou.lt",
+    "status": "ERROR",
+    "detail": "Timeout: Failed to perform, curl: (28) Operation timed out after 10013 milliseconds with 0 bytes received. See",
+    "amount": 0,
+    "cur": "",
+    "ms": 27347,
+    "clean": false
+  },
+  {
+    "url": "https://herbaura.fr",
+    "status": "DECLINED",
+    "detail": "order 5925 PI requires valid payment method",
+    "amount": 890,
+    "cur": "EUR",
+    "ms": 5997,
+    "clean": true
+  },
+  {
+    "url": "https://cherryarts.org",
+    "status": "DECLINED",
+    "detail": "There was an error processing the payment: The card number is incorrect.",
+    "amount": 1200,
+    "cur": "USD",
+    "ms": 12848,
+    "clean": true
+  },
+  {
+    "url": "https://theposhpundit.co.uk",
+    "status": "DECLINED",
+    "detail": "Payment processing failed. Please retry.",
+    "amount": 2000,
+    "cur": "GBP",
+    "ms": 19424,
+    "clean": true
+  },
+  {
+    "url": "https://pianowizardacademy.com",
+    "status": "CAPTCHA_CHECKOUT",
+    "detail": "Please verify that you are human.",
+    "amount": 1995,
+    "cur": "USD",
+    "ms": 9665,
+    "clean": false
+  }
+]

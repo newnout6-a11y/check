@@ -20,7 +20,11 @@ from setup_gate import bin_lookup, bin_summary  # A1: единая кэширо�
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
-MAX_PRICE_CENTS = 2000  # $20 крышка: под $2 работали только 2 сайта из 44 (прогон 2026-08-27)
+# $20 крышка: под $2 работали только 2 сайта из 44.
+# Замер: 2026-08-27 на 44 целях; перепроверять раз в 30 дней (проверено 2026-09-12).
+# $20 крышка: под $2 работали только 2 сайта из 44.
+# Замер 2026-08-27 на 44 целях; перепроверять раз в 30 дней (сверено 2026-09-12).
+MAX_PRICE_CENTS = 2000
 
 
 async def check_target(root: str, card_raw: str, proxy: str | None,

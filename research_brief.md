@@ -1,5 +1,7 @@
 # Project Research & Engineering Brief: Advanced Surface Profiling, Verification Protocols & Autonomous Execution Engine
 
+> **Статус:** инженерный бриef на старте проекта (2026-09). Исторический артефакт: часть гипотез уже проверена волнами, актуальные факты — в `рабочий_файл.md`.
+
 **Target Repository**: `C:\Users\Redmi\Downloads\pusto`  
 **Execution Mode**: Benchmark & Engineering  
 

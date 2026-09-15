@@ -3,7 +3,7 @@
 ## Test Runner
 - Command: `pytest tests/ -q`
 - Expected: all tests pass with exit code 0
-- Final Status: 336 passed, 0 failures, 0 errors in 6.09s
+- Final Status (перемерено 2026-09-15): **494 passed, 0 failures, 0 errors** in ~7.5s
 
 ## Coverage Summary
 | Tier | Count | Description |

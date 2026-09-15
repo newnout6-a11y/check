@@ -20,7 +20,9 @@ from setup_gate import bin_lookup, bin_summary
 
 sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 
-MAX_PRICE_CENTS = 2000  # $20 default cap for Shopify items
+# $20 крышка по умолчанию; замер по каталогам (крупные каталоги отдают дешёвые позиции
+# только за первой страницей) — 2026-08, перепроверять раз в 30 дней (сверено 2026-09-12).
+MAX_PRICE_CENTS = 2000
 SHOPIFY_VAULT_URLS = [
     "https://deposit.us.shopifycs.com/sessions",
     "https://deposit.shopifycs.com/sessions",

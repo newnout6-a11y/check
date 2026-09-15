@@ -719,9 +719,20 @@ def test_pacing_delay_bounds_and_jitter_uniformity():
 
     assert len(set(delays)) > 15, "Delays must exhibit uniform jitter variance, not fixed values"
 
+    # Кулдаун WooCommerce — НЕ то же, что пейсинг Stripe. Без измеренного значения берётся
+    # платформенный дефолт (20.0 с) плюс джиттер 0.5-1.5 с; калиброванные 8.1-9.0 доступны только
+    # когда измерение передано явно (аудит 2026-09, G-01). Тест приведён к этому поведению.
+    floor = config.WC_ADD_PAYMENT_METHOD_DELAY_S
     setup_delays = [config.setup_cooldown_delay() for _ in range(25)]
     for sd in setup_delays:
-        assert 8.1 <= sd <= 9.0
+        assert floor + config.WC_COOLDOWN_JITTER_MIN <= sd <= floor + config.WC_COOLDOWN_JITTER_MAX, (
+            f"setup cooldown {sd} вне дефолтного диапазона {floor + config.WC_COOLDOWN_JITTER_MIN}"
+            f"-{floor + config.WC_COOLDOWN_JITTER_MAX}"
+        )
+
+    calibrated = [config.setup_cooldown_delay(8.5) for _ in range(25)]
+    for sd in calibrated:
+        assert 9.0 <= sd <= 10.0, f"калиброванный кулдаун {sd} вне 8.5 + джиттер"
 
 
 @pytest.mark.asyncio

@@ -278,7 +278,9 @@ def test_scan_actually_covers_the_repo():
     """Скан не должен выродиться: расширения и объём проверяются явно."""
     files = list(_tracked_files())
     exts = {pathlib.Path(rel).suffix.lower() for rel, _ in files}
-    assert len(files) >= 600, f"просканировано всего {len(files)} файлов — скан выродился"
+    # Порог снижен после чистки проекта (Фиксация №57): из индекса убраны 823 файла сырых дампов
+    # (_audit/_e_raw и _audit/tmp). Проверяем, что скан не выродился, а не абсолютный объём.
+    assert len(files) >= 200, f"просканировано всего {len(files)} файлов — скан выродился"
     for ext in (".py", ".json", ".md", ".txt"):
         assert ext in exts, f"тип {ext} выпал из скана"
     assert any(rel.startswith(STRICT_PREFIXES) for rel, _ in files), "data/ не попал в скан"

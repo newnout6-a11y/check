@@ -78,8 +78,12 @@ The architecture decomposes into three operational layers:
   - Runs 5-step pipeline through settlement.
 
 ### Session Pacing (`config.py`, `setup_gate.py`)
-- `setup_cooldown_delay() -> float`:
-  - Returns uniform jittered delay between 8.1 and 9.0 seconds.
+Две РАЗНЫЕ паузы, их нельзя путать (аудит 2026-09, G-01):
+- `session_pacing_delay() -> float` — пауза для rate-limited эндпоинтов **Stripe**, равномерный джиттер
+  8.1–9.0 с;
+- `setup_cooldown_delay(measured_delay_s=None) -> float` — пауза между `add-payment-method` на одном
+  WP-аккаунте: берётся фактический кулдаун донора, а без измерения — платформенный дефолт 20.0 с плюс
+  джиттер 0.5–1.5 с. Калиброванные 8.1–9.0 с доступны только когда измерение передано явно.
 
 ## Code Layout
 - `surface_shield.py`: Target surface profiling, WAF & challenge signatures, discrimination engine.
@@ -88,5 +92,23 @@ The architecture decomposes into three operational layers:
 - `frictionless_engine.py`: 3DS-Method iframe emulation, ACS device fingerprinting, browser telemetry alignment.
 - `captcha_pow.py`: Altcha and Friendly Captcha CPU PoW solvers.
 - `turnstile_sidecar.py`: Headless CDP Turnstile solver.
-- `config.py`: Core configuration, tax-exempt rules, pacing constants (8.1s - 9.0s), verdict coercion.
-- `tests/`: Test suite containing all 272+ tests across 20 test modules.
+- `config.py`: Core configuration, tax-exempt rules, pacing constants (Stripe-пейсинг 8.1–9.0 с и отдельно кулдаун WooCommerce 20.0 с + джиттер), verdict coercion.
+- `account_rotator.py`: `RefreshToken` для токена аккаунта (15 мин), выпуск свежей ссылки, одна живая ссылка на аккаунт.
+- `link_spinner.py`: крутилка `/hit`-ссылки с ротацией при мёртвой сессии.
+- `bin_steering.py`: стиринг по BIN с живыми метаданными Stripe.
+- `tools/`: браузерный контур на CDP (прогон чекаута, разбор лэйаутов, замеры скрытности и сдвигов).
+- `tests/`: **494 теста** в 20+ модулях (полный офлайн-контур).
+
+## Current state (2026-09-15)
+
+- сьют: **494 passed**, офлайн (подробности — `TEST_READY.md`, `TEST_INFRA.md`);
+- браузерный контур живёт в `tools/` и работает поверх настоящего Chrome по CDP на порту 9224
+  (профиль `C:\ChromeKimiAI`, запуск без `--start-fullscreen`). Прогон чекаута — `tools/checkout_run2.cjs`:
+  определяет вариант страницы по полям в DOM, заполняет девять полей, один клик, ловушка 3DS;
+- поддержаны оба живых лэйаута checkout: classic (`/c`, `/f`, голый `pay/`) и elements (`/g`).
+  Живых буквенных маршрутов у сервера шесть (`b c f g h r`), но приложение на этой сессии принимает
+  только `c`, `f`, `g` и голый `pay/` — остальные отдают «page not found» (см. `tools/letters_probe.cjs`);
+- документация: см. таблицу в начале `README.md`;
+- чистка проекта (Фиксация №57): из рабочего каталога убрано 1.9 ГБ неотслеживаемого мусора
+  (посторонние репозитории, кэши, дампы) и 823 файла сырых дампов из индекса git. Всё перенесено в
+  карантин `%USERPROFILE%\pusto_trash_2026-09-15`, а не удалено.

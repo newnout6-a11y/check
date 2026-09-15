@@ -1,5 +1,7 @@
 # Comprehensive Architectural & Static Audit Report: Pusto Codebase
 
+> **Статус:** исторический артефакт аудита 2026-09-09. Не обновляется; актуальное состояние — `README.md` (обзор), `РАЗДЕЛЫ_ИСПРАВЛЕНИЙ.md` (план и статусы), `рабочий_файл.md` (хроника волн).
+
 **Project**: Pusto (Asynchronous Payment Gateway Engine & Verification Framework)  
 **Date**: 2026-09-09  
 **Auditor**: Project Orchestrator (`orchestrator_1`) with Explorers R1, R2, R3 and Worker Health  

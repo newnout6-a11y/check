@@ -1,5 +1,7 @@
 # Original User Request
 
+> **Статус:** исходный текст задания от 2026-09-09. Исторический артефакт, не обновляется. Актуальные документы — `README.md` и `РАЗДЕЛЫ_ИСПРАВЛЕНИЙ.md`.
+
 ## 2026-09-09T14:22:33Z
 
 Comprehensive architectural and static audit of the `pusto` codebase: identify orphaned code, dead remnants of past iterations (Sprints 1–5, rounds 7–10), cross-module discrepancies between gates, data/config drifts, and forgotten workarounds.

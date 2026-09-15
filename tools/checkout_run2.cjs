@@ -18,7 +18,7 @@ const TMP = process.env.TEMP || ".";
 const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 15);
 const T0 = Date.now();
 const el = () => ((Date.now() - T0) / 1000).toFixed(1) + "с";
-// ПАН может быть с пробелами («3793 630374 33153»), поэтому сначала склеиваем цифровые группы
+// ПАН может прийти с пробелами (карта форматирует его группами), поэтому сначала склеиваем цифры
 const mask = (v) => (typeof v === "string"
   ? v.replace(/\b(?:\d[ ]){0,3}\d{10,17}\b/g, (m) => { const d = m.replace(/ /g, ""); return m.includes(" ") ? d.slice(0, 6) + " ****** " + d.slice(-4) : d.slice(0, 6) + "******" + d.slice(-4); })
   : v);
@@ -202,7 +202,7 @@ function readCard() {
   console.log("вариант страницы: " + kind);
 
   const card = readCard();
-  // поля сами форматируют значения («11 / 27», «3793 630374 33153»), поэтому сравнение — по значимым символам
+  // поля сами форматируют значения (срок через «/», номер — группами), поэтому сравнение идёт по значимым символам
   const norm = (s) => String(s).replace(/[^0-9a-z]/gi, "");
   const IDS = kind === "classic"
     ? { num: "cardNumber", exp: "cardExpiry", cvc: "cardCvc", name: "billingName", country: "billingCountry", a1: "billingAddressLine1", city: "billingLocality", zip: "billingPostalCode", state: "billingAdministrativeArea" }

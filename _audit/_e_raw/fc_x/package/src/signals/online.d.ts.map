@@ -1,1 +1,0 @@
-{"version":3,"file":"online.d.ts","sourceRoot":"","sources":["../../../../src/signals/online.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AACH,OAAO,EAAE,uBAAuB,EAAE,MAAM,kBAAkB,CAAC;AAE3D;;GAEG;AACH,MAAM,MAAM,YAAY,GAAG;IACzB,CAAC,EAAE,uBAAuB,CAAC;IAC3B,GAAG,CAAC,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;CACtB,CAAC;AAEF;;GAEG;AACH,wBAAgB,iBAAiB,IAAI,YAAY,CAyBhD"}

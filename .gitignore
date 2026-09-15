@@ -50,6 +50,11 @@ bot/*.session*
 _audit/.tavily_key
 _audit/stripe_v3.js
 
+# Сырые дампы и временные каталоги аудита: в карантине с 2026-09-15 (Фиксация №57)
+_audit/_e_raw/
+_audit/tmp/
+.ruff_cache/
+
 # Мусор ОС
 Thumbs.db
 desktop.ini
