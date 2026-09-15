@@ -4,9 +4,13 @@
 
 # --- Stripe (первоисточник — менять ЗДЕСЬ) ---
 STRIPE_API_VERSION = "2026-08-26.dahlia"   # актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major, потребует аудита
-# Соль сборки stripe.js. Обновляется скриптом: python scratch/refresh_stripe_salt.py --write
-# (--check вернёт exit 1, если значение разошлось с живым бандлом js.stripe.com/v3).
+# Соль сборки stripe.js. Это ПОСЛЕДНИЙ РУБЕЖ: рабочее значение подставляет stripe_salt.current_salt()
+# (кэш data/stripe_salt.json -> живой бандл js.stripe.com/v3), потому что соль ротируется — 2026-09-15
+# она сменилась дважды за день (f0a6d7cfcd -> 2cbe95f953). Здесь держим заведомо рабочее значение
+# на случай офлайна; синхронность проверяет python stripe_salt.py --check.
 STRIPE_JS_BUILD = "2cbe95f953"
+STRIPE_SALT_CACHE_PATH = "data/stripe_salt.json"   # кэш живой соли (не в репозитории)
+STRIPE_SALT_TTL_S = 6 * 3600                       # сколько держать кэш, прежде чем перечитать бандл
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------

@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone
 
 import config as _cfg
+import stripe_salt
 import pusto_logger as _log
 
 STRIPE_API_VERSION = _cfg.STRIPE_API_VERSION
@@ -820,7 +821,7 @@ async def fetch_hcaptcha_radar_token(session, pk: str, donor_host: str) -> str |
             return None
         r2 = await session.post(
             "https://api.hcaptcha.com/checksiteconfig",
-            params={"v": STRIPE_JS_BUILD, "sitekey": sitekey,
+            params={"v": stripe_salt.current_salt(), "sitekey": sitekey,
                     "host": "b.stripecdn.com", "sc": "1", "swa": "1"},
             headers={"Origin": "https://b.stripecdn.com", "Referer": "https://b.stripecdn.com/",
                      "Accept": "application/json"},
@@ -1341,7 +1342,7 @@ def stripe_telemetry(base_url: str, pk: str, country_code: str = "US",
         **geo,
         "client_session_id": f"src_{rand_str(24)}",
         "elements_session_config_id": f"src_{rand_str(24)}",
-        "payment_user_agent": f"stripe.js/{STRIPE_JS_BUILD}; stripe-js-v3/{STRIPE_JS_BUILD}; {PAYMENT_USER_AGENT_SUFFIX}",
+        "payment_user_agent": f"stripe.js/{stripe_salt.current_salt()}; stripe-js-v3/{stripe_salt.current_salt()}; {PAYMENT_USER_AGENT_SUFFIX}",
         "key": pk,
         "_stripe_version": STRIPE_API_VERSION,
     }

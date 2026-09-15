@@ -21,6 +21,8 @@ bot/bot_users.db
 data/account_auth.json
 # Идентификаторы устройства Stripe (muid/guid/sid) — локальное состояние клиента, а не код.
 data/stripe_device_ids.json
+# Кэш живой соли бандла stripe.js — состояние клиента, не код (резолвер: stripe_salt.py)
+data/stripe_salt.json
 
 # Карточные данные и внешние пулы: в репозиторий не попадают (Фиксация №25).
 # Пример формата остаётся отслеживаемым: !data/proxies.txt.example

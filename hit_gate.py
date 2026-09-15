@@ -21,6 +21,7 @@ import config
 from config import session_pacing_delay, setup_cooldown_delay
 import gate_client as gc
 import stripe_fid
+import stripe_salt
 import bin_steering
 import frictionless_engine
 import pusto_logger as _log
@@ -710,7 +711,7 @@ class CsHitSession:
             # Идентификаторы клиента и версия JS — ровно те поля, что шлёт сама витрина
             # (живая съёмка 2026-09-13: guid/muid/sid и version=f0a6d7cfcd). Без них наш confirm
             # отличался от страницы по набору полей; guid теперь настоящий (m.stripe.com/6).
-            "version": config.STRIPE_JS_BUILD,
+            "version": stripe_salt.current_salt(),   # живая соль бандла, а не константа (ротируется),
         }
         if telem:
             for src, dst in (("guid", "guid"), ("muid", "muid"), ("sid", "sid")):

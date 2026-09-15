@@ -143,6 +143,7 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | `pusto_logger.py` | 290+ | **Центральный консольный логгер:** Windows Virtual Terminal, ANSI/UTF-8, бейджи `[TG]` `[HTTP]` `[STRIPE]` `[GATE]` `[RESULT]` по всем слоям, адаптер стандартного `logging` |
 | `captcha_pow.py` | 310+ | **Pure Python PoW Captcha Engine:** Altcha (SHA-256/512), Friendly Captcha v1/v2 (Blake2b-256), Hashcash; zero-cost, 1.4M+ H/s без ML |
 | `turnstile_sidecar.py` | 90+ | **Локальный Headless Sidecar:** нативное решение Cloudflare Turnstile (non-interactive и managed) через `patchright` и нативный Chrome CDP |
+| `stripe_salt.py` | 130+ | **Резолвер соли бандла stripe.js:** env → кэш с TTL → живой бандл → константа; CLI `--check` / `--refresh` |
 | `config.py` | 260+ | Единый источник констант, таксономии вердиктов, **двух разных пауз** — пейсинг Stripe 8.1–9.0 с и кулдаун WooCommerce 20.0 с + джиттер 0.5–1.5 (аудит G-01) — и пула TLS-отпечатков |
 | `bot/` | 3 570+ | Pyrogram-бот (`main.py` 1 890+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
 | `account_rotator.py` | 320+ | Жизнь ссылки Kimi/Stripe: продление `access_token` (15 мин) через `RefreshToken`, выпуск новой ссылки (`CreateSubscription`), одна живая ссылка на аккаунт |
@@ -268,7 +269,7 @@ UNKNOWN, ERROR
 | Константа | Значение |
 |---|---|
 | `STRIPE_API_VERSION` | `2026-08-26.dahlia` — актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major-релиз, при переходе потребуется аудит confirm-веток |
-| `STRIPE_JS_BUILD` | `2cbe95f953` — соль живого билда stripe.js v3. **Значение ротируется** (за один день 2026-09-15 сменилось дважды: `f0a6d7cfcd` → `2cbe95f953`), поэтому в доках оно всегда «на момент замера». Актуализация: `python scratch/refresh_stripe_salt.py --check` (exit 1 при расхождении) или `--write`: подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
+| `STRIPE_JS_BUILD` | `2cbe95f953` — **запасное** значение соли (офлайн-рубеж). Рабочее подставляет `stripe_salt.current_salt()`: `PUSTO_STRIPE_SALT` → кэш `data/stripe_salt.json` (TTL 6 ч) → живой бандл `js.stripe.com/v3` → константа. Соль ротируется (2026-09-15 сменилась дважды), поэтому в коде она не «прибита»: обновление идёт само, синхронность константы проверяет `python stripe_salt.py --check` |: подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
 | `CHROME_IMPERSONATE` | `edge101` — нативный Windows-профиль (устраняет p0f TCP mismatch TTL=128) |
 | `IMPERSONATIONS` | Пул из 21 актуального профиля `curl_cffi 0.15.0` (Chromium 133a-146, Safari 18.4/26.0, Firefox 135-147, Edge 99/101, Tor 145); устаревшие `chrome99`-`chrome110` удалены |
 | `MAX_PI_AMOUNT_CENTS` | `10 000` (выше — `CHARGE_RISK`, не подтверждаем) |
@@ -460,8 +461,8 @@ pusto/
   (`bot/gates/braintreenvbv.py`, `scratch/dork_harvester.py`, `scratch/deep_dorker.py` переведены
   на `config.pick_impersonate()`, userAgent обновлен до Chrome/146), guard-тест расширен
   на 12 модулей; Stripe обновлен до `2026-08-26.dahlia` и билда `fe705f067f` — на тот момент (позже соль
-  бандла ротировалась ещё дважды (`f0a6d7cfcd` → `2cbe95f953` на 2026-09-15), актуальную даёт
-  `scratch/refresh_stripe_salt.py --check`, см. §8; сверено по живому
+  бандла ротировалась ещё дважды (`f0a6d7cfcd` → `2cbe95f953` на 2026-09-15) — теперь её подставляет
+  резолвер `stripe_salt.py` автоматически, см. §8; сверено по живому
   бандлу js.stripe.com/v3); 64 находки аудита закрыты (отчёты аудита — `_audit/ОТЧЁТ_АУДИТ_2026-09.md`, `_audit/ВЕРИФИКАЦИЯ_АУДИТА_2026-09.md`),
   экономика возвратов расширена до `REFUNDABLE_VERDICTS`, Radar-челлендж реверснут
   (`verify_challenge`, разбор — `_audit/E_antibot_3ds.md` и Фиксации в `рабочий_файл.md`).
