@@ -150,7 +150,7 @@ function readCard() {
         console.log("жму строку «Карта» (" + cx + "," + cy + ", h=" + Math.round(b.height) + ")");
         await page.mouse.move(cx, cy, { steps: 8 });
         await page.mouse.click(cx, cy);
-        for (let w = 0; w < 24; w++) { await page.waitForTimeout(250); if (await cardsVisible()) return true; }
+        for (let w = 0; w < 8; w++) { await page.waitForTimeout(200); if (await cardsVisible()) return true; }
         await closeModals();
       }
       try {
@@ -158,7 +158,7 @@ function readCard() {
         if (await r.count() && await r.isVisible()) {
           console.log("жму радиокнопку способа оплаты");
           await r.click({ timeout: 4000 }).catch(() => {});
-          for (let w = 0; w < 24; w++) { await page.waitForTimeout(250); if (await cardsVisible()) return true; }
+          for (let w = 0; w < 8; w++) { await page.waitForTimeout(200); if (await cardsVisible()) return true; }
           await closeModals();
         }
       } catch (e) {}
@@ -236,13 +236,9 @@ function readCard() {
       sizes.push("пасс " + pass + ": снято " + residual + ", поле x=" + worstX);
       await page.waitForTimeout(200);
     }
-    try {
-      await page.evaluate(() => {
-        const h = Array.from(document.querySelectorAll("h1,h2,h3,div,span")).find((e) => /^Способ оплаты$/.test((e.textContent || "").trim()));
-        if (h) window.scrollTo(0, h.getBoundingClientRect().top + window.scrollY - 90);
-      });
-    } catch (e) {}
-    await page.waitForTimeout(250);
+    // Вертикаль здесь НЕ трогаем: раньше сброс каждый раз подкидывал окно к заголовку, отсюда и было
+    // «скролит то вверх, то вниз». Вертикальное положение меняется ровно один раз за фазу.
+    await page.waitForTimeout(150);
   };
 
   // Прокрутку сбрасывает одно, а смещает ещё и transform предка панели: Stripe въезжает панелью через
@@ -289,6 +285,37 @@ function readCard() {
   };
   await alignX("эталон до заполнения");   // x поля до ввода — эталон, к нему возвращаем панель
 
+  // Панель подсказок адреса нужна уже на этапе заполнения, поэтому определена здесь.
+  const suggestionsOpen = async () => {
+    for (const f of page.frames()) {
+      try {
+        const c = f.locator("[class*=AddressAutocomplete-result]");
+        const n = await c.count();
+        for (let i = 0; i < n; i++) { if (await c.nth(i).isVisible()) return true; }
+      } catch (e) {}
+    }
+    return false;
+  };
+  // Живьём проверено: кнопка «✕» в панели подсказок — это «Очистить», она СТИРАЕТ адрес.
+  // Поэтому панель закрываем выбором подсказки: страница сама проставляет улицу, город, штат, индекс,
+  // и панель исчезает. Это и есть нормальный путь этой формы.
+  const acceptSuggestion = async () => {
+    for (let i = 0; i < 12; i++) {
+      for (const f of page.frames()) {
+        try {
+          const r0 = f.locator("[class*=AddressAutocomplete-result]").first();
+          if (await r0.count() && await r0.isVisible()) {
+            await r0.click({ timeout: 3000 }).catch(() => {});
+            await page.waitForTimeout(600);
+            return true;
+          }
+        } catch (e) {}
+      }
+      await page.waitForTimeout(250);
+    }
+    return false;
+  };
+
   // Возврат панели СРАЗУ после каждого ввода: смещает не только перед кадром, а на каждом шаге —
   // fill() фокусирует поле, и Stripe подкручивает контейнер под фокус. Гасим фокус и прокрутку в том
   // фрейме, где вводили, это стоит доли секунды и держит форму на месте весь прогон.
@@ -328,10 +355,8 @@ function readCard() {
           await page.keyboard.type(v, { delay: 30 });
         }
         await page.waitForTimeout(90);
-        if (/address/i.test(id)) {   // панель подсказок перекрывает кнопку оплаты — гасим сразу
-          await page.keyboard.press("Escape").catch(() => {});
-          await page.waitForTimeout(160);
-        }
+        // Escape у поля адреса НЕ жмём: панель подсказок всё равно открывается через секунду-другую,
+        // а её кнопка «✕» — это «Очистить», она стирает адрес. Панель закрываем выбором подсказки.
         if (norm(await val(id)) !== norm(v)) {
           // второй шанс без клавиатуры
           await el.fill(v, { timeout: 4000 }).catch(() => {});
@@ -376,11 +401,11 @@ function readCard() {
     } catch (e) {}
   }
   console.log("страна: " + (await setSel(IDS.country, "US") ? "US ok" : "не вышло") + " [" + el() + "]");
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 24; i++) {   // поля адреса появляются после выбора страны
     let seen = false;
     for (const f of page.frames()) { try { const b = f.locator("#" + IDS.city).first(); if (await b.count() && await b.isVisible()) { seen = true; break; } } catch (e) {} }
     if (seen) break;
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(150);
   }
 
   // классический вариант: город/индекс/штат спрятаны за ссылкой «Ввести адрес вручную»
@@ -406,8 +431,12 @@ function readCard() {
       if (ok) continue;
       await (k === "sel" ? setSel(id, v) : setTxt(id, v));
     }
-    // адрес — последним: автокомплит Google накрывает поля ниже
+    // Адрес — последним в фазе заполнения. Живьём проверено: страница регистрирует адрес только
+    // ВЫБОРОМ подсказки Google (простой ввод текста форма считает незаполненным), поэтому сразу
+    // после ввода принимаем первую подсказку — она же и закрывает панель.
     if (norm(await val(IDS.a1)) !== norm("1401 Oak Street")) await setTxt(IDS.a1, "1401 Oak Street");
+    const usedSuggestion = await acceptSuggestion();
+    console.log("    подсказка адреса: " + (usedSuggestion ? "выбрана" : "не появилась"));
     if ((await val(IDS.state)) !== "TX") {   // запасной путь: выбор штата по названию
       for (const f of page.frames()) { try { const s = f.locator("#" + IDS.state).first(); if (await s.count()) await s.selectOption({ label: "Texas" }).catch(() => {}); } catch (e) {} }
       await page.waitForTimeout(250);
@@ -415,20 +444,29 @@ function readCard() {
     await page.keyboard.press("Escape").catch(() => {});
     await page.waitForTimeout(250);
     const left = [];
+    const relaxed = usedSuggestion ? new Set([IDS.a1, IDS.city, IDS.zip, IDS.state]) : new Set();
     for (const [id, v, k] of [...plan, [IDS.a1, "1401 Oak Street", "txt"]]) {
       const cur = await val(id);
-      if (k === "txt" ? norm(cur) !== norm(v) : cur !== v) left.push(id + "=\"" + cur + "\"");
+      const bad = relaxed.has(id) ? norm(cur).length === 0 : (k === "txt" ? norm(cur) !== norm(v) : cur !== v);
+      if (bad) left.push(id + "=\"" + cur + "\"");
     }
     console.log("пасс " + pass + ": " + (left.length ? "недозаполнено " + JSON.stringify(left) : "ВСЕ ЗНАЧЕНИЯ ПОДТВЕРЖДЕНЫ"));
     if (!left.length) break;
     if (pass === 4) { console.log("клик отменён: форма не подтверждена"); process.exit(6); }
   }
+  // Короткая пауза на пересчёт: после подсказки адреса странице нужно мгновение, чтобы признать адрес
+  // и пересчитать налог. Без неё первый клик уходит впустую (замер: 8.7 с — мимо, ~11 с — в цель).
+  await page.waitForTimeout(1500);
 
   const shown = {};
   for (const [id] of [...plan, [IDS.a1]]) shown[id] = (await val(id)).slice(0, 20);
   console.log("ЗНАЧЕНИЯ: " + JSON.stringify(shown));
   await resetScroll();
   await alignX("перед снимком формы");
+  for (const f of page.frames()) {   // единственная вертикальная установка за фазу: форма к центру окна
+    try { const num = f.locator("#" + IDS.num).first(); if (await num.count()) { await num.evaluate((e) => e.scrollIntoView({ block: "center" })).catch(() => {}); break; } } catch (e) {}
+  }
+  await page.waitForTimeout(300);
   const shotMid = path.join(TMP, "run_mid.png");
   await page.screenshot({ path: shotMid, animations: "disabled", caret: "hide" }).catch(() => {});
   console.log("кадр после заполнения (" + el() + "): " + shotMid);
@@ -436,8 +474,27 @@ function readCard() {
   await page.screenshot({ path: shot1, animations: "disabled", caret: "hide" }).catch(() => {});
   console.log("вид с формой (" + el() + "): " + shot1);
 
-  const btnFrame = (await findF("#" + IDS.num, 3)) || page.mainFrame();
-  const btn = btnFrame.locator("button:has-text(\"Подписаться\")").first();
+  // Ярлык кнопки зависит от варианта: «Подписаться с обязательством оплаты» или «Оплатить и подписаться».
+  // Ищем видимую кнопку по нескольким ярлыкам и запоминаем её подпись.
+  let btn = null, btnLabel = "";
+  for (const f of page.frames()) {
+    for (const lb of ["Подписаться", "Оплатить и подписаться", "Оплатить картой"]) {
+      try {
+        const c = f.locator("button:has-text(\"" + lb + "\")");
+        const n = await c.count();
+        for (let i = 0; i < n && !btn; i++) {
+          const el = c.nth(i);
+          if (!(await el.isVisible())) continue;
+          const t = ((await el.innerText()) || "").replace(/\s+/g, " ").trim();
+          if (/подписаться|оплатить/i.test(t)) { btn = el; btnLabel = t.slice(0, 44); }
+        }
+      } catch (e) {}
+      if (btn) break;
+    }
+    if (btn) break;
+  }
+  if (!btn) { console.log("кнопка оплаты не найдена"); await page.screenshot({ path: path.join(TMP, "run_nobtn.png") }).catch(() => {}); process.exit(4); }
+  console.log("кнопка оплаты: \"" + btnLabel + "\"");
   // Ловушка 3DS: во время аутентификации страница открывает внешний фрейм (ACS/3DS/hooks.stripe).
   // Пишем таймлайн и делаем снимок в момент появления — это и есть доказательство выдачи 3DS.
   const tds = [];
@@ -469,6 +526,18 @@ function readCard() {
   };
 
   console.log("заполнение закончено — жму кнопку [" + el() + "]");
+  // Кнопка «✕» в панели — это «Очистить»: она стирает адрес (проверено живьём), поэтому панель
+  // закрываем ЕДИНСТВЕННЫМ безопасным способом — выбором подсказки.
+  const dismissSuggestions = async () => {
+    if (await acceptSuggestion()) return "подсказка выбрана";
+    await page.keyboard.press("Escape").catch(() => {});
+    await page.waitForTimeout(200);
+    return (await suggestionsOpen()) ? "не закрылась" : "закрыта Escape";
+  };
+
+  const btnVisible = async () =>
+    btn.evaluate((b) => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; }).catch(() => false);
+
   const centerOwner = async () => {
     try {
       return await btn.evaluate((b) => {
@@ -483,46 +552,42 @@ function readCard() {
   let clicked = 0;
   watching = true;
   const watcher = watch3ds();
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     if (confirms.some((c) => c.kind === "req")) break;
-    let owner = await centerOwner();
-    for (let t = 0; t < 4 && owner !== "self"; t++) {
-      console.log("центр кнопки перекрыт (" + owner + ") — закрываю подсказки");
-      await page.keyboard.press("Escape").catch(() => {});
-      await page.mouse.click(10, 10).catch(() => {});
-      await page.waitForTimeout(220);
-      owner = await centerOwner();
+    if (attempt === 1) {
+      console.log("    жму кнопку оплаты [" + el() + "]");
+    } else {
+      // Второй и третий удар: сначала снимаем перекрытие подсказок, потом жмём
+      if (!(await btnVisible())) await btn.scrollIntoViewIfNeeded().catch(() => {});
+      const owner0 = await centerOwner();
+      if (owner0 !== "self") {
+        console.log("центр кнопки перекрыт (" + owner0 + ") — убираю подсказки");
+        console.log("    панель подсказок: " + (await dismissSuggestions()));
+      }
     }
-    await resetScroll();
-    await alignX("перед кликом");
     try {
-      await btn.click({ timeout: 10000 });   // Playwright сам прокручивает к кнопке и жмёт центр   // нативный клик: Playwright сам наводит мышь в центр кнопки
+      await btn.click({ timeout: 8000 });
       clicked++;
       console.log("КЛИК #" + attempt + " (нативный, центр кнопки) через " + el() + " от старта");
     } catch (e) { console.log("клик #" + attempt + " не прошёл: " + e.message.split("\n")[0].slice(0, 70)); }
-    // Ждём не «вообще», а по состоянию страницы: если кнопка ушла в обработку — ждём её,
-    // если за 2.5 с не изменилось ничего — бьём снова немедленно, вместо мёртвой паузы.
-    let reacted = false;
-    for (let w = 0; w < 40; w++) {
-      await page.waitForTimeout(250);
+    // ОДИН удар и терпеливое ожидание: страница сама создаёт pm, отправляет confirm и работает с ACS —
+    // это до 15 секунд. Ранние повторные клики «нет реакции за 2.5 с» и давали накликивание.
+    for (let w = 0; w < 32; w++) {
+      await page.waitForTimeout(500);
       if (confirms.some((c) => c.kind === "req")) break;
-      const st = await btn.evaluate((b) => ((b.disabled ? "disabled" : "") + "|" + (b.innerText || "").replace(/\s+/g, " ").trim()).slice(0, 60)).catch(() => "");
-      if (/обработк|Processing|disabled/i.test(st)) {
-        reacted = true;
-        if (w % 8 === 7) console.log("    кнопка в обработке, ждём [" + el() + "]");
-      }
-      if (!reacted && w >= 9) { console.log("    реакции нет за 2.5с — повторяю клик [" + el() + "]"); break; }
+      if (w === 7 || w === 15 || w === 23) console.log("    ждём confirm " + ((w + 1) * 0.5).toFixed(1) + "с [" + el() + "]");
     }
     if (confirms.some((c) => c.kind === "req")) break;
     console.log("  confirm не пришёл после клика #" + attempt);
   }
-  for (let i = 0; i < 12; i++) { await page.waitForTimeout(1500); if (confirm_frames_seen()) break; }
-  function confirm_frames_seen() { return false; }
+  // Хвост: сначала ответ confirm (приходит сразу), затем короткое окно на 3DS-фрейм — и всё.
+  // Раньше здесь стояли глухие паузы на ~18 секунд уже после того, как всё было получено.
+  for (let i = 0; i < 16; i++) { await page.waitForTimeout(250); if (confirms.some((c) => c.kind === "res")) break; }
+  for (let i = 0; i < 16; i++) { await page.waitForTimeout(250); if (tds.length) break; }
   watching = false;
   await watcher.catch(() => {});
   console.log("3DS-фреймов за прогон: " + tds.length + (tds.length ? " :: " + JSON.stringify(tds.map((x) => x.u.slice(0, 60))) : ""));
-  for (let i = 0; i < 40; i++) { await page.waitForTimeout(500); if (confirms.some((c) => c.kind === "res")) break; }
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(700);
   await resetScroll();
   await alignX("перед снимком результата");
   const shot2 = path.join(TMP, "run_result.png");
