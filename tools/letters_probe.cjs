@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/letters_probe.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ИССЛЕДОВАНИЕ. Какие буквенные маршруты принимает checkout.stripe.com и какой там лэйаут.
+
 // Открывает одну и ту же живую сессию по разным буквенным маршрутам и сообщает, какой там лэйаут:
 // где лежат поля карты (главный фрейм или фрейм Stripe), какие у них id и как подписана кнопка оплаты.
 // Запуск: node tools/letters_probe.cjs <ссылка> [cdp]

@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_offsets.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Источник горизонтального смещения формы.
+
 // Ищет источник горизонтального смещения формы: scrollLeft/scrollX, ширины контейнеров и CSS-трансформации
 // у iframe и их предков. Ничего не меняет — только читает.
 // Запуск: node tools/checkout_offsets.cjs [cdp]

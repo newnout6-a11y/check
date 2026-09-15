@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/grab_account_auth.cjs, target: Windows 10/11 + любой Chrome с CDP
+// РОЛЬ: СЛУЖЕБНОЕ. Снимает токен аккаунта kimi.ai с открытого Chrome по CDP в data/account_auth.json.
+
 // Снимает токен аккаунта kimi.ai с УЖЕ ОТКРЫТОГО Chrome по CDP и пишет data/account_auth.json,
 // который читает account_rotator.py. Так ротация не зависит ни от браузера, ни от платформы:
 // программа-потребитель читает только файл.

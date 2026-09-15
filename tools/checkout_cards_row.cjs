@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_cards_row.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Ищет строку способа оплаты «Карта» во всех фреймах.
+
 // Ищет строку способа оплаты «Карта» во всех фреймах: тег, роль, видимость, координаты.
 // Запуск: node tools/checkout_cards_row.cjs [cdp]
 const fs = require("fs");

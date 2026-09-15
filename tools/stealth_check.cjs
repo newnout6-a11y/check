@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/stealth_check.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ИЗМЕРЕНИЕ. Что видит страница: флаги автоматизации, подменённые builtin, следы CDP.
+
 // Измеряет, что видит страница чекаута: флаги автоматизации, подменённые builtin-функции, следы CDP,
 // отпечаток железа, наличие наших хуков. Ничего не патчит — только читает.
 // Запуск: node tools/stealth_check.cjs [cdp]

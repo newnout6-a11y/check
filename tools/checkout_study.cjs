@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_study.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: СТАРЫЙ СЪЁМЩИК (заменён checkout_run2.cjs): вешал хуки на fetch/XHR внутри страницы и писал полный трейс запросов.
+
 // Полная съёмка страницы оплаты Stripe: все запросы/ответы, WebSocket-кадры, перехваты fetch/XHR/beacon,
 // красные тексты DOM с таймстампами. Кладёт отчёт в data/results/checkout_study_<ts>.json.
 //

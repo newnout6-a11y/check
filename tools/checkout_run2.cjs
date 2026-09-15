@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_run2.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: РАБОЧИЙ ПРОГОН чекаута — единственный скрипт, который реально заполняет форму и жмёт оплату. Остальные файлы в tools/ — диагностика или старые версии.
+
 // Адаптивный прогон чекаута: определяет вариант страницы и работает по его полям.
 //   /f/pay  (classic)  — поля в ГЛАВНОМ фрейме: cardNumber, cardExpiry, cardCvc, billingName,
 //                        billingCountry (select), billingAddressLine1 + скрытые billingLocality,

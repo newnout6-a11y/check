@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_state.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Состояние страницы после отправки: фреймы, текст, 3DS-фрейм.
+
 // Состояние чекаута после отправки: фреймы, видимый текст, наличие 3DS-фрейма, вид окна (не fullPage).
 // Запуск: node tools/checkout_state.cjs [cdp] [суффикс-имени]
 const fs = require("fs");

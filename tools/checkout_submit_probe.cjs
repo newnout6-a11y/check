@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_submit_probe.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: СТАРАЯ ВЕРСИЯ (заменена checkout_run2.cjs): доводила страницу до отправки, но работала по координатам и не гасила панель подсказок.
+
 // Доводит страницу оплаты до отправки: полностью заполняет карту+адрес, закрывает оверлеи, жмёт кнопку
 // и снимает ТОЛЬКО то, что делает сама страница — в первую очередь payment_pages/{cs}/confirm с его
 // реальным passive_captcha_token, guid/muid/sid, js_checksum и px3. Кладёт отчёт в data/results/.

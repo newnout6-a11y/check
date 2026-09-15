@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_inspect.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Разовый снимок DOM и фреймов чекаута.
+
 // Диагностика формы оплаты: что реально в DOM, какие фреймы, что происходит при клике по «Карта».
 // Запуск: node tools/checkout_inspect.cjs [cdp]
 const fs = require("fs");

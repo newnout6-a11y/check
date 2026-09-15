@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/esc_probe.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Проверка Escape ПО ЭЛЕМЕНТУ против панели подсказок (29 -> 0, адрес цел).
+
 // Проверяет, чем реально закрывается панель подсказок адреса: Escape ПО ЭЛЕМЕНТУ (el.press), Escape
 // после focus(), Escape после мышиного клика по полю. Печатает результат и сохраняет ли адрес.
 // Запуск: node tools/esc_probe.cjs [cdp]

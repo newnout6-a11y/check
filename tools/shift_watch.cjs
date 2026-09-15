@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/shift_watch.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Замер X поля карты по фазам прогона (нашёл scrollLeft=42 у панели).
+
 // Ловит горизонтальный сдвиг: в пяти точках прогона снимает X поля карты, X самого документа фрейма
 // и все ненулевые translate у предков. Ничего не меняет — только измеряет.
 // Запуск: node tools/shift_watch.cjs <ссылка> [cdp] [файл-карт]

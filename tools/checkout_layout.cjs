@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_layout.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Видимые поля текущего варианта страницы: id, name, placeholder.
+
 // Снимает ВИДИМЫЕ поля всех фреймов текущего варианта чекаута: id, name, placeholder, aria-label, позиция.
 // Запуск: node tools/checkout_layout.cjs [cdp]
 const fs = require("fs");

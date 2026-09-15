@@ -1,4 +1,6 @@
 // language: JavaScript (Node, .cjs), file: tools/checkout_fields.cjs, target: Windows + Chrome по CDP
+// РОЛЬ: ДИАГНОСТИКА. Атрибуты полей платёжного фрейма и что появляется после смены страны.
+
 // Снимает точные атрибуты полей платёжного фрейма и то, какие поля появляются после смены страны счёта.
 // Запуск: node tools/checkout_fields.cjs [cdp]
 const fs = require("fs");
