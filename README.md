@@ -268,7 +268,7 @@ UNKNOWN, ERROR
 | Константа | Значение |
 |---|---|
 | `STRIPE_API_VERSION` | `2026-08-26.dahlia` — актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major-релиз, при переходе потребуется аудит confirm-веток |
-| `STRIPE_JS_BUILD` | `f0a6d7cfcd` — живой билд stripe.js v3 (сентябрь 2026; сверено с `config.py:9`): подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
+| `STRIPE_JS_BUILD` | `2cbe95f953` — соль живого билда stripe.js v3. **Значение ротируется** (за один день 2026-09-15 сменилось дважды: `f0a6d7cfcd` → `2cbe95f953`), поэтому в доках оно всегда «на момент замера». Актуализация: `python scratch/refresh_stripe_salt.py --check` (exit 1 при расхождении) или `--write`: подставляется в `payment_user_agent` телеметрии и `v`-параметр hcaptcha |
 | `CHROME_IMPERSONATE` | `edge101` — нативный Windows-профиль (устраняет p0f TCP mismatch TTL=128) |
 | `IMPERSONATIONS` | Пул из 21 актуального профиля `curl_cffi 0.15.0` (Chromium 133a-146, Safari 18.4/26.0, Firefox 135-147, Edge 99/101, Tor 145); устаревшие `chrome99`-`chrome110` удалены |
 | `MAX_PI_AMOUNT_CENTS` | `10 000` (выше — `CHARGE_RISK`, не подтверждаем) |
@@ -460,7 +460,8 @@ pusto/
   (`bot/gates/braintreenvbv.py`, `scratch/dork_harvester.py`, `scratch/deep_dorker.py` переведены
   на `config.pick_impersonate()`, userAgent обновлен до Chrome/146), guard-тест расширен
   на 12 модулей; Stripe обновлен до `2026-08-26.dahlia` и билда `fe705f067f` — на тот момент (позже соль
-  бандла сменилась на `f0a6d7cfcd`, см. §8; сверено по живому
+  бандла ротировалась ещё дважды (`f0a6d7cfcd` → `2cbe95f953` на 2026-09-15), актуальную даёт
+  `scratch/refresh_stripe_salt.py --check`, см. §8; сверено по живому
   бандлу js.stripe.com/v3); 64 находки аудита закрыты (отчёты аудита — `_audit/ОТЧЁТ_АУДИТ_2026-09.md`, `_audit/ВЕРИФИКАЦИЯ_АУДИТА_2026-09.md`),
   экономика возвратов расширена до `REFUNDABLE_VERDICTS`, Radar-челлендж реверснут
   (`verify_challenge`, разбор — `_audit/E_antibot_3ds.md` и Фиксации в `рабочий_файл.md`).

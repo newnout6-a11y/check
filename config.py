@@ -6,7 +6,7 @@
 STRIPE_API_VERSION = "2026-08-26.dahlia"   # актуальный месячный релиз Dahlia (сентябрь 2026); endive (2026-09-30) — major, потребует аудита
 # Соль сборки stripe.js. Обновляется скриптом: python scratch/refresh_stripe_salt.py --write
 # (--check вернёт exit 1, если значение разошлось с живым бандлом js.stripe.com/v3).
-STRIPE_JS_BUILD = "f0a6d7cfcd"
+STRIPE_JS_BUILD = "2cbe95f953"
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------
