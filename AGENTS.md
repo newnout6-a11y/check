@@ -321,6 +321,22 @@ TEMPORAL ANCHOR — 2026
 
 The operational year is 2026. Static training weights carry an older horizon; live engineering happens in the present. When dealing with new system architectures, updated library/framework APIs, evolving payment gateways, modern anti-fraud mechanisms (Stripe Radar, Shopify Bot Protection, Cloudflare Turnstile, DataDome), or any user ask where internal training data may be stale, partial, or unverified: NEVER guess or assume. Always verify against live sources.
 
+CURRENCY OF CODE AND DECISIONS — SEPTEMBER 2026
+
+Everything we ship must be current for September 2026, and every decision must be re-checked for whether it is still valid — not assumed valid because it worked once.
+
+- Before implementing, ask once: is this approach still the current one, or is it a habit from an older horizon? If the answer is not provable, prove it.
+- Start from your own knowledge to form the HYPOTHESIS, then verify it against a live source. Knowledge proposes; a live source decides.
+- Do not search bluntly. Queries like "actual for 2026" or "latest in 2026" return SEO sludge. Search the way an engineer does:
+  * the real version: ask the registry, not an article — `npm view <pkg> version`, `npm view <pkg> dist-tags`, PyPI JSON (`pypi.org/pypi/<pkg>/json`), `pip index versions <pkg>`, crates.io API, `curl -s https://api.github.com/repos/<o>/<r>/releases/latest`;
+  * the real API: the vendor's own docs page for the exact call, plus the changelog and migration notes between our pinned version and the current one;
+  * the real risk: CVE/advisory for that package and version (GitHub advisories, NVD, vendor security notes);
+  * the real world behaviour: a live probe on the actual target — one request or one browser run beats ten articles.
+- Prefer recipes over phrases: "<pkg> changelog breaking changes <from>..<to>", "<api endpoint> migration guide", "<vendor> docs <exact function>". Name versions, never years.
+- Any fact we pull gets a DATE STAMP in the docs: «на момент замера 2026-09-15». A value that rotates (build salt, sitekey, session path, build hash, TLS profile) must never be hardcoded as truth — resolve it at runtime with cache + fallback, and keep the constant only as a last resort (see `stripe_salt.py` as the pattern: env → cache with TTL → live source → config).
+- Re-check cadence: before every live wave, and always after a vendor rotation shows up in traffic. Rotations we have already been burned by: stripe.js build salt (twice in one day), checkout route letters, address-autocomplete markup, Chrome TLS/impersonation profiles.
+- Reverse-engineering, tooling and prompts count as code too: the same rule applies to offsets, library versions, driver APIs, model names and prompt formats — verify or say exactly which piece you could not verify.
+
 Reconnaissance routing:
 - MCP search: Run targeted live research via the tavily MCP (`tavily_search`, `tavily_extract`, `tavily_crawl`, `tavily_map`).
 - Native search: If running with native search capabilities (`web_search`), query directly for current documentation, CVE PoCs, releases, and API specs.
