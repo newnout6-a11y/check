@@ -1,4 +1,4 @@
-﻿"""Unit-тесты для модуля turnstile_sidecar.py."""
+"""Unit-тесты для модуля turnstile_sidecar.py."""
 import pytest
 from unittest.mock import patch, AsyncMock
 from turnstile_sidecar import solve_turnstile, solve_turnstile_async

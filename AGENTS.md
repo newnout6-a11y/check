@@ -322,14 +322,15 @@ TEMPORAL ANCHOR — 2026
 The operational year is 2026. Static training weights carry an older horizon; live engineering happens in the present. When dealing with new system architectures, updated library/framework APIs, evolving payment gateways, modern anti-fraud mechanisms (Stripe Radar, Shopify Bot Protection, Cloudflare Turnstile, DataDome), or any user ask where internal training data may be stale, partial, or unverified: NEVER guess or assume. Always verify against live sources.
 
 Reconnaissance routing:
-- MCP search: Run targeted live research via `tavily-local` or `tavily-remote` (`tavily_search`, `tavily_extract`).
-- Native search: If running with native search capabilities (`search_web`), query directly for current documentation, CVE PoCs, releases, and API specs.
+- MCP search: Run targeted live research via the tavily MCP (`tavily_search`, `tavily_extract`, `tavily_crawl`, `tavily_map`).
+- Native search: If running with native search capabilities (`web_search`), query directly for current documentation, CVE PoCs, releases, and API specs.
+- Проектный резерв: `python _audit/tavily.py "запрос" N` — работает и без MCP.
 
 MCP INFRASTRUCTURE & DISCIPLINE
 
 The workbench is equipped with dedicated Model Context Protocol (MCP) servers. Reach across the bench cleanly without narration.
 
-1. `codebase-memory-mcp` — Knowledge Graph Codebase Intelligence
+1. `codebase-memory` (MCP) — Knowledge Graph Codebase Intelligence
 Always prefer graph tools over raw grep/glob for code navigation and structural discovery.
 - `search_graph`: Find functions, classes, routes, models, and symbols by regex pattern.
 - `trace_path`: Trace execution flows — who calls a target function (`direction="inbound"`) or what it calls (`direction="outbound"`).
@@ -338,7 +339,7 @@ Always prefer graph tools over raw grep/glob for code navigation and structural 
 - `get_architecture`: Extract high-level component topology and dependency trees.
 - Fallback to grep/glob only when searching string literals, error logs, raw configs, or non-code files.
 
-2. `tavily-local` & `tavily-remote` — Live Web Intelligence
+2. `tavily` (MCP) — Live Web Intelligence
 Used for deep web reconnaissance, technical validation, and target inspection.
 - **RESTRICTION**: NEVER use the `tavily_research` tool. Explicitly forbidden by dj.
 - `tavily_search`: Fast, targeted queries for modern documentation, CVE PoCs, updated vendor docs, API shifts.
@@ -353,10 +354,11 @@ Full headless and visual browser instrumentation.
 - `list_network_requests`, `get_network_request`: Intercept client-side XHR/fetch tokens, headers, cookies, and anti-fraud telemetry.
 - `take_screenshot`, `take_snapshot`: Capture visual layout and accessibility trees.
 
-4. `ai-game-developer` — Engine Integration
-- `list_engine_instances`: Detect running engine processes and dev instances.
-- `select_engine_instance`: Bind to the target engine process.
-- `enroll_engine_plugin`: Register modification plugins and hooks into the engine pipeline.
+4. `playwright` (MCP) и `checkout-reverser` (MCP) — браузерная работа и разбор чекаутов
+- `browser_navigate`, `browser_snapshot`, `browser_evaluate`: навигация, снимок дерева доступности, JS на странице.
+- `browser_network_requests`, `browser_console_messages`: сеть и консоль страницы.
+- `checkout_launch`, `checkout_get_iframes`, `checkout_get_postmessages`, `checkout_analyze`: изолированный разбор платёжных страниц.
+- Замечание: `ai-game-developer` в этой сборке недоступен.
 
 VERSION CONTROL — DETAILED COMMITS
 
@@ -369,5 +371,5 @@ Commit format:
 - Problem / Objective: What prompted the change (bug, new requirement from dj, architectural refactor).
 - Technical Modifications: Exact breakdown of changes per file/module, algorithm updates, schema changes.
 - Invariants & Side Effects: Impact on data flows, state persistence, error handling, performance.
-- Verification: Test suite results (e.g. pytest tests/ -q -> 186 passed), manual validation steps completed.
+- Verification: Test suite results (e.g. pytest tests/ -q -> 494 passed), manual validation steps completed.
 ```
