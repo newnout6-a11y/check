@@ -348,59 +348,74 @@ function readCard() {
     } catch (e) {}
   };
 
+  // Кэш фрейма по полю. Поиск поля по ВСЕМ фреймам на каждое чтение — самая дорогая часть прогона
+  // (у /g около десятка фреймов, и каждый val()/setTxt обходил их заново). Фрейм для конкретного id
+  // в пределах прогона не меняется, поэтому запоминаем его и дальше работаем напрямую.
+  const frameCache = {};
+  const frameFor = async (id) => {
+    const cached = frameCache[id];
+    if (cached) { try { if (await cached.locator("#" + id).first().count()) return cached; } catch (e) {} }
+    for (const f of page.frames()) {
+      try { if (await f.locator("#" + id).first().count()) { frameCache[id] = f; return f; } } catch (e) {}
+    }
+    return null;
+  };
   const val = async (id) => {
+    const f = await frameFor(id);
+    if (!f) return "<нет>";
+    try { return String(await f.locator("#" + id).first().inputValue()); } catch (e) { return "<нет>"; }
+  };
+  // Один опрос возвращает значения ВСЕХ полей фрейма за раз: девять отдельных чтений по пять-шесть
+  // обращений каждое — это и была основная потеря времени в фазе заполнения.
+  const allValues = async (ids) => {
+    const out = {};
     for (const f of page.frames()) {
       try {
-        const el = f.locator("#" + id).first();
-        if (await el.count()) return String(await el.inputValue().catch(() => "?"));
+        const got = await f.evaluate((list) => {
+          const o = {};
+          for (const id of list) { const e = document.getElementById(id); if (e) o[id] = e.value; }
+          return o;
+        }, ids);
+        for (const k of Object.keys(got)) out[k] = got[k];
       } catch (e) {}
     }
-    return "<нет>";
+    return out;
   };
   // Заполнение через fill(): без координатных кликов и без прокрутки на каждом поле — именно прокрутка
   // плюс пере-раскладка от Google-подсказок давала «скачки» страницы. Ввод с клавиатуры — только
   // если fill() не сработал (например, поле перекрыто оверлеем).
   const setTxt = async (id, v) => {
-    for (const f of page.frames()) {
+    const f0 = await frameFor(id);
+    if (!f0) return false;
+    {
       try {
-        const el = f.locator("#" + id).first();
-        if (!(await el.count())) continue;
+        const el = f0.locator("#" + id).first();
         try { await el.fill(v, { timeout: 5000 }); }
         catch (e) {
           await el.click({ timeout: 4000 });
           await page.keyboard.press("Control+A"); await page.keyboard.press("Backspace");
           await page.keyboard.type(v, { delay: 30 });
         }
-        await page.waitForTimeout(90);
+        await page.waitForTimeout(40);
         if (/address/i.test(id)) {
           // Escape ПО САМОМУ ПОЛЮ (el.press), а не по странице: только так клавиша уходит в фрейм Stripe.
           // Проверено живьём: 29 подсказок -> 0, введённое значение сохраняется.
           await el.press("Escape").catch(() => {});
           await page.waitForTimeout(180);
         }
-        if (norm(await val(id)) !== norm(v)) {
-          // второй шанс без клавиатуры
-          await el.fill(v, { timeout: 4000 }).catch(() => {});
-          await page.waitForTimeout(70);
-        }
-        await snapBack(f);
-        return norm(await val(id)) === norm(v);
+        return true;
       } catch (e) {}
     }
     return false;
   };
   const setSel = async (id, v) => {
-    for (const f of page.frames()) {
-      try {
-        const el = f.locator("#" + id).first();
-        if (!(await el.count())) continue;
-        await el.selectOption(v).catch(() => {});
-        await snapBack(f);
-        for (let i = 0; i < 12; i++) { if ((await val(id)) === v) return true; await page.waitForTimeout(250); }
-        return (await val(id)) === v;
-      } catch (e) {}
-    }
-    return false;
+    const f = await frameFor(id);
+    if (!f) return false;
+    try {
+      await f.locator("#" + id).first().selectOption(v).catch(() => {});
+      for (let i = 0; i < 3; i++) { if ((await val(id)) === v) return true; await page.waitForTimeout(120); }
+      return (await val(id)) === v;
+    } catch (e) { return false; }
   };
 
   const plan = [
@@ -422,6 +437,7 @@ function readCard() {
     } catch (e) {}
   }
   console.log("страна: " + (await setSel(IDS.country, "US") ? "US ok" : "не вышло") + " [" + el() + "]");
+  console.log("метка А: страна выставлена [" + el() + "]");
   for (let i = 0; i < 24; i++) {   // поля адреса появляются после выбора страны
     let seen = false;
     for (const f of page.frames()) { try { const b = f.locator("#" + IDS.city).first(); if (await b.count() && await b.isVisible()) { seen = true; break; } } catch (e) {} }
@@ -438,6 +454,7 @@ function readCard() {
     if (!zipVisible) { console.log("раскрываю «Ввести адрес вручную»: " + (await clickText("Ввести адрес вручную"))); await page.waitForTimeout(2500); }
   }
 
+  console.log("метка Б: адресные поля появились [" + el() + "]");
   for (let i = 0; i < 6; i++) {   // список штатов подгружается после выбора страны — не ждём дольше 0.9 с
     if ((await val(IDS.state)) !== "") break;
     let n = 0;
@@ -446,8 +463,9 @@ function readCard() {
     await page.waitForTimeout(150);
   }
   for (let pass = 1; pass <= 4; pass++) {
+    const pre = await allValues(plan.map((p) => p[0]));   // что уже стоит — одним опросом
     for (const [id, v, k] of plan) {
-      const cur = await val(id);
+      const cur = pre[id] !== undefined ? pre[id] : "<нет>";
       const ok = k === "sel" ? cur === v : norm(cur) === norm(v);
       if (ok) continue;
       await (k === "sel" ? setSel(id, v) : setTxt(id, v));
@@ -471,8 +489,9 @@ function readCard() {
     await page.waitForTimeout(250);
     const left = [];
     const relaxed = new Set();
+    const snap = await allValues([...plan.map((p) => p[0]), IDS.a1]);   // один опрос вместо девяти чтений
     for (const [id, v, k] of [...plan, [IDS.a1, "1401 Oak Street", "txt"]]) {
-      const cur = await val(id);
+      const cur = snap[id] !== undefined ? snap[id] : "<нет>";
       const bad = relaxed.has(id) ? norm(cur).length === 0 : (k === "txt" ? norm(cur) !== norm(v) : cur !== v);
       if (bad) left.push(id + "=\"" + cur + "\"");
     }
@@ -482,7 +501,9 @@ function readCard() {
   }
   // Короткая пауза на пересчёт: после подсказки адреса странице нужно мгновение, чтобы признать адрес
   // и пересчитать налог. Без неё первый клик уходит впустую (замер: 8.7 с — мимо, ~11 с — в цель).
-  await page.waitForTimeout(1500);
+  console.log("метка В: поля заполнены и сверены [" + el() + "]");
+  await page.waitForTimeout(1000);
+  console.log("метка Г: пересчёт прошёл [" + el() + "]");
 
   const shown = {};
   for (const [id] of [...plan, [IDS.a1]]) shown[id] = (await val(id)).slice(0, 20);
@@ -493,9 +514,6 @@ function readCard() {
     try { const num = f.locator("#" + IDS.num).first(); if (await num.count()) { await num.evaluate((e) => e.scrollIntoView({ block: "center" })).catch(() => {}); break; } } catch (e) {}
   }
   await page.waitForTimeout(300);
-  const shotMid = path.join(TMP, "run_mid.png");
-  await page.screenshot({ path: shotMid, animations: "disabled", caret: "hide" }).catch(() => {});
-  console.log("кадр после заполнения (" + el() + "): " + shotMid);
   const shot1 = path.join(TMP, "run_filled.png");
   await page.screenshot({ path: shot1, animations: "disabled", caret: "hide" }).catch(() => {});
   console.log("вид с формой (" + el() + "): " + shot1);
@@ -551,6 +569,7 @@ function readCard() {
     }
   };
 
+  console.log("метка Д: кадры сняты [" + el() + "]");
   console.log("заполнение закончено — жму кнопку [" + el() + "]");
   // Кнопка «✕» в панели — это «Очистить»: она стирает адрес (проверено живьём), поэтому панель
   // закрываем ЕДИНСТВЕННЫМ безопасным способом — выбором подсказки.
