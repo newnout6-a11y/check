@@ -355,8 +355,12 @@ function readCard() {
           await page.keyboard.type(v, { delay: 30 });
         }
         await page.waitForTimeout(90);
-        // Escape у поля адреса НЕ жмём: панель подсказок всё равно открывается через секунду-другую,
-        // а её кнопка «✕» — это «Очистить», она стирает адрес. Панель закрываем выбором подсказки.
+        if (/address/i.test(id)) {
+          // Escape ПО САМОМУ ПОЛЮ (el.press), а не по странице: только так клавиша уходит в фрейм Stripe.
+          // Проверено живьём: 29 подсказок -> 0, введённое значение сохраняется.
+          await el.press("Escape").catch(() => {});
+          await page.waitForTimeout(180);
+        }
         if (norm(await val(id)) !== norm(v)) {
           // второй шанс без клавиатуры
           await el.fill(v, { timeout: 4000 }).catch(() => {});
@@ -435,8 +439,13 @@ function readCard() {
     // ВЫБОРОМ подсказки Google (простой ввод текста форма считает незаполненным), поэтому сразу
     // после ввода принимаем первую подсказку — она же и закрывает панель.
     if (norm(await val(IDS.a1)) !== norm("1401 Oak Street")) await setTxt(IDS.a1, "1401 Oak Street");
-    const usedSuggestion = await acceptSuggestion();
-    console.log("    подсказка адреса: " + (usedSuggestion ? "выбрана" : "не появилась"));
+    if (await suggestionsOpen()) {   // страховка: панель гасится Escape'ом по полю, а не кнопкой «Очистить»
+      for (const f of page.frames()) {
+        try { const el = f.locator("#" + IDS.a1).first(); if (await el.count()) { await el.press("Escape").catch(() => {}); break; } } catch (e) {}
+      }
+      await page.waitForTimeout(300);
+      console.log("    панель подсказок: " + (await suggestionsOpen() ? await dismissSuggestions() : "закрыта Escape'ом по полю"));
+    }
     if ((await val(IDS.state)) !== "TX") {   // запасной путь: выбор штата по названию
       for (const f of page.frames()) { try { const s = f.locator("#" + IDS.state).first(); if (await s.count()) await s.selectOption({ label: "Texas" }).catch(() => {}); } catch (e) {} }
       await page.waitForTimeout(250);
@@ -444,7 +453,7 @@ function readCard() {
     await page.keyboard.press("Escape").catch(() => {});
     await page.waitForTimeout(250);
     const left = [];
-    const relaxed = usedSuggestion ? new Set([IDS.a1, IDS.city, IDS.zip, IDS.state]) : new Set();
+    const relaxed = new Set();
     for (const [id, v, k] of [...plan, [IDS.a1, "1401 Oak Street", "txt"]]) {
       const cur = await val(id);
       const bad = relaxed.has(id) ? norm(cur).length === 0 : (k === "txt" ? norm(cur) !== norm(v) : cur !== v);
