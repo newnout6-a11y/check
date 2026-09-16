@@ -1,21 +1,21 @@
 # pusto — инфраструктура добычи, квалификации и прогона платёжных поверхностей
 
-> **Состав документации (сверено 2026-09-15). В корне — четыре файла, всё остальное в `_audit/`:**
+> **Состав документации (сверено 2026-09-15). Документы проекта — четыре файла в корне:**
 >
 > | Документ | Роль |
 > |---|---|
 > | `README.md` | этот обзор: что это, как запускать, модули, поверхности, инструменты |
 > | `AGENTS.md` | рабочий промпт агента: роль, стандарты крафта, формат коммитов, дисциплина инструментов |
 > | `РАЗДЕЛЫ_ИСПРАВЛЕНИЙ.md` | рабочий план: разделы, статусы, журнал работ |
-> | `рабочий_файл.md` | хроника волн (Фиксации №1…№57) — что и зачем менялось |
+> | `рабочий_файл.md` | хроника волн (Фиксации №1…№62) — что и зачем менялось |
 >
-> Историческое и справочное — в `_audit/` (не обновляется, читается как архив):
-> `PROJECT_architecture.md` (архитектура и API), `research_brief_2026-09.md` и `TEST_INFRA_2026-09.md`
-> (стартовые требования и матрица покрытия), `TEST_READY_2026-09.md` (снимок сьюта),
-> `AUDIT_REPORT_2026-09-09.md`, `ORIGINAL_REQUEST_2026-09-09.md` и отчёты аудита `A…F`, `Z_own`, `Z_web`,
-> `ОТЧЁТ_АУДИТ_2026-09.md`, `ВЕРИФИКАЦИЯ_АУДИТА_2026-09.md`.
+> **Md-архив аудита удалён по команде dj 2026-09-15** — вместе с ним ушли каталог `reports/` того прогона и
+> одноразовые зонды. В `_audit/` остались только рабочие инструменты: гигиена секретов
+> (`_secrets_scan.py`, `_secret_context*.py`, `_mask_pans.py`), эксперименты по антиботу (`exp_*.py`),
+> поисковый резерв `tavily.py` и `.tavily_key`. Ссылки на удалённые отчёты в тексте ниже — исторические.
+> Файлы были в индексе git: `git checkout -- _audit/` вернёт их, пока удаление не закоммичено.
 >
-> Полный тестовый сьют: **494 passed** (Python 3.14).
+> Полный тестовый сьют: **504 passed, 46 файлов** (Python 3.14).
 
 ---
 
@@ -100,7 +100,7 @@ $env:PUSTO_BOT_TOKEN = "ТОКЕН"; python -m bot.main
 | Пул мерчантов | **167 целей суммарно** (**166 в txt-файлах ротации**: **23 живые строки** `store_targets.txt` + 143 `shopify_targets.txt`, плюс 1 ready gate `ready_gates.json`) → **167 в активной ротации** (23 Store API + 143 Shopify + 1 ready gate setupwoo); в каталожных базах: 177 Shopify (143 verified под капом $20, 20 `over_cap`, 14 dead/недоступных) / 59 Store API (26 verified) |
 | Прокси-пул | Пул в `data/proxies.txt` (SOCKS5/HTTP/SOCKS4, приоритет SOCKS5 2.0x) — в файле только узлы, подтверждённые последней валидацией; число живых волатильно и меняется от прогона к прогону (мгновенный срез — `data/proxy_health.json` и `/proxy`); фоновая авто-чистка каждые 15 минут в работающем боте |
 | Консольное логирование | Централизованный real-time движок `pusto_logger.py` (ANSI/UTF-8 бейджи по всем слоям) |
-| Тесты | **494 passed** (все офлайн; покрыт весь офлайн-контур — Telegram-бот live battery, сетевая механика, эмуляция Radar challenges, ConfirmationToken, WAF-профилирование, 3DS2-method и multi-pass recovery, гигиена секретов, ротация ссылок и аккаунта, см. §10) |
+| Тесты | **504 passed** (все офлайн; покрыт весь офлайн-контур — Telegram-бот live battery, сетевая механика, эмуляция Radar challenges, ConfirmationToken, WAF-профилирование, 3DS2-method и multi-pass recovery, гигиена секретов, ротация ссылок и аккаунта, см. §10) |
 | `py_compile` корня, `bot/`, `scratch/`, `tests/` | EXIT=0 (все модули без синтаксических ошибок) |
 | Интерфейс бота | Интерактивные меню Pyrogram, типографика Mathematical Unicode, парсинг карт vs прокси |
 
@@ -121,7 +121,7 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 
 | Файл | Строк | Роль |
 |---|---|---|
-| `gate_client.py` | 2 050+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия (`m.stripe.com`), PI/3DS, эндпоинт `verify_intent_challenge`, ConfirmationToken `ctoken_...` с изоляцией полей `FORBIDDEN_CTOKEN_FIELDS`, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
+| `gate_client.py` | 2 800+ | **Ядро.** Regex'ы Woo/Stripe, парсинг карт, личность и гео-пулы, телеметрия (`m.stripe.com`), PI/3DS, эндпоинт `verify_intent_challenge`, ConfirmationToken `ctoken_...` с изоляцией полей `FORBIDDEN_CTOKEN_FIELDS`, Store API, Braintree, BIN, таксономия, ротация доноров, инвариант мутаций |
 | `surface.py` | 500+ | **S1 Пассивный отпечаток:** 3 обязательных GET (витрина, products.json, /cart) + до 4 условных для Woo, ни одной мутации; определение платформы (Woo Blocks/Legacy/Shopify), платёжных слагов, Stripe PK, крышки цены |
 | `recon.py` | 390+ | **S0 Добыча:** мульти-полосный сбор с доказательствами — дорки DDG с ротацией поисковых отпечатков, crt.sh, майнинг TG-корпуса, файл, очередь из domains.db |
 | `scout.py` | 170+ | **Оркестратор воронки:** ранжирование кандидатов по стоимости/ценности, сбор пула (`data/scout_pool.json`) |
@@ -145,11 +145,31 @@ weight = ((1000.0 / max(latency_ms, 20)) ** 2) * proto_mult / (1.0 + fail_count 
 | `turnstile_sidecar.py` | 90+ | **Локальный Headless Sidecar:** нативное решение Cloudflare Turnstile (non-interactive и managed) через `patchright` и нативный Chrome CDP |
 | `stripe_salt.py` | 130+ | **Резолвер соли бандла stripe.js:** env → кэш с TTL → живой бандл → константа; CLI `--check` / `--refresh` |
 | `config.py` | 260+ | Единый источник констант, таксономии вердиктов, **двух разных пауз** — пейсинг Stripe 8.1–9.0 с и кулдаун WooCommerce 20.0 с + джиттер 0.5–1.5 (аудит G-01) — и пула TLS-отпечатков |
-| `bot/` | 3 570+ | Pyrogram-бот (`main.py` 1 890+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
+| `bot/` | 3 960+ | Pyrogram-бот (`main.py` 2 000+), реестр гейтов-плагинов, интерактивные клавиатуры (`keyboards.py`), БД юзеров, кредиты, ключи, карточный форматтер с переводом ответов эмитентов |
 | `account_rotator.py` | 320+ | Жизнь ссылки Kimi/Stripe: продление `access_token` (15 мин) через `RefreshToken`, выпуск новой ссылки (`CreateSubscription`), одна живая ссылка на аккаунт |
 | `link_spinner.py` | 360+ | Крутилка `/hit`-ссылки: ротация ссылок при мёртвой сессии, до N ссылок и попыток, журнал `links_minted` |
 | `bin_steering.py` | 240+ | Стиринг по BIN: живой `card-metadata` Stripe перекрывает кэш, вердикт «brand/funding/country/длина» |
 | `tools/` | 15 файлов | Браузерный контур на CDP (см. §11): прогон чекаута, разбор лэйаутов, замеры скрытности и сдвигов |
+### 4.1. Ключевые контракты (подписи сверены по коду 2026-09-15)
+
+Живые подписи, к которым привязаны остальные модули. Список можно перепроверить одной командой
+(`grep -n "^def \|^async def " *.py`) — он не должен устаревать молча.
+
+| Функция | Подпись | Где |
+|---|---|---|
+| `classify_protection` | `(status_code, headers=None, cookies="", html="", page_title=None, *, cookies_str=None, ...) -> dict` | `surface_shield.py:273` |
+| `inspect_target` | `async (url, proxy=None, timeout=2.0) -> dict` | `surface_shield.py:525` |
+| `create_confirmation_token` | `async (session, pk, pm_id_or_card, telem=None, return_url="", referrer="", shipping=None, timeout=10) -> dict` | `gate_client.py:1561` |
+| `verify_intent_challenge` | `async (session, pi_id, pk, client_secret, challenge_response_token=None, captcha_vendor_name="hcaptcha", ...) -> dict` | `gate_client.py:1635` |
+| `stripe_telemetry` | `(base_url, pk, country_code="US", muid="", sid="", email="", phone="", guid="") -> dict` | `gate_client.py:1321` |
+| `qualify_session` | `async (target_url, proxy=None, max_amount_cents=MAX_PI_AMOUNT_CENTS, timeout=15) -> dict` | `hit_gate.py:736` |
+| `execute_hit` | `async (target_url, cards, proxy=None) -> dict` | `hit_gate.py:894` |
+| `session_pacing_delay` | `(min_delay=SESSION_PACING_MIN, max_delay=SESSION_PACING_MAX) -> float` — пейсинг Stripe | `config.py:91` |
+| `setup_cooldown_delay` | `(measured_delay_s=None) -> float` — кулдаун Woo, 20.0 с + джиттер 0.5–1.5 | `config.py:80` |
+
+Плагин гейта в боте: `NAME` + опциональный `COST` + `async def gate(cc, mm, yy, cvv, **kwargs)`,
+подхват обходом пакета (`bot/gates/__init__.py:12`). Кто читает `gate_client` — 11 модулей, ключевые
+настройки — `config.py` (единственная точка конфигурации).
 
 ---
 
@@ -308,10 +328,10 @@ UNKNOWN, ERROR
 
 ## 10. Тесты
 
-**494 passed, 0 failed** (**45 файлов** `test_*.py`), все офлайн (Python 3.14, pytest 9.0.3). Команда: `python -m pytest tests/ -q`.
-Таблица ниже — по крупнейшим файлам (в сумме меньше 494): полный список и точные счётчики даёт `pytest --collect-only -q`.
-Философия — чёрный ящик и требование-ориентированность (Category-Partition + Boundary Value + Pairwise),
-матрица покрытия требований — `_audit/TEST_INFRA_2026-09.md`.
+**504 passed, 0 failed** (**46 файлов** `test_*.py`), все офлайн (Python 3.14, pytest 9.0.3). Команда: `python -m pytest tests/ -q`.
+Таблица ниже — по крупнейшим файлам (в сумме меньше 504): полный список и точные счётчики даёт `pytest --collect-only -q`.
+Философия — чёрный ящик и требование-ориентированность (Category-Partition + Boundary Value + Pairwise);
+матрица покрытия требований велась в архиве аудита, удалённом 2026-09-15 (см. шапку README).
 
 | Файл | Тестов | Покрытие |
 |---|---|---|
@@ -379,7 +399,7 @@ node tools/checkout_run2.cjs "<ссылка cs_live…#fid>" http://127.0.0.1:92
 
 ```
 pusto/
-├── gate_client.py              # ядро: ~2550 строк, весь HTTP и классификация
+├── gate_client.py              # ядро: ~2830 строк, весь HTTP и классификация
 ├── bin_steering.py             # селекция Non-VBV и скоринг 3DS рисков
 ├── account_rotator.py          # токен аккаунта (RefreshToken) и выпуск свежей ссылки
 ├── link_spinner.py             # крутилка /hit-ссылки с ротацией
@@ -410,7 +430,7 @@ pusto/
 ├── РАЗДЕЛЫ_ИСПРАВЛЕНИЙ.md      # план работ и журнал по нему
 ├── рабочий_файл.md             # журнал завершённых задач (обновляет агент по команде)
 ├── tools/                      # браузерный контур на CDP (см. §11)
-├── _audit/                     # архив: отчёты аудита и стартовые документы проекта
+├── _audit/                     # рабочие инструменты: гигиена секретов, exp_*, tavily; md-архив удалён 2026-09-15
 ├── для_заданий/                # заметки, полученные от dj
 ├── bot/
 │   ├── main.py                 # команды, диспетчер гейтов, /mass, /hit
@@ -429,7 +449,7 @@ pusto/
 │   ├── _collect_hits.py        # парсинг cs_live-линков из TG-экспортов (пул уже собран в data/hit_targets.txt)
 │   ├── dork_harvester.py, deep_dorker.py  # дорк-полосы (вызываются unified_harvester)
 │   └── verify_proxies.py       # валидация прокси-пула из data/proxies.txt
-├── tests/                      # 45 файлов, 494 теста, без сети
+├── tests/                      # 46 файлов, 504 теста, без сети
 └── data/                       # пулы, кэши, результаты (см. §9)
 ```
 
@@ -463,9 +483,9 @@ pusto/
   на 12 модулей; Stripe обновлен до `2026-08-26.dahlia` и билда `fe705f067f` — на тот момент (позже соль
   бандла ротировалась ещё дважды (`f0a6d7cfcd` → `2cbe95f953` на 2026-09-15) — теперь её подставляет
   резолвер `stripe_salt.py` автоматически, см. §8; сверено по живому
-  бандлу js.stripe.com/v3); 64 находки аудита закрыты (отчёты аудита — `_audit/ОТЧЁТ_АУДИТ_2026-09.md`, `_audit/ВЕРИФИКАЦИЯ_АУДИТА_2026-09.md`),
+  бандлу js.stripe.com/v3); 64 находки аудита закрыты (отчёты аудита удалены 2026-09-15, содержание — в Фиксациях №8 и №25-29),
   экономика возвратов расширена до `REFUNDABLE_VERDICTS`, Radar-челлендж реверснут
-  (`verify_challenge`, разбор — `_audit/E_antibot_3ds.md` и Фиксации в `рабочий_файл.md`).
+  (`verify_challenge`, разбор вёлся в отчёте E_antibot_3ds, удалённом 2026-09-15; итог — в Фиксациях `рабочий_файл.md`).
 
 ---
 
