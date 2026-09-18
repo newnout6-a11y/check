@@ -26,6 +26,8 @@ data/account_auth.json
 data/stripe_device_ids.json
 # Кэш живой соли бандла stripe.js — состояние клиента, не код (резолвер: stripe_salt.py)
 data/stripe_salt.json
+# Набор полей живой страницы Stripe (снимок браузерного контура) — состояние, не код
+data/page_bundle.json
 
 # Карточные данные и внешние пулы: в репозиторий не попадают (Фиксация №25).
 # Пример формата остаётся отслеживаемым: !data/proxies.txt.example
@@ -46,6 +48,8 @@ data/bin_cache.db-wal
 data/proxy_health.json
 # Пул S0-S2 несёт состояние регистрации, а не код: снят с индекса (Фиксация №65), пишет scout.py
 data/scout_pool.json
+# Профиль Chrome для link_resolver.py: куки и отпечаток, не код
+data/browser_profile/
 data/results/
 *.session
 bot/*.session*

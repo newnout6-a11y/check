@@ -717,6 +717,23 @@ class CsHitSession:
             for src, dst in (("guid", "guid"), ("muid", "muid"), ("sid", "sid")):
                 if telem.get(src):
                     body[dst] = str(telem[src])
+        # Поля ЖИВОЙ страницы: js_checksum, rv_timestamp, passive_captcha_token, px3/pxvid/pxcts.
+        # Замер 2026-09-18: страница проходит Radar ИМЕННО с ними, а наш confirm без js_checksum
+        # открывает челлендж, который мы всё равно не проходим (Фиксация №45: P1-токен челлендж не гасит,
+        # Фиксация №51: минт возможен только в браузере). Набор снимает браузерный контур -> page_bundle.py.
+        try:
+            import page_bundle
+            page_fields = page_bundle.fields_for(self.cs)
+            for k, v in page_fields.items():
+                if k in ("init_checksum", "version") or not v:
+                    continue                      # своё уже подставлено выше и оно свежее
+                if k not in body:
+                    body[k] = v
+            if page_fields:
+                _log.log_stripe("PAGE_FIELDS", self.cs[:14],
+                                f"взято со страницы: {', '.join(sorted(set(page_fields) - {'init_checksum', 'version'}))}")
+        except Exception as exc:                  # нет набора или он битый — работаем как раньше
+            _log.log_stripe("PAGE_FIELDS", self.cs[:14], f"набор не применён: {exc}")
         if self.hcaptcha_token and getattr(config, "CONFIRM_SEND_RADAR_OPTIONS", False):
             body["radar_options[hcaptcha_token]"] = self.hcaptcha_token
         if self.checksum:

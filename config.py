@@ -11,6 +11,9 @@ STRIPE_API_VERSION = "2026-08-26.dahlia"   # актуальный месячны
 STRIPE_JS_BUILD = "722fe681b4"
 STRIPE_SALT_CACHE_PATH = "data/stripe_salt.json"   # кэш живой соли (не в репозитории)
 STRIPE_SALT_TTL_S = 6 * 3600                       # сколько держать кэш, прежде чем перечитать бандл
+# Набор полей ЖИВОЙ страницы (js_checksum, rv_timestamp, passive_captcha_token, px*) — снимается
+# браузерным контуром и подставляется в confirm, чтобы наш запрос был той же формы, что у страницы.
+PAGE_BUNDLE_PATH = "data/page_bundle.json"
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------
