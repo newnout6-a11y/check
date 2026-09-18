@@ -14,6 +14,9 @@ STRIPE_SALT_TTL_S = 6 * 3600                       # сколько держат
 # Набор полей ЖИВОЙ страницы (js_checksum, rv_timestamp, passive_captcha_token, px*) — снимается
 # браузерным контуром и подставляется в confirm, чтобы наш запрос был той же формы, что у страницы.
 PAGE_BUNDLE_PATH = "data/page_bundle.json"
+# Что именно требует интерактивный челлендж Radar (site_key, rqdata, verification_url) — по строке
+# на челлендж. Витрина отдаёт только пассивный контур; эти данные приходят ответом confirm.
+RADAR_CHALLENGE_LOG = "data/radar_challenges.jsonl"
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
 
 # --- D-30: ротация TLS-отпечатка ---------------------------------------------
@@ -217,6 +220,14 @@ THREE_DS_METHOD_POLL_DELAY_S = 2.5
 # отправляет токен капчи верхним уровнем как passive_captcha_token. Пока держим False — иначе
 # каждая попытка начинается со сгоревшего запроса; флаг оставлен для отката мимикрии.
 CONFIRM_SEND_RADAR_OPTIONS = False
+
+# Звать ли POST /v1/payment_pages/{cs}/init — шаг, который делает страница и которого у нас не было.
+# Живой съём трафика страницы 2026-09-18 (tools/network_dump.cjs): тело
+# key=<pk>&eid=NA&browser_locale=ru-RU&browser_timezone=Europe/Moscow&redirect_type=url.
+# Тело ответа — состояние сессии; вызывается ДО confirm. Флаг оставлен для отката.
+HIT_SESSION_INIT = True
+HIT_SESSION_LOCALE = "ru-RU"
+HIT_SESSION_TIMEZONE = "Europe/Moscow"
 
 # --- Ротация ссылки аккаунтом (по смерти сессии) ---
 # Живой замер 2026-09-13: выпуск новой ссылки делает предыдущую недействительной, поэтому ротация —

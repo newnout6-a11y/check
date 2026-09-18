@@ -79,6 +79,29 @@ def from_report(path: str | pathlib.Path) -> dict:
     return bundle
 
 
+def from_capture(path: str | pathlib.Path) -> dict:
+    """Собирает набор из тела confirm, снятого перехватом CDP (tools/hcaptcha_capture.cjs).
+
+    Отличие от отчёта: у перехвата есть только URL запроса и тело. Сессию берём из URL
+    (/payment_pages/{cs}/confirm), ссылку не знаем — fields_for() сверяет по cs.
+    """
+    raw = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    body = str(raw.get("body") or "")
+    if not body:
+        raise SystemExit(f"в {path} нет тела confirm")
+    m = re.search(r"/payment_pages/(cs_[A-Za-z0-9]+)/confirm", str(raw.get("url") or ""))
+    fields = parse_body(body)
+    return {
+        "link": "",
+        "cs": m.group(1) if m else "",
+        "harvested_at": time.time(),
+        "harvested_date": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "source_report": str(path),
+        "fields": {k: v for k, v in fields.items() if k in PAGE_FIELDS},
+        "seen_keys": sorted(fields.keys()),
+    }
+
+
 def save(bundle: dict) -> pathlib.Path:
     p = bundle_path()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -99,9 +122,13 @@ def fields_for(cs_id: str | None = None) -> dict[str, str]:
     data = load()
     if not data.get("fields"):
         return {}
-    link = str(data.get("link") or "")
-    if cs_id and link and cs_id not in link:
-        return {}                                     # набор от другой ссылки — не мешаем
+    if cs_id:
+        cs = str(data.get("cs") or "")
+        if cs:
+            return dict(data["fields"]) if cs == cs_id else {}   # набор снят под другую сессию
+        link = str(data.get("link") or "")
+        if link and cs_id not in link:
+            return {}                                 # набор от другой ссылки — не мешаем
     return dict(data["fields"])
 
 
@@ -121,11 +148,12 @@ def summarise(bundle: dict) -> str:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Поля страницы Stripe для /hit")
     ap.add_argument("--from-report", dest="report", help="отчёт браузерного прогона run_*.json")
+    ap.add_argument("--from-capture", dest="capture", help="перехват CDP data/confirm_capture.json")
     ap.add_argument("--show", action="store_true", help="показать текущий набор")
     args = ap.parse_args(argv)
 
-    if args.report:
-        bundle = from_report(args.report)
+    if args.report or args.capture:
+        bundle = from_report(args.report) if args.report else from_capture(args.capture)
         p = save(bundle)
         print(f"[+] набор сохранён: {p}")
         print(summarise(bundle))

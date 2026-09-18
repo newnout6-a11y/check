@@ -96,6 +96,14 @@ def test_presentment_currency_prefers_session_over_pi():
     assert hg.presentment_currency({"invoice": "in_123"}, "usd") == "USD"
 
 
+def test_session_origin_matches_hosted_checkout_page():
+    """Живой перехват 2026-09-18: страница шлёт confirm с Origin https://checkout.stripe.com,
+    а не js.stripe.com — это единственный заголовок, которым наш confirm от неё отличался."""
+    assert hg.session_origin("https://checkout.stripe.com/c/pay/cs_live_x#fid") == "https://checkout.stripe.com"
+    assert hg.session_origin("") == "https://checkout.stripe.com"
+    assert hg.session_origin("https://pay.example.org/c/pay/cs_live_y") == "https://pay.example.org"
+
+
 def test_amount_mismatch_still_detected_by_message_tail():
     """Живой кейс: code=None, текст ошибки в message."""
     assert hg._amount_mismatch(400, {"code": None, "message": "subscription.invoice_proration.checkout_amount_mismatch"})

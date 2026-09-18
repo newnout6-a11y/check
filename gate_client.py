@@ -835,6 +835,42 @@ async def fetch_hcaptcha_radar_token(session, pk: str, donor_host: str) -> str |
         return None
 
 
+async def fetch_hcaptcha_token_for_sitekey(session, sitekey: str, rqdata: str = "",
+                                           host: str = "b.stripecdn.com") -> str | None:
+    """Токен hCaptcha ДЛЯ КОНКРЕТНОГО sitekey — в том числе для sitekey интерактивного челленджа.
+
+    Живой замер 2026-09-18: пассивный контур витрины живёт на sitekey 24ed0064…, а челлендж Radar
+    приходит с ДРУГИМ sitekey (c7faac4c…). Токен, выпущенный под пассивный sitekey, к чужому
+    челленджу не подходит — отсюда «Token rejected by Radar». hCaptcha отдаёт токен на запрос
+    checksiteconfig; при pass=true поле c.req и есть ответ (пассивный режим), иначе нужен виджет.
+    Любой сбой → None, вызывающий отвечает без токена.
+    """
+    try:
+        params = {
+            "v": stripe_salt.current_salt(),
+            "sitekey": sitekey,
+            "host": host,
+            "sc": "1",
+            "swa": "1",
+        }
+        if rqdata:
+            params["c"] = rqdata
+        r = await session.post(
+            "https://api.hcaptcha.com/checksiteconfig",
+            params=params,
+            headers={"Origin": f"https://{host}", "Referer": f"https://{host}/",
+                     "Accept": "application/json"},
+            timeout=10,
+        )
+        j = r.json() if r.status_code == 200 else {}
+        tok = _find_key(j, "req") or ""
+        if not tok:
+            return None
+        return tok if str(tok).startswith("P1_") else f"P1_{tok}"
+    except Exception:
+        return None
+
+
 def _find_key(obj, key: str):
     """Рекурсивный поиск значения по ключу в JSON-ответе любой вложенности."""
     if isinstance(obj, dict):
@@ -1638,6 +1674,7 @@ async def verify_intent_challenge(session, pi_id: str, pk: str, client_secret: s
                                   challenge_response_ekey: str | None = None,
                                   token: str | None = None,
                                   vendor: str | None = None,
+                                  origin: str = "https://js.stripe.com",
                                   timeout: int = 15) -> dict:
     """Диспатчит решённый челлендж к POST https://api.stripe.com/v1/payment_intents/{pi_id}/verify_challenge.
     Используется Stripe Radar (hCaptcha Enterprise) при `use_stripe_sdk` / `intent_confirmation_challenge`.
@@ -1659,9 +1696,11 @@ async def verify_intent_challenge(session, pi_id: str, pk: str, client_secret: s
     if challenge_response_ekey:
         body["challenge_response_ekey"] = challenge_response_ekey
 
+    # Origin как у страницы, которая этот челлендж решает: у hosted checkout это
+    # https://checkout.stripe.com (живой перехват 2026-09-18), у Elements — js.stripe.com.
     headers = {
-        "Origin": "https://js.stripe.com",
-        "Referer": "https://js.stripe.com/",
+        "Origin": origin,
+        "Referer": origin + "/",
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
     }

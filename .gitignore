@@ -28,6 +28,12 @@ data/stripe_device_ids.json
 data/stripe_salt.json
 # Набор полей живой страницы Stripe (снимок браузерного контура) — состояние, не код
 data/page_bundle.json
+# Съёмы живых токенов браузерного контура (hCaptcha/passive, тело confirm) — не в индекс.
+data/hc_token.json
+data/confirm_capture.json
+data/verify_capture.json
+data/radar_challenges.jsonl
+data/network_dump.json
 
 # Карточные данные и внешние пулы: в репозиторий не попадают (Фиксация №25).
 # Пример формата остаётся отслеживаемым: !data/proxies.txt.example
