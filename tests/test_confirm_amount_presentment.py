@@ -67,6 +67,35 @@ def test_radar_options_flag_allows_rollback(monkeypatch):
     assert body["radar_options[hcaptcha_token]"] == "P1_fake_token"
 
 
+def test_money_prints_major_units_and_currency():
+    """Живой дефект 2026-09-18: «PI 1900USD» — $19.00 читалось как тысяча девятьсот."""
+    assert hg.money(1900, "usd") == "19.00 USD"
+    assert hg.money(2504, "SGD") == "25.04 SGD"
+    assert hg.money(0, "usd") == "0.00 USD"
+    assert hg.money(5, "usd") == "0.05 USD"
+
+
+def test_money_respects_zero_decimal_currencies():
+    """У JPY/KRW сотых нет: деление на 100 там врёт."""
+    assert hg.money(1329, "jpy") == "1329 JPY"
+    assert hg.money(50000, "KRW") == "50000 KRW"
+
+
+def test_money_survives_garbage():
+    assert hg.money(None, "usd") == "0.00 USD"
+    assert hg.money("not-a-number", "usd") == "? USD"
+    assert hg.money("1900", "usd") == "19.00 USD"
+
+
+def test_presentment_currency_prefers_session_over_pi():
+    """Валюта подтверждения — валюта витрины, а не PI: PI 1900 USD против инвойса 2504 SGD."""
+    assert hg.presentment_currency({"currency": "sgd", "invoice": {"currency": "usd"}}, "usd") == "SGD"
+    assert hg.presentment_currency({"invoice": {"currency": "sgd"}}, "usd") == "SGD"
+    assert hg.presentment_currency({}, "usd") == "USD"
+    assert hg.presentment_currency(None, "usd") == "USD"
+    assert hg.presentment_currency({"invoice": "in_123"}, "usd") == "USD"
+
+
 def test_amount_mismatch_still_detected_by_message_tail():
     """Живой кейс: code=None, текст ошибки в message."""
     assert hg._amount_mismatch(400, {"code": None, "message": "subscription.invoice_proration.checkout_amount_mismatch"})

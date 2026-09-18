@@ -48,6 +48,44 @@ def presentment_amount(data: dict) -> int:
     except (TypeError, ValueError):
         return 0
 
+# Валюты без минорных единиц — у них amount в API уже в целых, делить на 100 нельзя.
+_ZERO_DECIMAL_CCY = frozenset({
+    "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf",
+    "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
+})
+
+
+def money(minor: int | str | None, currency: str = "") -> str:
+    """Минорные единицы Stripe -> читаемая сумма: 1900 USD -> «19.00 USD».
+
+    Живой замер 2026-09-18 (Kimi, cs_live_a1Lwdb…): в лог уходило «1900USD», и $19.00
+    читалось как тысяча девятьсот. Сумма печатается по экспоненте валюты — у JPY/KRW
+    сотых нет, деление на 100 там врёт; код валюты печатается всегда.
+    """
+    try:
+        val = int(minor or 0)
+    except (TypeError, ValueError):
+        return f"? {str(currency or '').upper()}".strip()
+    code = str(currency or "").upper()
+    if code.lower() in _ZERO_DECIMAL_CCY:
+        return f"{val} {code}".strip()
+    sign = "-" if val < 0 else ""
+    return f"{sign}{abs(val) / 100:.2f} {code}".strip()
+
+
+def presentment_currency(data: dict, fallback: str = "") -> str:
+    """Код валюты ПРЕЗЕНТАЦИОННОЙ суммы (витрины), а не валюты PI.
+
+    PI живёт в валюте интеграции: живой замер 2026-09-13 — PI 1900 USD против инвойса
+    2504 SGD. Помечать подтверждаемую сумму кодом валюты PI значит подписывать SGD-число
+    как USD — ровно так в отчёте и появлялось «подтверждаем 2504USD».
+    """
+    if not isinstance(data, dict):
+        return str(fallback or "").upper()
+    inv = data.get("invoice") if isinstance(data.get("invoice"), dict) else {}
+    return str(data.get("currency") or inv.get("currency") or fallback or "").upper()
+
+
 def _amount_mismatch(status_code: int, err: dict) -> bool:
     """checkout_amount_mismatch живёт в error.code, error.decline_code ИЛИ в хвосте
     error.message (живой кейс 06.09.2026: code=None, message='...subscription.
@@ -146,6 +184,9 @@ class CsHitSession:
         # Сумма для payment_pages/confirm — в валюте ВИТРИНЫ (presentment), а не в валюте PI.
         self.expected_amount = 0
         self.currency = ""
+        # Валюта подтверждаемой (презентационной) суммы: у подписок и adaptive pricing она
+        # отличается от валюты PI. Пусто = брать self.currency.
+        self.presentment_currency = ""
         self.checksum = ""
         self.confirms = 0
         self.customer_email = ""
@@ -218,6 +259,7 @@ class CsHitSession:
             # витрины (2504 SGD). confirm сверяет именно презентационную сумму, поэтому берём её сразу:
             # иначе первая же попытка тратится на 400 checkout_amount_mismatch.
             self.expected_amount = presentment_amount(data) or self.amount
+            self.presentment_currency = presentment_currency(data, self.currency)
 
             cust = data.get("customer") or {}
             self.customer_email = str(data.get("customer_email") or cust.get("email") or "")
@@ -246,7 +288,7 @@ class CsHitSession:
 
             if self.amount > self.max_amount:
                 await s.close()
-                return False, f"CHARGE_RISK: {self.amount}{self.currency} > {self.max_amount}c"
+                return False, f"CHARGE_RISK: {money(self.amount, self.currency)} > {self.max_amount}c"
             # Настоящие идентификаторы устройства Stripe (живой замер 2026-09-13): витрина получает
             # muid/guid/sid именно отсюда, а не выдумывает. Берём их, если сервис ответил; иначе — как раньше.
             if not self.muid:
@@ -434,6 +476,7 @@ class CsHitSession:
                     self.amount = int(new_amt)
                     self.expected_amount = int(new_amt)
                     self.currency = str(pi0.get("currency") or data0.get("currency") or self.currency).upper()
+                    self.presentment_currency = presentment_currency(data0, self.currency) or self.presentment_currency
                     body["expected_amount"] = str(self.expected_amount)
                     body["eid"] = str(uuid.uuid4())
                     if "confirmation_token" not in body:
@@ -455,7 +498,7 @@ class CsHitSession:
                 _log.log_stripe("AMOUNT_DRIFT", self.cs[:14], "mismatch x2", "invoice proration unstable")
                 return {"status": "ERROR",
                         "detail": ("подписочный инвойс дрейфует: amount_mismatch повторился "
-                                   f"после пересчёта ({self.amount}{self.currency}) — цель "
+                                   f"после пересчёта ({money(self.amount, self.presentment_currency or self.currency)}) — цель "
                                    "нестабильна, карта эмитентом не проверялась"),
                         "amount_cents": self.amount, "currency": self.currency,
                         "steering_category": profile.category.value,
@@ -468,7 +511,7 @@ class CsHitSession:
                 # (живой замер 2026-09-13: PI 1900 USD против инвойса 2504 SGD). Отчёт обязан
                 # показывать оба, иначе «подтверждено 2504 SGD» выглядит как «PI 1900 USD».
                 "confirmed_amount_cents": getattr(self, "expected_amount", 0) or self.amount,
-                "confirmed_currency": self.currency,
+                "confirmed_currency": self.presentment_currency or self.currency,
                 "steering_category": profile.category.value,
                 "confidence": profile.confidence_score,
                 "reason": profile.reason}
@@ -1010,7 +1053,8 @@ async def execute_hit(target_url: str, cards: list, proxy: str | None = None,
         "currency": gs.currency,
         # Подтверждаем и считаем сумму в валюте витрины: у подписок она отличается от валюты PI.
         "confirmed_amount_cents": getattr(gs, "expected_amount", 0) or gs.amount,
-        "confirmed_currency": gs.currency,
+        # getattr: отчёты собирают и с duck-typed сессиями (тесты, внешние обёртки).
+        "confirmed_currency": getattr(gs, "presentment_currency", "") or gs.currency,
         "terminal_hit": terminal_hit,
         "results": results,
     }
@@ -1122,8 +1166,9 @@ async def main():
     if not ok:
         print(f"[x] open failed: {detail}")
         return
-    print(f"[+] session: {gs.pi_id} | PI {gs.amount}{gs.currency} | подтверждаем "
-          f"{gs.expected_amount or gs.amount}{gs.currency} (confirms: {gs.confirms}/{config.MAX_CONFIRMS_PER_SECRET})")
+    print(f"[+] session: {gs.pi_id} | PI {money(gs.amount, gs.currency)} | подтверждаем "
+          f"{money(gs.expected_amount or gs.amount, gs.presentment_currency or gs.currency)} "
+          f"(confirms: {gs.confirms}/{config.MAX_CONFIRMS_PER_SECRET})")
     try:
         for i, c in enumerate(cards):
             t0 = time.perf_counter()
@@ -1131,7 +1176,7 @@ async def main():
             lat = int((time.perf_counter() - t0) * 1000)
             st = str(res.get("status", "?"))
             steer_tag = f"[{res.get('steering_category', '?')[:6]}]"
-            conf = f"{res.get('confirmed_amount_cents')}{res.get('confirmed_currency')}"
+            conf = money(res.get("confirmed_amount_cents"), res.get("confirmed_currency"))
             print(f">>> [{st:18}] {steer_tag:8} {gc.mask_pan(c)} ({lat}ms) подтверждено {conf} -> "
                   f"{res.get('detail', '')[:100]}", flush=True)
             _log.log_verdict("hit", gc.mask_pan(c), st,
