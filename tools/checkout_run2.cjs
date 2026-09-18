@@ -420,7 +420,7 @@ function readCard() {
     } catch (e) { return false; }
   };
 
-  const plan = [
+  const fullPlan = [
     [IDS.country, "US", "sel"],
     [IDS.num, card.pan, "txt"],
     [IDS.exp, card.mm + card.yy, "txt"],
@@ -430,6 +430,16 @@ function readCard() {
     [IDS.zip, "73301", "txt"],
     [IDS.state, "TX", "sel"],
   ];
+  // План строится ПО ФАКТУ DOM: у разных мерчантов форма собирает разный набор полей.
+  // Живой замер 2026-09-18 (мерчант Meshy): адрес, город и штат в форме ОТСУТСТВУЮТ, есть только индекс.
+  // Раньше скрипт требовал все девять полей и отменял клик — правильное поведение: заполнять и проверять
+  // только то, что страница реально показывает.
+  const planIds = [...fullPlan.map((p) => p[0]), IDS.a1];
+  const present = await allValues(planIds);
+  const absent = planIds.filter((id) => present[id] === undefined);
+  const plan = fullPlan.filter(([id]) => !absent.includes(id));
+  console.log("поля этой сессии: " + plan.length + " из " + fullPlan.length
+    + (absent.length ? " | нет в форме: " + absent.join(", ") : " | набор полный"));
 
   // единственная прокрутка за прогон: форма в поле зрения — дальше страницу не двигаем
   for (const f of page.frames()) {
@@ -457,7 +467,7 @@ function readCard() {
   }
 
   console.log("метка Б: адресные поля появились [" + el() + "]");
-  for (let i = 0; i < 6; i++) {   // список штатов подгружается после выбора страны — не ждём дольше 0.9 с
+  for (let i = 0; i < 6 && !absent.includes(IDS.state); i++) {   // список штатов подгружается после страны
     if ((await val(IDS.state)) !== "") break;
     let n = 0;
     for (const f of page.frames()) { try { const s = f.locator("#" + IDS.state).first(); if (await s.count()) n = await s.evaluate((e) => e.options.length); } catch (e) {} }
@@ -475,15 +485,15 @@ function readCard() {
     // Адрес — последним в фазе заполнения. Живьём проверено: страница регистрирует адрес только
     // ВЫБОРОМ подсказки Google (простой ввод текста форма считает незаполненным), поэтому сразу
     // после ввода принимаем первую подсказку — она же и закрывает панель.
-    if (norm(await val(IDS.a1)) !== norm("1401 Oak Street")) await setTxt(IDS.a1, "1401 Oak Street");
-    if (await suggestionsOpen()) {   // страховка: панель гасится Escape'ом по полю, а не кнопкой «Очистить»
+    if (!absent.includes(IDS.a1) && norm(await val(IDS.a1)) !== norm("1401 Oak Street")) await setTxt(IDS.a1, "1401 Oak Street");
+    if (!absent.includes(IDS.a1) && await suggestionsOpen()) {   // панель гасится Escape'ом по полю, а не «Очистить»
       for (const f of page.frames()) {
         try { const el = f.locator("#" + IDS.a1).first(); if (await el.count()) { await el.press("Escape").catch(() => {}); break; } } catch (e) {}
       }
       await page.waitForTimeout(300);
       console.log("    панель подсказок: " + (await suggestionsOpen() ? await dismissSuggestions() : "закрыта Escape'ом по полю"));
     }
-    if ((await val(IDS.state)) !== "TX") {   // запасной путь: выбор штата по названию
+    if (!absent.includes(IDS.state) && (await val(IDS.state)) !== "TX") {   // запасной путь: штат по названию
       for (const f of page.frames()) { try { const s = f.locator("#" + IDS.state).first(); if (await s.count()) await s.selectOption({ label: "Texas" }).catch(() => {}); } catch (e) {} }
       await page.waitForTimeout(250);
     }
@@ -491,8 +501,9 @@ function readCard() {
     await page.waitForTimeout(250);
     const left = [];
     const relaxed = new Set();
-    const snap = await allValues([...plan.map((p) => p[0]), IDS.a1]);   // один опрос вместо девяти чтений
-    for (const [id, v, k] of [...plan, [IDS.a1, "1401 Oak Street", "txt"]]) {
+    const verifyList = absent.includes(IDS.a1) ? [...plan] : [...plan, [IDS.a1, "1401 Oak Street", "txt"]];
+    const snap = await allValues(verifyList.map((p) => p[0]));   // один опрос вместо девяти чтений
+    for (const [id, v, k] of verifyList) {
       const cur = snap[id] !== undefined ? snap[id] : "<нет>";
       const bad = relaxed.has(id) ? norm(cur).length === 0 : (k === "txt" ? norm(cur) !== norm(v) : cur !== v);
       if (bad) left.push(id + "=\"" + cur + "\"");
@@ -601,7 +612,7 @@ function readCard() {
   const watcher = watch3ds();
   for (let attempt = 1; attempt <= 2; attempt++) {
     if (confirms.some((c) => c.kind === "req")) break;
-    if (await suggestionsOpen()) {
+    if (!absent.includes(IDS.a1) && await suggestionsOpen()) {
       await escAddress();
       console.log("    панель подсказок перед кликом: " + (await suggestionsOpen() ? "осталась, закрываю иначе" : "закрыта Escape'ом по полю"));
       if (await suggestionsOpen()) console.log("    панель: " + (await dismissSuggestions()));
