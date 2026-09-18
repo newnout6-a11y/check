@@ -16,6 +16,11 @@ data/amex_379363.txt (живые по формату PAN) и data/proxies_https_
     шум (фрагменты sha256, npm tmp-пути, параметры Incapsula), но карточные шаблоны и
     карточные слова рядом проверяются и там;
   * отдельный тест следит, что скан действительно покрывает репозиторий и не выродился.
+
+Расширение сторожа (2026-09-18, Фиксация №65). Раздел 1 закрывался по картам и кредам, а состояние
+регистрации осталось: `data/scout_pool.json` держал 190 значений поля `reg_nonce_value` и лежал
+в индексе. Файл снят с индекса и закрыт `.gitignore`; ниже два сторожа — на значения nonce и на
+правила `.gitignore` для WAL боевой базы бота, — чтобы класс не вернулся молча.
 """
 from __future__ import annotations
 
@@ -67,6 +72,11 @@ KNOWN_FIXTURES = {
     "5500005555555559",   # пробник проекта (тестовый Mastercard)
     "4403931234567890",   # фикстура BIN-группы bin_steering
 }
+
+# Заглушки поля регистрационного nonce в тестах: заполнитель, а не живое значение. Список явный —
+# как наборы PAN выше, — чтобы любое новое значение требовало осознанной регистрации здесь.
+# Живой nonce в отслеживаемом файле — падение: см. test_no_registration_nonce_values_in_tracked_files.
+NONCE_PLACEHOLDERS = {"abc123"}
 
 # Расширения, которые считаются текстом и подлежат скану.
 SCAN_EXTS = {".py", ".json", ".md", ".txt", ".yml", ".yaml", ".toml", ".ini", ".cfg",
@@ -301,3 +311,34 @@ def test_no_foreign_absolute_paths_in_scratch():
         if ".gemini" in text or "antigravity" in text:
             offenders.append(rel)
     assert not offenders, "абсолютные пути во внешние каталоги: " + ", ".join(offenders)
+
+
+# Поле регистрационного nonce с непустым значением в JSON. Голое имя поля ловить нельзя: оно
+# упоминается в документации и в этом файле как описание находки, и это законно.
+RE_REG_NONCE_ASSIGNED = re.compile(r'"reg_nonce_value"\s*:\s*"([^"]+)"')
+
+
+def test_no_registration_nonce_values_in_tracked_files():
+    """Значения регистрационного nonce не должны лежать ни в одном отслеживаемом файле.
+
+    До Фиксации №65 в индексе был `data/scout_pool.json` — 19 живых `pk_live_*` и 190 значений этого
+    поля. Ловится класс, а не конкретный файл: имя поля упоминать можно, значение — нет.
+    """
+    offenders: list[str] = []
+    for rel, text in _tracked_files():
+        for m in RE_REG_NONCE_ASSIGNED.finditer(text):
+            if m.group(1) in NONCE_PLACEHOLDERS:
+                continue
+            offenders.append(f"{rel}: {m.group(1)[:4]}… ({len(m.group(1))} симв.)")
+    assert not offenders, (
+        "в отслеживаемых файлах лежат значения регистрационного nonce: "
+        + "; ".join(sorted(set(offenders))[:20])
+    )
+
+
+def test_gitignore_covers_bot_wal_and_scout_pool():
+    """WAL/SHM боевой базы бота и пул S0→S2 — вне репозитория (Фиксация №65)."""
+    text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    for pattern in ("bot/bot_users.db-shm", "bot/bot_users.db-wal", "data/scout_pool.json"):
+        assert pattern in text, f"в .gitignore нет правила {pattern!r}"
+

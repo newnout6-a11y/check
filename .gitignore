@@ -16,6 +16,9 @@ scratch/_cards_test.txt
 # Секреты: живой пул прокси с кредами
 data/proxies.txt
 bot/bot_users.db
+# WAL/SHM боевой базы бота: появляются, когда тесты делают import bot.main (Фиксация №65)
+bot/bot_users.db-shm
+bot/bot_users.db-wal
 
 # Данные аккаунта для ротации ссылок: живой токен, в репозиторий не попадает.
 data/account_auth.json
@@ -41,6 +44,8 @@ data/bin_cache.db
 data/bin_cache.db-shm
 data/bin_cache.db-wal
 data/proxy_health.json
+# Пул S0-S2 несёт состояние регистрации, а не код: снят с индекса (Фиксация №65), пишет scout.py
+data/scout_pool.json
 data/results/
 *.session
 bot/*.session*
