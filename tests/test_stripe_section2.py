@@ -219,3 +219,20 @@ def test_scan_statuses_are_not_verdicts():
     assert "CHALLENGE_PASSED" in config.VERDICTS
     assert "CHALLENGE_PASSED" in config.VERDICT_ICONS
     assert config.coerce_verdict("CHALLENGE_PASSED") == "CHALLENGE_PASSED"
+
+
+def test_pipeline_states_never_collide_with_verdicts():
+    """Ось прогона и ось вердикта не пересекаются (M-06 / G-10, Фиксация №66).
+
+    `SUCCESS` / `COMPLETED` / `PARTIAL` / `FAILED` — состояния исполнения, а не исходы карты: они
+    живут в `config.PIPELINE_STATES` и в поле `pipeline`. Пересечение множеств означало бы, что
+    состояние прогона может попасть в вердикт: `coerce_verdict` свёл бы его к `UNKNOWN`, а `UNKNOWN`
+    кредит не возвращает — пользователь потерял бы его молча, без вердикта и без возврата.
+    """
+    overlap = set(config.PIPELINE_STATES) & set(config.VERDICTS)
+    assert not overlap, f"состояния прогона пересеклись с вердиктами: {sorted(overlap)}"
+    assert "UNKNOWN" not in config.REFUNDABLE_VERDICTS, "UNKNOWN не может быть возвратным вердиктом"
+    for state in config.PIPELINE_STATES:
+        assert config.coerce_verdict(state) not in config.HIT_VERDICTS, (
+            f"состояние прогона {state} не должно выглядеть как хит"
+        )
