@@ -8,7 +8,7 @@ STRIPE_API_VERSION = "2026-08-26.dahlia"   # актуальный месячны
 # (кэш data/stripe_salt.json -> живой бандл js.stripe.com/v3), потому что соль ротируется — 2026-09-15
 # она сменилась дважды за день (f0a6d7cfcd -> 2cbe95f953). Здесь держим заведомо рабочее значение
 # на случай офлайна; синхронность проверяет python stripe_salt.py --check.
-STRIPE_JS_BUILD = "2cbe95f953"
+STRIPE_JS_BUILD = "722fe681b4"
 STRIPE_SALT_CACHE_PATH = "data/stripe_salt.json"   # кэш живой соли (не в репозитории)
 STRIPE_SALT_TTL_S = 6 * 3600                       # сколько держать кэш, прежде чем перечитать бандл
 CHROME_IMPERSONATE = "edge101"   # устарело: см. pick_impersonate() ниже
